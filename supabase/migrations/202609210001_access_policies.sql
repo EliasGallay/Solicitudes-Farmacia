@@ -30,6 +30,7 @@ grant select on public.profiles, public.health_centers, public.products,
   public.requests, public.request_items, public.deliveries, public.delivery_items
 to authenticated;
 grant insert on public.requests, public.request_items to authenticated;
+grant insert, update on public.products to authenticated;
 
 create or replace function public.create_request_with_items(
   requested_health_center_id uuid,
@@ -126,6 +127,17 @@ using (
   active = true
   or public.current_app_role() = 'admin'
 );
+
+drop policy if exists products_insert_admin on public.products;
+create policy products_insert_admin on public.products
+for insert to authenticated
+with check (public.current_app_role() = 'admin');
+
+drop policy if exists products_update_admin on public.products;
+create policy products_update_admin on public.products
+for update to authenticated
+using (public.current_app_role() = 'admin')
+with check (public.current_app_role() = 'admin');
 
 drop policy if exists requests_select_allowed on public.requests;
 create policy requests_select_allowed on public.requests
