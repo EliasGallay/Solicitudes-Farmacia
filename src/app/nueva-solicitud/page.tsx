@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation'
 import { AppShell } from '../../components/app-shell'
+import { NewRequestForm } from '../../components/requests/new-request-form'
+import { FormError, FormSuccess } from '../../components/form-feedback'
 import { createRequest } from '../request-actions'
 import { createSupabaseServerClient } from '../../lib/supabase/server'
 
@@ -23,31 +25,14 @@ export default async function NewRequestPage({ searchParams }: { searchParams: P
   return (
     <AppShell>
       <div className="mx-auto min-h-screen max-w-5xl px-6 py-8">
-        <header className="border-b border-slate-200 pb-6">
+        <header className="border-b border-border pb-6">
           <h1 className="text-3xl font-bold tracking-tight">Nueva solicitud</h1>
-          <p className="mt-2 text-slate-600">Cargá los productos y cantidades que necesitás.</p>
+          <p className="mt-2 text-muted-foreground">Cargá los productos y cantidades que necesitás.</p>
         </header>
-        {params.error && <p className="mt-6 rounded-md bg-red-50 p-3 text-sm text-red-700">{params.error}</p>}
-        {params.success && <p className="mt-6 rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{params.success}</p>}
-        <section className="mt-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <form action={createRequest} className="space-y-5">
-            <label className="block max-w-md text-sm font-medium">
-              Centro de salud
-              <select name="health_center_id" required className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2">
-                <option value="">Seleccionar centro</option>
-                {availableCenters.map((center) => <option key={center.id} value={center.id}>{center.name}</option>)}
-              </select>
-            </label>
-            <div className="grid gap-3 md:grid-cols-2">
-              {(products ?? []).map((product) => (
-                <label key={product.id} className="flex items-center justify-between gap-4 rounded-md border border-slate-200 p-3 text-sm">
-                  <span><span className="font-medium">{product.name}</span><span className="block text-slate-500">{product.presentation}</span></span>
-                  <input name={`quantity_${product.id}`} type="number" min="0" step="1" defaultValue="0" className="w-24 rounded-md border border-slate-300 px-3 py-2 text-right" />
-                </label>
-              ))}
-            </div>
-            <button type="submit" className="rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-700">Crear solicitud</button>
-          </form>
+        <FormError>{params.error}</FormError>
+        <FormSuccess>{params.success}</FormSuccess>
+        <section className="mt-8 rounded-xl border border-border bg-card p-6 shadow-sm">
+          <NewRequestForm action={createRequest} products={products ?? []} centers={availableCenters} />
         </section>
       </div>
     </AppShell>
