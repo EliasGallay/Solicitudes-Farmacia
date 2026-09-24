@@ -10,17 +10,19 @@ import { NewRequestWizard } from '@/components/requests/new-request-wizard'
 import { RequestStepper } from '@/components/requests/request-stepper'
 import { buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { ilikeAny, searchParamSchema } from '@/lib/filters'
+import { likeContains, pageParamSchema, pageRange, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
 import { productTypeParamSchema, type ProductType } from '@/lib/product-types'
 import { formatDateTime, formatRequestNumber } from '@/lib/requests'
 import { requireSession } from '@/lib/session'
 
-export default async function NewRequestPage({ searchParams }: { searchParams: Promise<{ enviada?: string; buscar?: string; tipo?: string }> }) {
+export default async function NewRequestPage({ searchParams }: { searchParams: Promise<{ enviada?: string; buscar?: string; tipo?: string; page?: string; por_pagina?: string }> }) {
   const session = await requireSession()
   const params = await searchParams
   const sentId = z.string().uuid().safeParse(params.enviada)
   const buscar = searchParamSchema.parse(params.buscar)
   const tipo = productTypeParamSchema.parse(params.tipo)
+  const page = pageParamSchema.parse(params.page)
+  const pageSize = pageSizeParamSchema.parse(params.por_pagina)
 
   return (
     <>
@@ -34,27 +36,29 @@ export default async function NewRequestPage({ searchParams }: { searchParams: P
         </>
       ) : (
         <Suspense fallback={<ProductSelectionSkeleton />}>
-          <ProductSelection buscar={buscar} tipo={tipo} isAdmin={session.role === 'admin'} />
+          <ProductSelection buscar={buscar} tipo={tipo} page={page} pageSize={pageSize} isAdmin={session.role === 'admin'} />
         </Suspense>
       )}
     </>
   )
 }
 
-// La búsqueda se resuelve en la base; el total permite distinguir "sin resultados" de "sin productos".
-async function ProductSelection({ buscar, tipo, isAdmin }: { buscar?: string; tipo?: ProductType; isAdmin: boolean }) {
+// Búsqueda y paginación se resuelven en la base; el total general permite distinguir
+// "sin resultados" de "sin productos".
+async function ProductSelection({ buscar, tipo, page, pageSize, isAdmin }: { buscar?: string; tipo?: ProductType; page: number; pageSize: number; isAdmin: boolean }) {
   const { supabase } = await requireSession()
-  let query = supabase.from('products').select('id, name, presentation, product_type').eq('active', true)
+  let query = supabase.from('products').select('id, name, presentation, product_type', { count: 'exact' }).eq('active', true)
   if (tipo) query = query.eq('product_type', tipo)
-  if (buscar) query = query.or(ilikeAny(['name', 'presentation'], buscar))
+  for (const token of searchTokens(buscar ?? '')) query = query.ilike('product_search_text', likeContains(token))
   const [productsResult, totalResult, centersResult] = await Promise.all([
-    query.order('name'),
+    query.order('name').range(...pageRange(page, pageSize)),
     supabase.from('products').select('id', { count: 'exact', head: true }).eq('active', true),
     // Solo el admin elige centro; la farmacéutica usa siempre el de su perfil.
     isAdmin ? supabase.from('health_centers').select('id, name').eq('active', true).order('name') : Promise.resolve({ data: null, error: null }),
   ])
-  if (productsResult.error || totalResult.error || centersResult.error) return <Card><ErrorState title="No pudimos cargar los productos" /></Card>
-  return <NewRequestWizard products={(productsResult.data ?? []) as { id: string; name: string; presentation: string; product_type: ProductType }[]} total={totalResult.count ?? 0} buscar={buscar} tipo={tipo} centers={isAdmin ? (centersResult.data ?? []) as { id: string; name: string }[] : undefined} />
+  // PGRST103: la página pedida está fuera de rango; se trata como sin resultados.
+  if ((productsResult.error && productsResult.error.code !== 'PGRST103') || totalResult.error || centersResult.error) return <Card><ErrorState title="No pudimos cargar los productos" /></Card>
+  return <NewRequestWizard products={(productsResult.data ?? []) as { id: string; name: string; presentation: string; product_type: ProductType }[]} total={totalResult.count ?? 0} matching={productsResult.count ?? 0} page={page} pageSize={pageSize} buscar={buscar} tipo={tipo} centers={isAdmin ? (centersResult.data ?? []) as { id: string; name: string }[] : undefined} />
 }
 
 async function RequestSent({ id }: { id: string }) {
@@ -65,7 +69,7 @@ async function RequestSent({ id }: { id: string }) {
 
   const productCount = (data.request_items as { count: number }[] | null)?.[0]?.count ?? 0
   return (
-    <Card role="status" className="mx-auto flex max-w-xl flex-col items-center gap-2 px-6 py-10 text-center">
+    <Card role="status" className="mx-auto flex max-w-xl motion-safe:animate-enter-from-below flex-col items-center gap-2 px-6 py-10 text-center">
       <div className="mb-2 flex size-14 items-center justify-center rounded-full bg-success-muted text-success"><CircleCheck className="size-8" aria-hidden /></div>
       <h2 className="text-xl leading-7 font-bold text-foreground">Solicitud enviada correctamente</h2>
       <p className="text-sm leading-5 text-foreground-secondary">Tu solicitud quedó registrada con el número:</p>

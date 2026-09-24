@@ -3,30 +3,36 @@ import { ProductForm } from '@/components/products/product-form'
 import { FormError, FormSuccess } from '@/components/form-feedback'
 import { ConfirmSubmit } from '@/components/confirm-submit'
 import { EmptyState } from '@/components/empty-state'
+import { ListFooter } from '@/components/list-footer'
 import { PageHeader } from '@/components/page-header'
 import { createProduct, toggleProduct, updateProduct } from '@/app/product-actions'
+import { listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema } from '@/lib/filters'
+import { feedbackMessage, withFeedback } from '@/lib/feedback'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
-export default async function CatalogsPage({ searchParams }: { searchParams: Promise<{ error?: string; success?: string }> }) {
+export default async function CatalogsPage({ searchParams }: { searchParams: Promise<{ error?: string; success?: string; page?: string; por_pagina?: string }> }) {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: profile }, { data: products }, { data: centers }] = await Promise.all([
+  const params = await searchParams
+  const page = pageParamSchema.parse(params.page)
+  const pageSize = pageSizeParamSchema.parse(params.por_pagina)
+
+  const [{ data: profile }, { data: products, count: productCount }, { data: centers }] = await Promise.all([
     supabase.from('profiles').select('role, must_change_password').eq('user_id', user.id).maybeSingle(),
-    supabase.from('products').select('id, name, presentation, product_type, active').order('name'),
+    supabase.from('products').select('id, name, presentation, product_type, active', { count: 'exact' }).order('name').range(...pageRange(page, pageSize)),
     supabase.from('health_centers').select('id, name, active').order('name'),
   ])
   if (profile?.must_change_password) redirect('/change-password')
-  if (profile?.role !== 'admin') redirect('/?error=Solo+un+administrador+puede+gestionar+catálogos')
-  const params = await searchParams
+  if (profile?.role !== 'admin') redirect(withFeedback('/', 'error', 'solo-admin'))
 
   return (
     <>
       <PageHeader title="Catálogos" description="Administrá los productos disponibles para las solicitudes." />
 
-      <FormError>{params.error}</FormError>
-      <FormSuccess>{params.success}</FormSuccess>
+      <FormError>{feedbackMessage(params.error)}</FormError>
+      <FormSuccess>{feedbackMessage(params.success)}</FormSuccess>
 
       <section className="mt-8 rounded-xl border border-border bg-card p-6 shadow-sm">
         <h2 className="text-xl font-semibold">Nuevo producto</h2>
@@ -34,7 +40,7 @@ export default async function CatalogsPage({ searchParams }: { searchParams: Pro
       </section>
 
       <section className="mt-8 rounded-xl border border-border bg-card p-6 shadow-sm">
-        <div className="flex items-center justify-between gap-4"><h2 className="text-xl font-semibold">Productos</h2><span className="text-sm text-muted-foreground">{(products ?? []).length} registro(s)</span></div>
+        <div className="flex items-center justify-between gap-4"><h2 className="text-xl font-semibold">Productos</h2><span className="text-sm text-muted-foreground">{productCount ?? 0} registro(s)</span></div>
         <div className="mt-4 space-y-4">
           {(products ?? []).map((product) => (
             <div key={product.id} className="rounded-lg border border-border p-4">
@@ -46,6 +52,11 @@ export default async function CatalogsPage({ searchParams }: { searchParams: Pro
             </div>
           ))}
           {(products ?? []).length === 0 && <EmptyState>No hay productos cargados.</EmptyState>}
+          {(products ?? []).length > 0 && (
+            <div className="border-t border-border pt-3">
+              <ListFooter page={page} pageSize={pageSize} shown={(products ?? []).length} total={productCount ?? 0} noun="productos" hrefFor={(value) => listHref('/catalogos', { por_pagina: pageSizeParam(pageSize) }, value)} />
+            </div>
+          )}
         </div>
       </section>
 

@@ -136,12 +136,16 @@ Consultar las solicitudes realizadas por el centro.
 ### Número de solicitud
 
 Secuencia global generada por la base (`requests.request_number`).
-Se muestra como `#SOL-{número}` en todas las pantallas. El filtro acepta
-`1024`, `#1024`, `SOL-1024` o `#SOL-1024`.
+Se muestra como `#SOL-{número}` en todas las pantallas.
 
 ### Filtros
 
-- Número de solicitud.
+- Buscador único: número de solicitud o producto incluido.
+  - Si el texto es un número (`2`, `#2`, `SOL-2`, `#SOL-2`), busca por número
+    parcial (2, 12, 20…) ordenado de menor a mayor: la coincidencia exacta
+    queda primera.
+  - Cualquier otro texto busca por palabras en el número y en el nombre y
+    presentación de los productos de la solicitud.
 - Estado.
 - Fecha desde.
 - Fecha hasta.
@@ -366,9 +370,17 @@ Todo filtro o búsqueda de la aplicación sigue estas reglas:
   en el cliente una colección ya descargada.
 - El estado de los filtros vive en la URL (query string), de modo que
   sea compartible, recargable y compatible con volver atrás.
-- Las búsquedas de texto se aplican tras 300 ms sin escribir y no
-  distinguen mayúsculas (`ilike`), escapando comodines.
+- Las búsquedas de texto se aplican tras 300 ms sin escribir y:
+  - no distinguen mayúsculas ni acentos ("algodon" encuentra "Algodón");
+  - admiten varias palabras en cualquier orden: todas deben aparecer
+    ("para 500" encuentra "Paracetamol 500 mg");
+  - buscan sobre columnas de texto normalizado calculadas en la base
+    (`product_search_text`, `item_search_text`, `request_search_text`).
 - Cambiar un filtro reinicia la paginación.
+- Todo listado se pagina en la base (`range` + `count`): 10 filas por defecto,
+  con selector "Filas por página" (5, 10, 15, 25, 50) en el pie (`ListFooter`).
+  El tamaño vive en la URL (`?por_pagina=`, se omite el valor por defecto) y
+  cambiarlo vuelve a la página 1. Nunca se descarga una colección completa.
 - Los valores derivados que se filtran (ej. cantidad pendiente) se calculan
   en la base (columnas computadas), no en el frontend.
 - Mientras se resuelve la consulta se muestra un skeleton o se atenúa el

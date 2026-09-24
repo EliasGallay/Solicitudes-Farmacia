@@ -11,22 +11,22 @@ import { requestStatusLabels, requestStatuses, type RequestStatus } from '@/lib/
 
 const ALL = 'todos'
 
-export function RequestFilters({ numero, desde, hasta, estado }: { numero?: string; desde?: string; hasta?: string; estado?: RequestStatus }) {
+export function RequestFilters({ buscar, desde, hasta, estado }: { buscar?: string; desde?: string; hasta?: string; estado?: RequestStatus }) {
   const { setFilters, clearFilters } = useUrlFilters()
-  const numberSearch = useSearchFilter('numero', numero)
+  const search = useSearchFilter('buscar', buscar)
 
   function clear() {
-    numberSearch.reset()
+    search.reset()
     clearFilters()
   }
 
   return (
     <Card key={`${desde}-${hasta}`} className="mb-6 flex flex-wrap items-end gap-4 p-4">
       <div className="flex min-w-56 flex-1 flex-col gap-2">
-        <Label htmlFor="filtro-numero">Número de solicitud</Label>
+        <Label htmlFor="filtro-buscar">Buscar</Label>
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-foreground-muted" aria-hidden />
-          <Input id="filtro-numero" type="search" placeholder="Ej.: SOL-1024" className="pl-9" value={numberSearch.value} onChange={(event) => numberSearch.setValue(event.target.value)} />
+          <Input id="filtro-buscar" type="search" placeholder="N° de solicitud o producto..." className="pl-9" value={search.value} onChange={(event) => search.setValue(event.target.value)} />
         </div>
       </div>
       <div className="flex flex-col gap-2">
@@ -47,7 +47,7 @@ export function RequestFilters({ numero, desde, hasta, estado }: { numero?: stri
         <Label htmlFor="filtro-hasta">Fecha hasta</Label>
         <Input id="filtro-hasta" type="date" className="w-44" defaultValue={hasta} min={desde} onChange={(event) => setFilters({ hasta: event.target.value })} />
       </div>
-      <Button variant="secondary" disabled={!numero && !desde && !hasta && !estado} onClick={clear}><FilterX />Limpiar filtros</Button>
+      <Button variant="secondary" disabled={!buscar && !desde && !hasta && !estado} onClick={clear}><FilterX />Limpiar filtros</Button>
     </Card>
   )
 }
