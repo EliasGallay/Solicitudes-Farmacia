@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
+import { withFeedback } from '../../lib/feedback'
 import { createSupabaseServerClient } from '../../lib/supabase/server'
 
 const loginSchema = z.object({
@@ -15,12 +16,12 @@ export async function login(formData: FormData) {
     password: formData.get('password'),
   })
 
-  if (!parsed.success) redirect('/login?error=Datos+de+acceso+inválidos')
+  if (!parsed.success) redirect(withFeedback('/login', 'error', 'login-invalido'))
 
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.auth.signInWithPassword(parsed.data)
 
-  if (error) redirect('/login?error=No+se+pudo+iniciar+sesión')
+  if (error) redirect(withFeedback('/login', 'error', 'login-fallido'))
   redirect('/')
 }
 

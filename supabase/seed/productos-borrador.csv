@@ -1,0 +1,73 @@
+﻿fila_excel;nombre_original;nombre;presentacion;tipo;nota
+4;Adrenalina;Adrenalina;unidad;Medicamento;
+5;Agua Oxigenada;Agua oxigenada;unidad;Medicamento;
+6;Agua Destilada;Agua destilada;unidad;Medicamento;
+7;Amiodarona;Amiodarona;unidad;Medicamento;
+8;Atropina;Atropina;unidad;Medicamento;
+9;Ceftriaxona;Ceftriaxona;unidad;Medicamento;
+10;Dexametazona;Dexametasona;unidad;Medicamento;Corregido: Dexametazona -> Dexametasona.
+11;Diazepan;Diazepam;unidad;Medicamento;Corregido: Diazepan -> Diazepam.
+12;Diclofenac;Diclofenac;unidad;Medicamento;
+13;Difenhidramina;Difenhidramina;unidad;Medicamento;
+14;Dipirona 2,5;Dipirona 2,5 g;unidad;Medicamento;Se explicitó la unidad (g).
+15;Furosemida;Furosemida;unidad;Medicamento;
+16;Hidrocortizona;Hidrocortisona;unidad;Medicamento;Corregido: Hidrocortizona -> Hidrocortisona.
+17;Hiocina;Hioscina;unidad;Medicamento;Corregido: Hiocina -> Hioscina.
+18;Ketorolac;Ketorolac;unidad;Medicamento;
+19;Lidocaina 1%;Lidocaína 1%;unidad;Medicamento;
+20;Lidocaina 2%;Lidocaína 2%;unidad;Medicamento;
+21;Medroxi;Medroxiprogesterona;unidad;Medicamento;Abreviatura expandida: Medroxi -> Medroxiprogesterona.
+22;Metroclopramida 10 mg;Metoclopramida 10 mg;unidad;Medicamento;Corregido: Metroclopramida -> Metoclopramida.
+23;Penicilina 2.400.000;Penicilina benzatínica 2.400.000 UI;unidad;Medicamento;Se explicitó penicilina benzatínica y la unidad UI.
+24;Ranitidina;Ranitidina;unidad;Medicamento;
+25;Abbocath 16;Catéter IV (Abbocath) N° 16;unidad;Descartable;
+26;Abbocath 18;Catéter IV (Abbocath) N° 18;unidad;Descartable;
+27;Abbocath 20;Catéter IV (Abbocath) N° 20;unidad;Descartable;
+28;Abbocath 22;Catéter IV (Abbocath) N° 22;unidad;Descartable;
+29;Abbocath 23;Catéter IV (Abbocath) N° 23;unidad;Descartable;
+30;Abbocath 24;Catéter IV (Abbocath) N° 24;unidad;Descartable;
+31;Aguja 25//6;Aguja 25/6;unidad;Descartable;
+32;Aguja 25// 5;Aguja 25/5;unidad;Descartable;
+33;Aguja 25 5/8;Aguja 25 5/8;unidad;Descartable;
+34;Aguja25 //8;Aguja 25/8;unidad;Descartable;
+35;Agujas 40/08;Aguja 40/8;unidad;Descartable;
+36;Agujas 50/8;Aguja 50/8;unidad;Descartable;
+37;Alcohol;Alcohol;unidad;Medicamento;
+38;Bajalenguas;Bajalenguas;unidad;Descartable;
+39;Mascara ox adulto;Máscara de oxígeno adulto;unidad;Descartable;
+40;Mascara ox Pediatrico;Máscara de oxígeno pediátrica;unidad;Descartable;
+41;Bisturi N4;Bisturí N° 4;unidad;Descartable;
+42;Cepillo endocervix;Cepillo endocervical;unidad;Descartable;
+43;Descartador chico;Descartador de cortopunzantes chico;unidad;Descartable;
+44;Dextrosa;Dextrosa;unidad;Medicamento;
+45;Equipo de suero Macrogotero;Equipo de suero macrogotero;unidad;Descartable;
+46;Equipo de suero Microgotero;Equipo de suero microgotero;unidad;Descartable;
+47;Espatulas aire;Espátula de Ayre;unidad;Descartable;Corregido: aire -> Ayre.
+48;Especulos talle s;Espéculo vaginal talle S;unidad;Descartable;
+49;Especulos talle m;Espéculo vaginal talle M;unidad;Descartable;
+50;Especulos talle g;Espéculo vaginal talle L;unidad;Descartable;Talle g -> L.
+51;Guante Latex talle S;Guante de látex talle S;unidad;Descartable;
+52;Guante Latex talle M;Guante de látex talle M;unidad;Descartable;
+53;Guante Latex talle L;Guante de látex talle L;unidad;Descartable;
+54;Guantes Nitrilo S;Guante de nitrilo talle S;unidad;Descartable;
+55;Guantes Nitrilo M;Guante de nitrilo talle M;unidad;Descartable;
+56;Hilo de Sutura N3;Hilo de sutura N° 3;unidad;Descartable;
+57;Hilo de Sutura N4;Hilo de sutura N° 4;unidad;Descartable;
+58;Hilo de Sutura N5;Hilo de sutura N° 5;unidad;Descartable;
+59;Jeringa 5ml;Jeringa 5 ml;unidad;Descartable;
+60;Jeringa 10ml;Jeringa 10 ml;unidad;Descartable;
+61;Jeringa 20ml;Jeringa 20 ml;unidad;Descartable;
+62;Nitrofurazona;Nitrofurazona;unidad;Medicamento;
+63;Paño de gasa;Paño de gasa;unidad;Descartable;
+64;Papel Ecg;Papel para ECG;unidad;Descartable;
+65;Platsul;Sulfadiazina de plata (Platsul);unidad;Medicamento;Marca comercial: se agregó el genérico.
+66;Poencaina gotas;Proparacaína colirio (Poencaína);unidad;Medicamento;Marca comercial: se agregó el genérico.
+67;Recolectores orina;Recolector de orina;unidad;Descartable;
+68;Salbutalmol Solucion para neb;Salbutamol solución para nebulizar;unidad;Medicamento;Corregido: Salbutalmol -> Salbutamol.
+69;Budesonide gotas;Budesonida gotas;unidad;Medicamento;
+70;Tela adhesiva Comun;Tela adhesiva común;unidad;Descartable;
+71;Tela adhesiva hipo 2,5;Tela adhesiva hipoalergénica 2,5 cm;unidad;Descartable;
+72;TPX Sublingual;TPX sublingual;unidad;Medicamento;
+73;Isorbil Sub;Dinitrato de isosorbide sublingual (Isorbil);unidad;Medicamento;Marca comercial: se agregó el genérico.
+74;Ipatropio;Bromuro de ipratropio;unidad;Medicamento;Corregido: Ipatropio -> Ipratropio.
+75;Pervinox;Iodopovidona (Pervinox);unidad;Medicamento;Marca comercial: se agregó el genérico.

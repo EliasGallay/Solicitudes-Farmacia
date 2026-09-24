@@ -30,6 +30,18 @@ export function useUrlFilters() {
   return { setFilters, clearFilters, pending }
 }
 
+// URL de otra página del listado actual conservando filtros y tamaño (para componentes cliente).
+export function usePageHref() {
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  return useCallback((page: number) => {
+    const params = new URLSearchParams(searchParams)
+    if (page > 1) params.set('page', String(page))
+    else params.delete('page')
+    return params.size ? `${pathname}?${params}` : pathname
+  }, [pathname, searchParams])
+}
+
 // Búsqueda de texto: se edita localmente y se aplica a la URL tras `delay` ms sin escribir.
 export function useSearchFilter(key: string, current: string | undefined, delay = 300) {
   const { setFilters, pending } = useUrlFilters()

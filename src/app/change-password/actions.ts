@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
+import { withFeedback } from '../../lib/feedback'
 import { createSupabaseServerClient } from '../../lib/supabase/server'
 
 const passwordSchema = z.object({
@@ -16,16 +17,20 @@ export async function changePassword(formData: FormData) {
     password: formData.get('password'),
     confirmation: formData.get('confirmation'),
   })
-  if (!parsed.success) redirect('/change-password?error=La+contraseña+debe+tener+8+caracteres+y+coincidir')
+  if (!parsed.success) redirect(withFeedback('/change-password', 'error', 'password-invalida'))
 
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login?error=La+sesión+expiró')
+  if (!user) redirect(withFeedback('/login', 'error', 'sesion-expirada'))
 
   const { error: passwordError } = await supabase.auth.updateUser({ password: parsed.data.password })
-  if (passwordError) redirect(`/change-password?error=${encodeURIComponent(passwordError.message)}`)
+  if (passwordError) {
+    // Errores conocidos de Supabase Auth con mensaje propio; el resto, genérico.
+    const code = passwordError.code === 'same_password' ? 'password-igual' : passwordError.code === 'weak_password' ? 'password-debil' : 'password-error'
+    redirect(withFeedback('/change-password', 'error', code))
+  }
 
   const { error: profileError } = await supabase.rpc('complete_password_change')
-  if (profileError) redirect(`/change-password?error=${encodeURIComponent(profileError.message)}`)
+  if (profileError) redirect(withFeedback('/change-password', 'error', 'password-error'))
   redirect('/')
 }

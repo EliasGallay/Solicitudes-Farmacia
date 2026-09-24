@@ -4,6 +4,7 @@ import { ClipboardCheck, FileText, Package, Pill, type LucideIcon } from 'lucide
 import { login } from './actions'
 import { LoginForm } from '../../components/auth/login-form'
 import { FormError } from '../../components/form-feedback'
+import { feedbackMessage } from '../../lib/feedback'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -78,7 +79,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             <CardDescription>Ingresá con tu usuario habilitado.</CardDescription>
           </CardHeader>
           <CardContent className="p-8 pt-0">
-            <FormError>{params.error}</FormError>
+            <FormError>{feedbackMessage(params.error)}</FormError>
             <LoginForm action={login} />
           </CardContent>
         </Card>

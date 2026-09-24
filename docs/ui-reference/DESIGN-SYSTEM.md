@@ -736,6 +736,26 @@ vertical-align: middle
 - Mantener alturas de fila consistentes.
 - No utilizar verde en todas las celdas como decoración.
 
+## Paginación
+
+Todo listado paginado usa el componente compartido `ListFooter`
+(`src/components/list-footer.tsx`): resumen "Mostrando X a Y de Z",
+selector "Filas por página" y navegación entre páginas.
+
+- La paginación va **pegada al listado que controla**. Si el listado está
+  en una card, se ubica en `<CardFooter divided>` al final de esa card.
+- `ListFooter` no impone contenedor (sin borde ni padding propios): el
+  encuadre lo define el listado.
+- Nunca se ubica suelta al pie de la página: en pantallas con varias
+  secciones quedaría ambiguo qué listado controla.
+
+## Acciones de pantalla vs. acciones de listado
+
+Las acciones que avanzan o cierran un flujo (por ejemplo "Siguiente",
+"Volver", "Enviar solicitud" del wizard) pertenecen a la pantalla, no al
+listado: se ubican **fuera de la card**, debajo, como barra propia.
+Así no compiten con la paginación de la tabla.
+
 ---
 
 # 14. Badge
