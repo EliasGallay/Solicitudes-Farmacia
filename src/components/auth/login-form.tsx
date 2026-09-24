@@ -1,7 +1,8 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { ArrowRight, Eye, EyeOff, LoaderCircle } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
@@ -14,6 +15,7 @@ type LoginAction = (formData: FormData) => Promise<void>
 
 export function LoginForm({ action }: { action: LoginAction }) {
   const [pending, startTransition] = useTransition()
+  const [showPassword, setShowPassword] = useState(false)
   const form = useForm<LoginFormValues>({ resolver: zodResolver(loginFormSchema), defaultValues: { email: '', password: '' } })
 
   function onSubmit(values: LoginFormValues) {
@@ -23,9 +25,18 @@ export function LoginForm({ action }: { action: LoginAction }) {
     startTransition(() => { void action(formData) })
   }
 
-  return <Form {...form}><form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm">
-    <FormField control={form.control} name="email" render={({ field }) => <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" autoComplete="email" {...field} /></FormControl><FormMessage /></FormItem>} />
-    <FormField control={form.control} name="password" render={({ field }) => <FormItem><FormLabel>Contraseña</FormLabel><FormControl><Input type="password" autoComplete="current-password" {...field} /></FormControl><FormMessage /></FormItem>} />
-    <Button type="submit" className="w-full" disabled={pending}>{pending ? 'Ingresando...' : 'Ingresar'}</Button>
+  return <Form {...form}><form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 space-y-5">
+    <FormField control={form.control} name="email" render={({ field }) => <FormItem><FormLabel htmlFor="login-email">Email</FormLabel><FormControl><Input id="login-email" type="email" autoComplete="email" {...field} /></FormControl><FormMessage /></FormItem>} />
+    <FormField control={form.control} name="password" render={({ field }) => <FormItem><FormLabel htmlFor="login-password">Contraseña</FormLabel><FormControl>
+      <div className="relative">
+        <Input id="login-password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" className="pr-11" {...field} />
+        <Button type="button" variant="ghost" size="icon-sm" className="absolute top-0.5 right-0.5 text-foreground-secondary hover:text-primary-600" aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={showPassword} onClick={() => setShowPassword((value) => !value)}>
+          {showPassword ? <EyeOff /> : <Eye />}
+        </Button>
+      </div>
+    </FormControl><FormMessage /></FormItem>} />
+    <Button type="submit" size="lg" className="group mt-2 w-full" disabled={pending}>
+      {pending ? <><LoaderCircle className="motion-safe:animate-spin" aria-hidden />Ingresando...</> : <>Ingresar<ArrowRight className="transition-transform duration-200 group-hover:translate-x-0.75 motion-reduce:transition-none" aria-hidden /></>}
+    </Button>
   </form></Form>
 }

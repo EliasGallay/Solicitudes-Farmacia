@@ -15,11 +15,11 @@ export function FormField<TFieldValues extends FieldValues, TName extends FieldP
 export function FormItem({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) { return <div className={cn('space-y-2', className)} {...props} /> }
 export function FormLabel({ className, ...props }: React.ComponentProps<typeof Label>) { return <Label className={cn(className)} {...props} /> }
 export function FormControl({ children }: { children: React.ReactNode }) { return <>{children}</> }
-export function FormDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) { return <p className={cn('text-sm text-muted-foreground', className)} {...props} /> }
+export function FormDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) { return <p className={cn('text-sm text-foreground-secondary', className)} {...props} /> }
 export function FormMessage({ className, children }: React.HTMLAttributes<HTMLParagraphElement>) {
   const field = React.useContext(FormFieldContext)
   const { formState } = useFormContext()
   const message = field ? get(formState.errors, field.name)?.message : undefined
   if (!message && !children) return null
-  return <p className={cn('text-sm font-medium text-destructive', className)}>{message?.toString() ?? children}</p>
+  return <p className={cn('text-sm font-medium text-danger', className)}>{message?.toString() ?? children}</p>
 }

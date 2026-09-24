@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const alertVariants = cva('relative w-full rounded-lg border p-4 text-sm', {
-  variants: { variant: { default: 'bg-background text-foreground', destructive: 'border-destructive/50 text-destructive', success: 'border-success/30 bg-success/10 text-success' } },
+  variants: { variant: { default: 'border-border bg-surface text-foreground', destructive: 'border-danger/30 bg-danger-muted text-danger', success: 'border-success/30 bg-success-muted text-success' } },
   defaultVariants: { variant: 'default' },
 })
 
