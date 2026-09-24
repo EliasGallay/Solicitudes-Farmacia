@@ -16,6 +16,7 @@ const buttonVariants = cva('inline-flex items-center justify-center gap-2 whites
       lg: 'h-11 px-8',
       icon: 'size-10',
       'icon-sm': 'size-9',
+      'icon-xs': 'size-8 text-xs',
     },
   },
   defaultVariants: { variant: 'default', size: 'default' },

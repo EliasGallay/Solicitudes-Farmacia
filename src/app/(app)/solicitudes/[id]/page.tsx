@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { BackButton } from '@/components/back-button'
 import { EmptyState } from '@/components/empty-state'
 import { ErrorState } from '@/components/error-state'
+import { ListFooter } from '@/components/list-footer'
 import { MetricCard } from '@/components/metric-card'
 import { RequestDetailSkeleton } from '@/components/page-skeletons'
 import { PageHeader } from '@/components/page-header'
@@ -14,8 +15,8 @@ import { RequestProductFilters } from '@/components/requests/request-product-fil
 import { RequestProductsTable } from '@/components/requests/request-products-table'
 import { RequestsTableSkeleton } from '@/components/requests/requests-table'
 import { buttonVariants } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ilikeAny, searchParamSchema } from '@/lib/filters'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { likeContains, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
 import { formatDateTime, formatRequestNumber, relationOne, summarizeItems, type ItemQuantitiesRow } from '@/lib/requests'
 import type { ProductType } from '@/lib/product-types'
 import type { RequestStatus } from '@/lib/request-status'
@@ -24,6 +25,8 @@ import { requireSession } from '@/lib/session'
 const productFiltersSchema = z.object({
   buscar: searchParamSchema,
   pendiente: z.enum(['con', 'sin']).optional().catch(undefined),
+  page: pageParamSchema,
+  por_pagina: pageSizeParamSchema,
 })
 type ProductFilters = z.infer<typeof productFiltersSchema>
 
@@ -82,11 +85,9 @@ async function RequestDetail({ id, filters }: { id: string; filters: ProductFilt
           <CardTitle>Productos</CardTitle>
           <RequestProductFilters buscar={filters.buscar} pendiente={filters.pendiente} />
         </CardHeader>
-        <CardContent>
-          <Suspense key={`${filters.buscar ?? ''}|${filters.pendiente ?? ''}`} fallback={<RequestsTableSkeleton rows={3} />}>
-            <RequestProducts requestId={id} filters={filters} />
-          </Suspense>
-        </CardContent>
+        <Suspense key={productsHref(id, filters, filters.page)} fallback={<CardContent><RequestsTableSkeleton rows={3} /></CardContent>}>
+          <RequestProducts requestId={id} filters={filters} />
+        </Suspense>
       </Card>
 
       <Card className="mt-6">
@@ -105,15 +106,20 @@ async function RequestDetail({ id, filters }: { id: string; filters: ProductFilt
 // (supabase/migrations/202609240001_request_item_quantities.sql).
 type ProductRow = { name: string; presentation: string; product_type: ProductType }
 
+function productsHref(requestId: string, filters: ProductFilters, page: number) {
+  return listHref(`/solicitudes/${requestId}`, { buscar: filters.buscar, pendiente: filters.pendiente, por_pagina: pageSizeParam(filters.por_pagina) }, page)
+}
+
 async function RequestProducts({ requestId, filters }: { requestId: string; filters: ProductFilters }) {
   const { supabase } = await requireSession()
-  const productEmbed = filters.buscar ? 'product:products!inner(name, presentation, product_type)' : 'product:products(name, presentation, product_type)'
-  let query = supabase.from('request_items').select(`id, requested_quantity, delivered_quantity, pending_quantity, item_status, ${productEmbed}`).eq('request_id', requestId)
-  if (filters.buscar) query = query.or(ilikeAny(['name', 'presentation'], filters.buscar), { referencedTable: 'product' })
+  let query = supabase.from('request_items').select(`id, requested_quantity, delivered_quantity, pending_quantity, item_status, product:products(name, presentation, product_type)`, { count: 'exact' }).eq('request_id', requestId)
+  // Búsqueda sobre item_search_text (producto normalizado): todas las palabras deben coincidir.
+  for (const token of searchTokens(filters.buscar ?? '')) query = query.ilike('item_search_text', likeContains(token))
   if (filters.pendiente === 'con') query = query.gt('pending_quantity', 0)
   if (filters.pendiente === 'sin') query = query.eq('pending_quantity', 0)
-  const { data, error } = await query.order('id')
-  if (error) return <ErrorState title="No pudimos cargar los productos" />
+  const { data, count, error } = await query.order('id').range(...pageRange(filters.page, filters.por_pagina))
+  // PGRST103: la página pedida está fuera de rango; se trata como sin resultados.
+  if (error && error.code !== 'PGRST103') return <ErrorState title="No pudimos cargar los productos" />
 
   const items = (data ?? []).map((item) => {
     const product = relationOne(item.product as ProductRow | ProductRow[] | null)
@@ -128,5 +134,10 @@ async function RequestProducts({ requestId, filters }: { requestId: string; filt
       status: item.item_status as RequestStatus,
     }
   })
-  return <RequestProductsTable items={items} />
+  return (
+    <>
+      <CardContent><RequestProductsTable items={items} /></CardContent>
+      {items.length > 0 && <CardFooter divided><ListFooter page={filters.page} pageSize={filters.por_pagina} shown={items.length} total={count ?? 0} noun="productos" hrefFor={(page) => productsHref(requestId, filters, page)} /></CardFooter>}
+    </>
+  )
 }

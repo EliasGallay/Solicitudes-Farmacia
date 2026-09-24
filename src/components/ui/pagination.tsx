@@ -19,7 +19,8 @@ export function PaginationItem(props: React.ComponentProps<'li'>) {
 type PaginationLinkProps = { isActive?: boolean; disabled?: boolean } & React.ComponentProps<typeof Link>
 
 export function PaginationLink({ className, isActive, disabled, children, ...props }: PaginationLinkProps) {
-  const classes = cn(buttonVariants({ variant: isActive ? 'default' : 'secondary', size: 'icon-sm' }), className)
+  // Discreta: páginas como botón fantasma; la activa con fondo suave en lugar de color sólido.
+  const classes = cn(buttonVariants({ variant: 'ghost', size: 'icon-xs' }), isActive ? 'bg-primary-100 text-primary-700 hover:bg-primary-100' : 'font-medium text-foreground-secondary hover:text-primary-600', className)
   if (disabled) return <span aria-disabled="true" aria-label={props['aria-label']} className={cn(classes, 'pointer-events-none opacity-50')}>{children}</span>
   return <Link aria-current={isActive ? 'page' : undefined} className={classes} {...props}>{children}</Link>
 }
@@ -33,5 +34,5 @@ export function PaginationNext(props: Omit<PaginationLinkProps, 'children'>) {
 }
 
 export function PaginationEllipsis({ className, ...props }: React.ComponentProps<'span'>) {
-  return <span aria-hidden className={cn('flex size-9 items-center justify-center text-foreground-secondary', className)} {...props}><Ellipsis className="size-4" /></span>
+  return <span aria-hidden className={cn('flex size-8 items-center justify-center text-foreground-muted', className)} {...props}><Ellipsis className="size-4" /></span>
 }

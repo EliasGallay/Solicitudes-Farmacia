@@ -9,9 +9,9 @@ import { ListFooter } from '@/components/list-footer'
 import { RequestListSkeleton } from '@/components/page-skeletons'
 import { PageHeader } from '@/components/page-header'
 import { buttonVariants } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { PAGE_SIZE, ilikeAny, listHref, pageParamSchema, searchParamSchema } from '@/lib/filters'
+import { likeContains, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
 import { productTypeLabels, productTypeParamSchema, type ProductType } from '@/lib/product-types'
 import { requireSession } from '@/lib/session'
 
@@ -19,11 +19,12 @@ const filtersSchema = z.object({
   buscar: searchParamSchema,
   tipo: productTypeParamSchema,
   page: pageParamSchema,
+  por_pagina: pageSizeParamSchema,
 })
 type Filters = z.infer<typeof filtersSchema>
 
 function pageHref(filters: Filters, page: number) {
-  return listHref('/catalogo', { buscar: filters.buscar, tipo: filters.tipo }, page)
+  return listHref('/catalogo', { buscar: filters.buscar, tipo: filters.tipo, por_pagina: pageSizeParam(filters.por_pagina) }, page)
 }
 
 export default async function CatalogPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -35,7 +36,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
       <PageHeader title="Catálogo" description="Consultá los productos disponibles para solicitar." />
       <CatalogFilters buscar={filters.buscar} tipo={filters.tipo} />
       <Card>
-        <Suspense key={pageHref(filters, filters.page)} fallback={<RequestListSkeleton rows={PAGE_SIZE} />}>
+        <Suspense key={pageHref(filters, filters.page)} fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
           <ProductList filters={filters} />
         </Suspense>
       </Card>
@@ -46,11 +47,11 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
 // Solo productos activos: la política RLS ya los restringe para la farmacéutica y se explicita acá.
 async function ProductList({ filters }: { filters: Filters }) {
   const { supabase } = await requireSession()
-  const from = (filters.page - 1) * PAGE_SIZE
   let query = supabase.from('products').select('id, name, presentation, product_type', { count: 'exact' }).eq('active', true)
   if (filters.tipo) query = query.eq('product_type', filters.tipo)
-  if (filters.buscar) query = query.or(ilikeAny(['name', 'presentation'], filters.buscar))
-  const { data, count, error } = await query.order('name').range(from, from + PAGE_SIZE - 1)
+  // Cada palabra debe aparecer en nombre o presentación, sin distinguir acentos (product_search_text).
+  for (const token of searchTokens(filters.buscar ?? '')) query = query.ilike('product_search_text', likeContains(token))
+  const { data, count, error } = await query.order('name').range(...pageRange(filters.page, filters.por_pagina))
 
   // PGRST103: la página pedida está fuera de rango; se trata como sin resultados.
   if (error && error.code !== 'PGRST103') return <ErrorState title="No pudimos cargar el catálogo" />
@@ -89,7 +90,7 @@ async function ProductList({ filters }: { filters: Filters }) {
           </TableBody>
         </Table>
       </CardContent>
-      <ListFooter page={filters.page} pageSize={PAGE_SIZE} shown={products.length} total={total} noun="productos" hrefFor={(page) => pageHref(filters, page)} />
+      <CardFooter divided><ListFooter page={filters.page} pageSize={filters.por_pagina} shown={products.length} total={total} noun="productos" hrefFor={(page) => pageHref(filters, page)} /></CardFooter>
     </>
   )
 }

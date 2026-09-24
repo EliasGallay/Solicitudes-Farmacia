@@ -4,15 +4,16 @@ import { useState, useTransition } from 'react'
 import { ArrowLeft, ArrowRight, Minus, PackageSearch, Plus, Search, Send, Trash2 } from 'lucide-react'
 import { submitRequest } from '@/app/request-actions'
 import { EmptyState } from '@/components/empty-state'
+import { ListFooter } from '@/components/list-footer'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { useSearchFilter, useUrlFilters } from '@/hooks/use-url-filters'
+import { usePageHref, useSearchFilter, useUrlFilters } from '@/hooks/use-url-filters'
 import { productTypeLabels, productTypes, type ProductType } from '@/lib/product-types'
 import { OBSERVATIONS_MAX_LENGTH } from '@/lib/requests'
 import { cn } from '@/lib/utils'
@@ -30,10 +31,11 @@ function parseQuantity(value: string) {
 
 // `products` llega ya filtrado por el servidor según `buscar` y `tipo`; la selección se conserva entre búsquedas.
 // `centers` solo se recibe para el admin, que debe elegir el centro de la solicitud.
-export function NewRequestWizard({ products, total, buscar, tipo, centers }: { products: Product[]; total: number; buscar?: string; tipo?: ProductType; centers?: Center[] }) {
+export function NewRequestWizard({ products, total, matching, page, pageSize, buscar, tipo, centers }: { products: Product[]; total: number; matching: number; page: number; pageSize: number; buscar?: string; tipo?: ProductType; centers?: Center[] }) {
   const [step, setStep] = useState<1 | 2>(1)
   const search = useSearchFilter('buscar', buscar)
   const typeFilter = useUrlFilters()
+  const pageHref = usePageHref()
   const filtering = search.pending || typeFilter.pending
   // Cantidades como texto para permitir edición libre; solo se validan al avanzar.
   const [selection, setSelection] = useState<Record<string, { product: Product; quantity: string }>>({})
@@ -73,7 +75,7 @@ export function NewRequestWizard({ products, total, buscar, tipo, centers }: { p
     return (
       <>
         <RequestStepper current={2} />
-        <Card>
+        <Card className="motion-safe:animate-enter-from-below">
           <CardHeader>
             <CardTitle>Revisar solicitud</CardTitle>
             <CardDescription>Verificá los productos y las cantidades antes de enviar la solicitud.</CardDescription>
@@ -121,11 +123,12 @@ export function NewRequestWizard({ products, total, buscar, tipo, centers }: { p
             </div>
             {error && <Alert variant="destructive" className="mt-4">{error}</Alert>}
           </CardContent>
-          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border px-5 py-4">
-            <Button variant="secondary" disabled={pending} onClick={() => setStep(1)}><ArrowLeft />Volver</Button>
-            <Button disabled={pending || !canSubmit} onClick={submit}>{pending ? 'Enviando...' : 'Enviar solicitud'}<Send /></Button>
-          </div>
         </Card>
+        {/* Acciones del paso: fuera de la card, a nivel del wizard. */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+          <Button variant="secondary" disabled={pending} onClick={() => setStep(1)}><ArrowLeft />Volver</Button>
+          <Button disabled={pending || !canSubmit} onClick={submit}>{pending ? 'Enviando...' : 'Enviar solicitud'}<Send /></Button>
+        </div>
       </>
     )
   }
@@ -133,7 +136,7 @@ export function NewRequestWizard({ products, total, buscar, tipo, centers }: { p
   return (
     <>
       <RequestStepper current={1} />
-      <Card>
+      <Card className="motion-safe:animate-enter-from-below">
         <CardHeader>
           <CardTitle>Buscar y agregar productos</CardTitle>
         </CardHeader>
@@ -190,14 +193,14 @@ export function NewRequestWizard({ products, total, buscar, tipo, centers }: { p
             ? <EmptyState icon={PackageSearch} title="No encontramos productos">Probá modificando los filtros aplicados.</EmptyState>
             : <EmptyState icon={PackageSearch} title="No hay productos disponibles">Todavía no hay productos activos para solicitar.</EmptyState>}
         </CardContent>
-        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border px-5 py-4">
-          <p className="text-sm text-foreground-secondary">Mostrando {products.length} de {total} productos</p>
-          <div className="flex items-center gap-4">
-            <p className="text-sm font-semibold text-primary-600" aria-live="polite">{selected.length} {selected.length === 1 ? 'producto agregado' : 'productos agregados'}</p>
-            <Button disabled={!allValid} onClick={() => setStep(2)}>Siguiente<ArrowRight /></Button>
-          </div>
-        </div>
+        {/* La paginación va pegada a la tabla que controla. */}
+        {products.length > 0 && <CardFooter divided><ListFooter page={page} pageSize={pageSize} shown={products.length} total={matching} noun="productos" hrefFor={pageHref} /></CardFooter>}
       </Card>
+      {/* Acciones del paso: fuera de la card, a nivel del wizard. */}
+      <div className="mt-4 flex flex-wrap items-center justify-end gap-4">
+        <p className="text-sm font-semibold text-primary-600" aria-live="polite">{selected.length} {selected.length === 1 ? 'producto agregado' : 'productos agregados'}</p>
+        <Button disabled={!allValid} onClick={() => setStep(2)}>Siguiente<ArrowRight /></Button>
+      </div>
     </>
   )
 }
