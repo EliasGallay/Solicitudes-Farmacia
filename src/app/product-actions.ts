@@ -3,11 +3,13 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
+import { productTypeSchema } from '../lib/product-types'
 import { createSupabaseServerClient } from '../lib/supabase/server'
 
 const productSchema = z.object({
   name: z.string().trim().min(1).max(150),
   presentation: z.string().trim().min(1).max(150),
+  product_type: productTypeSchema,
 })
 
 const idSchema = z.string().uuid()
@@ -23,27 +25,27 @@ async function requireAdmin() {
 }
 
 export async function createProduct(formData: FormData) {
-  const parsed = productSchema.safeParse({ name: formData.get('name'), presentation: formData.get('presentation') })
-  if (!parsed.success) redirect('/catalogos?error=Completá+nombre+y+presentación')
+  const parsed = productSchema.safeParse({ name: formData.get('name'), presentation: formData.get('presentation'), product_type: formData.get('product_type') })
+  if (!parsed.success) redirect('/catalogos?error=Completá+nombre,+presentación+y+tipo')
 
   const supabase = await requireAdmin()
   const { error } = await supabase.from('products').insert({ ...parsed.data, is_test_data: false })
   if (error) redirect(`/catalogos?error=${encodeURIComponent(error.message)}`)
   revalidatePath('/catalogos')
-  revalidatePath('/nueva-solicitud')
+  revalidatePath('/solicitudes/nueva')
   redirect('/catalogos?success=Producto+creado')
 }
 
 export async function updateProduct(formData: FormData) {
   const id = idSchema.safeParse(formData.get('id'))
-  const product = productSchema.safeParse({ name: formData.get('name'), presentation: formData.get('presentation') })
+  const product = productSchema.safeParse({ name: formData.get('name'), presentation: formData.get('presentation'), product_type: formData.get('product_type') })
   if (!id.success || !product.success) redirect('/catalogos?error=Datos+de+producto+inválidos')
 
   const supabase = await requireAdmin()
   const { error } = await supabase.from('products').update(product.data).eq('id', id.data)
   if (error) redirect(`/catalogos?error=${encodeURIComponent(error.message)}`)
   revalidatePath('/catalogos')
-  revalidatePath('/nueva-solicitud')
+  revalidatePath('/solicitudes/nueva')
   redirect('/catalogos?success=Producto+actualizado')
 }
 
@@ -56,6 +58,6 @@ export async function toggleProduct(formData: FormData) {
   const { error } = await supabase.from('products').update({ active: !active }).eq('id', id.data)
   if (error) redirect(`/catalogos?error=${encodeURIComponent(error.message)}`)
   revalidatePath('/catalogos')
-  revalidatePath('/nueva-solicitud')
+  revalidatePath('/solicitudes/nueva')
   redirect(`/catalogos?success=Producto+${active ? 'desactivado' : 'reactivado'}`)
 }
