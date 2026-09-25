@@ -14,7 +14,7 @@ export function PageSizeSelect({ value }: { value: number }) {
     <div className="flex items-center gap-2">
       <span id={labelId} className="text-xs whitespace-nowrap text-foreground-muted">Filas por página</span>
       <Select value={String(value)} disabled={pending} onValueChange={(size) => setFilters({ por_pagina: pageSizeParam(Number(size)) })}>
-        <SelectTrigger aria-labelledby={labelId} className="h-8 w-16 px-2 text-xs"><SelectValue /></SelectTrigger>
+        <SelectTrigger aria-labelledby={labelId} className="h-9 w-16 px-2 text-xs sm:h-8 sm:text-xs"><SelectValue /></SelectTrigger>
         <SelectContent>
           {PAGE_SIZES.map((size) => <SelectItem key={size} value={String(size)}>{size}</SelectItem>)}
         </SelectContent>

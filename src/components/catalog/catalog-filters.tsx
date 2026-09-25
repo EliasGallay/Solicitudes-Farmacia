@@ -21,8 +21,8 @@ export function CatalogFilters({ buscar, tipo }: { buscar?: string; tipo?: Produ
   }
 
   return (
-    <Card className="mb-6 flex flex-wrap items-end gap-4 p-4">
-      <div className="flex min-w-64 flex-1 flex-col gap-2">
+    <Card className="mb-6 grid gap-4 p-4 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-end">
+      <div className="flex flex-col gap-2 sm:col-span-2 lg:min-w-64 lg:flex-1">
         <Label htmlFor="catalogo-buscar">Producto</Label>
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-foreground-muted" aria-hidden />
@@ -32,14 +32,14 @@ export function CatalogFilters({ buscar, tipo }: { buscar?: string; tipo?: Produ
       <div className="flex flex-col gap-2">
         <Label htmlFor="catalogo-tipo">Tipo</Label>
         <Select value={tipo ?? ALL} onValueChange={(value) => setFilters({ tipo: value === ALL ? undefined : value })}>
-          <SelectTrigger id="catalogo-tipo" className="w-48"><SelectValue /></SelectTrigger>
+          <SelectTrigger id="catalogo-tipo" className="lg:w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>Todos los tipos</SelectItem>
             {productTypes.map((type) => <SelectItem key={type} value={type}>{productTypeLabels[type]}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
-      <Button variant="secondary" disabled={!buscar && !tipo} onClick={clear}><FilterX />Limpiar filtros</Button>
+      <Button variant="secondary" className="self-end" disabled={!buscar && !tipo} onClick={clear}><FilterX />Limpiar filtros</Button>
     </Card>
   )
 }

@@ -35,7 +35,7 @@ export function ProductForm({ action, productId, defaultValues, submitLabel }: {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 md:grid-cols-[1fr_1fr_12rem_auto] md:items-end">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2 sm:items-end md:grid-cols-[1fr_1fr_12rem_auto]">
         <FormField control={form.control} name="name" render={({ field }) => <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input {...field} maxLength={150} /></FormControl><FormMessage /></FormItem>} />
         <FormField control={form.control} name="presentation" render={({ field }) => <FormItem><FormLabel>Presentación</FormLabel><FormControl><Input {...field} maxLength={150} placeholder="unidad, caja, frasco..." /></FormControl><FormMessage /></FormItem>} />
         <FormField control={form.control} name="product_type" render={({ field }) => <FormItem><FormLabel>Tipo</FormLabel><Select value={field.value} onValueChange={field.onChange}><SelectTrigger aria-label="Tipo de producto"><SelectValue placeholder="Seleccionar" /></SelectTrigger><SelectContent>{productTypes.map((type) => <SelectItem key={type} value={type}>{productTypeLabels[type]}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />

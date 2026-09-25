@@ -1,8 +1,9 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 
-export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
-  return <div className="relative w-full overflow-x-auto"><table className={cn('w-full caption-bottom text-sm', className)} {...props} /></div>
+// `containerClassName`: p. ej. `hidden md:block` cuando debajo de md se muestra una MobileList.
+export function Table({ className, containerClassName, ...props }: React.HTMLAttributes<HTMLTableElement> & { containerClassName?: string }) {
+  return <div className={cn('relative w-full overflow-x-auto', containerClassName)}><table className={cn('w-full caption-bottom text-sm', className)} {...props} /></div>
 }
 
 export function TableHeader({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {

@@ -25,8 +25,13 @@ export default async function Home() {
   return (
     <>
       <PageHeader
-        title={`${greeting()}, ${session.fullName}`}
-        description={session.centerName && <span className="inline-flex items-center gap-2"><Building2 className="size-5 text-primary-600" aria-hidden />{session.centerName}</span>}
+        title={<><span className="font-semibold">{greeting()},</span> <span className="text-primary-600">{session.fullName}</span></>}
+        description={session.centerName && (
+          <span className="flex items-center gap-2 font-medium">
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary-100 text-primary-600"><Building2 className="size-4" aria-hidden /></span>
+            {session.centerName}
+          </span>
+        )}
         actions={newRequest}
       />
       <Suspense fallback={<DashboardSkeleton />}>
@@ -60,13 +65,13 @@ async function DashboardContent() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-3">
-      <div className="grid gap-4 sm:grid-cols-3 xl:col-span-3">
+      <div className="grid gap-4 md:grid-cols-3 xl:col-span-3">
         <MetricCard icon={Clock} value={pendingCount.count ?? 0} label="Pendientes" tone="warning" href="/solicitudes?estado=pending" />
         <MetricCard icon={Truck} value={partialCount.count ?? 0} label="Entregas parciales" tone="info" href="/solicitudes?estado=partial" />
         <MetricCard icon={CircleCheck} value={completedCount.count ?? 0} label="Completadas" tone="success" href="/solicitudes?estado=completed" />
       </div>
       <Card className="xl:col-span-2">
-        <CardHeader className="flex-row items-center justify-between">
+        <CardHeader className="flex-row items-center justify-between gap-3">
           <CardTitle>Últimas solicitudes</CardTitle>
           {content.recent.length > 0 && <Link href="/solicitudes" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Ver todas<ArrowRight /></Link>}
         </CardHeader>

@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Package, SearchX } from 'lucide-react'
+import { ArrowRight, ChevronRight, Package, Plus, SearchX } from 'lucide-react'
 import { z } from 'zod'
 import { CatalogFilters } from '@/components/catalog/catalog-filters'
 import { EmptyState } from '@/components/empty-state'
@@ -10,6 +10,7 @@ import { RequestListSkeleton } from '@/components/page-skeletons'
 import { PageHeader } from '@/components/page-header'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
+import { MobileList, MobileListItem } from '@/components/ui/mobile-list'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { likeContains, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
 import { productTypeLabels, productTypeParamSchema, type ProductType } from '@/lib/product-types'
@@ -33,7 +34,11 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <PageHeader title="Catálogo" description="Consultá los productos disponibles para solicitar." />
+      <PageHeader
+        title="Catálogo"
+        description="Consultá los productos disponibles para solicitar."
+        actions={<Link href="/solicitudes/nueva" className={buttonVariants()}><Plus />Nueva solicitud</Link>}
+      />
       <CatalogFilters buscar={filters.buscar} tipo={filters.tipo} />
       <Card>
         <Suspense key={pageHref(filters, filters.page)} fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
@@ -67,7 +72,20 @@ async function ProductList({ filters }: { filters: Filters }) {
   return (
     <>
       <CardContent className="pt-5">
-        <Table>
+        <MobileList>
+          {products.map((product) => (
+            <MobileListItem key={product.id} className="py-0 first:pt-0 last:pb-0">
+              <Link href={`/catalogo/${product.id}`} aria-label={`Ver ${product.name}`} className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm leading-5 font-semibold break-words text-foreground">{product.name}</p>
+                  <p className="mt-0.5 text-xs leading-4 break-words text-foreground-secondary">{productTypeLabels[product.product_type]} · {product.presentation}</p>
+                </div>
+                <ChevronRight className="size-5 shrink-0 text-foreground-muted" aria-hidden />
+              </Link>
+            </MobileListItem>
+          ))}
+        </MobileList>
+        <Table containerClassName="hidden md:block">
           <TableHeader>
             <TableRow>
               <TableHead>Producto</TableHead>

@@ -20,7 +20,10 @@ export async function middleware(request: NextRequest) {
   })
 
   const { data: { user } } = await supabase.auth.getUser()
-  const publicPath = request.nextUrl.pathname === '/login'
+  const { pathname } = request.nextUrl
+  // /auth/confirm valida el enlace de recuperación de contraseña, con o sin sesión previa.
+  if (pathname === '/auth/confirm') return response
+  const publicPath = pathname === '/login' || pathname === '/recuperar-contrasena'
   if (!user && !publicPath) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
