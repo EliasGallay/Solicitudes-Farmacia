@@ -1,14 +1,19 @@
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const steps = ['Seleccionar productos', 'Revisar y confirmar', 'Solicitud enviada']
+// `short`: label visible debajo de sm, donde los tres pasos comparten ~290px.
+const steps = [
+  { label: 'Seleccionar productos', short: 'Productos' },
+  { label: 'Revisar y confirmar', short: 'Revisión' },
+  { label: 'Solicitud enviada', short: 'Enviada' },
+]
 
 // El stepper se monta de nuevo en cada paso: las animaciones de entrada marcan solo la
 // transición recién ocurrida (línea hacia el paso actual, paso actual y paso recién completado).
 export function RequestStepper({ current }: { current: 1 | 2 | 3 }) {
   return (
-    <ol aria-label="Pasos de la solicitud" className="mb-8 flex items-start justify-center">
-      {steps.map((label, index) => {
+    <ol aria-label="Pasos de la solicitud" className="mb-6 flex items-start justify-center sm:mb-8">
+      {steps.map(({ label, short }, index) => {
         const step = index + 1
         const done = step < current
         const active = step === current
@@ -18,7 +23,7 @@ export function RequestStepper({ current }: { current: 1 | 2 | 3 }) {
         return (
           <li key={label} aria-current={active ? 'step' : undefined} className="flex items-start">
             {index > 0 && (
-              <span aria-hidden className="mt-4 h-0.5 w-6 overflow-hidden rounded-full bg-border-strong sm:w-24">
+              <span aria-hidden className="mt-4 h-0.5 w-4 overflow-hidden rounded-full bg-border-strong sm:w-24">
                 {reached && <span className={cn('block h-full origin-left bg-primary-500', active && 'motion-safe:animate-step-fill')} />}
               </span>
             )}
@@ -36,7 +41,9 @@ export function RequestStepper({ current }: { current: 1 | 2 | 3 }) {
                 </span>
               </span>
               <span className={cn('text-xs leading-4 sm:text-sm sm:leading-5', active ? 'font-semibold text-primary-600' : done ? 'text-primary-600' : 'text-foreground-secondary')}>
-                {label}{done && <span className="sr-only"> (completado)</span>}
+                <span aria-hidden className="sm:hidden">{short}</span>
+                <span className="max-sm:sr-only">{label}</span>
+                {done && <span className="sr-only"> (completado)</span>}
               </span>
             </div>
           </li>

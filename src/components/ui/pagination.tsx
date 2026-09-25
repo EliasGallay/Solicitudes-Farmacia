@@ -20,7 +20,8 @@ type PaginationLinkProps = { isActive?: boolean; disabled?: boolean } & React.Co
 
 export function PaginationLink({ className, isActive, disabled, children, ...props }: PaginationLinkProps) {
   // Discreta: páginas como botón fantasma; la activa con fondo suave en lugar de color sólido.
-  const classes = cn(buttonVariants({ variant: 'ghost', size: 'icon-xs' }), isActive ? 'bg-primary-100 text-primary-700 hover:bg-primary-100' : 'font-medium text-foreground-secondary hover:text-primary-600', className)
+  // En mobile crece a 40px para que sea cómoda al tacto.
+  const classes = cn(buttonVariants({ variant: 'ghost', size: 'icon-xs' }), 'max-sm:size-10', isActive ? 'bg-primary-100 text-primary-700 hover:bg-primary-100' : 'font-medium text-foreground-secondary hover:text-primary-600', className)
   if (disabled) return <span aria-disabled="true" aria-label={props['aria-label']} className={cn(classes, 'pointer-events-none opacity-50')}>{children}</span>
   return <Link aria-current={isActive ? 'page' : undefined} className={classes} {...props}>{children}</Link>
 }

@@ -92,6 +92,9 @@
   }
 }
 
+/* Pantallas de poca altura (p. ej. notebooks 1366×768 con la barra del navegador): layouts más compactos. */
+@custom-variant short (@media (max-height: 820px));
+
 /* shadcn/ui semantic aliases mapped onto the Design System tokens */
 @theme inline {
   --color-background: var(--color-page);

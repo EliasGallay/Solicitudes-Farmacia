@@ -38,7 +38,7 @@ No implementar desde estas referencias:
 - Registro de entregas.
 - Correcciones administrativas.
 - Reportes.
-- Mobile específico.
+- Diseño mobile propio (más allá de las adaptaciones responsive de DESIGN-SYSTEM §25).
 
 ## 4. Layout global
 
@@ -49,7 +49,9 @@ Todas las pantallas autenticadas utilizan:
 - Identificación de usuario y centro (en la parte inferior del sidebar).
 - Ancho de contenido responsive dentro del área disponible.
 
-No existe header superior (topbar) ni breadcrumbs.
+No existe header superior (topbar) ni breadcrumbs en desktop. Debajo de `lg` (1024px) el sidebar
+se reemplaza por una barra superior compacta con un menú que abre el mismo contenido en un drawer
+(ver DESIGN-SYSTEM §25).
 
 El sidebar no cambia de estructura entre pantallas.
 

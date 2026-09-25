@@ -26,7 +26,7 @@ export function PasswordForm({ action }: { action: PasswordAction }) {
     startTransition(() => { void action(formData) })
   }
 
-  return <Form {...form}><form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm">
+  return <Form {...form}><form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 space-y-4 rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6">
     <FormField control={form.control} name="password" render={({ field }) => <FormItem><FormLabel>Nueva contraseña</FormLabel><FormControl><Input type="password" minLength={8} autoComplete="new-password" {...field} /></FormControl><FormMessage /></FormItem>} />
     <FormField control={form.control} name="confirmation" render={({ field }) => <FormItem><FormLabel>Repetir contraseña</FormLabel><FormControl><Input type="password" minLength={8} autoComplete="new-password" {...field} /></FormControl><FormMessage /></FormItem>} />
     <Button type="submit" className="w-full" disabled={pending}>{pending ? 'Guardando...' : 'Guardar contraseña'}</Button>
