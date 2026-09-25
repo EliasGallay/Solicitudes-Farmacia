@@ -69,7 +69,7 @@ async function RequestDetail({ id, filters }: { id: string; filters: ProductFilt
     <>
       <PageHeader title={<span className="flex flex-wrap items-center gap-3">Solicitud {formatRequestNumber(data.request_number as number)}<StatusBadge status={data.request_status as RequestStatus} /></span>} description={`Fecha de solicitud: ${formatDateTime(createdAt)}`} />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <MetricCard icon={Package} value={summary.products} label="Productos solicitados" />
         <MetricCard icon={FileText} value={summary.requested} label="Unidades solicitadas" />
         <MetricCard icon={Truck} value={summary.delivered} label="Unidades entregadas" />
@@ -81,7 +81,7 @@ async function RequestDetail({ id, filters }: { id: string; filters: ProductFilt
       </div>
 
       <Card>
-        <CardHeader className="flex-row flex-wrap items-center justify-between gap-4">
+        <CardHeader className="flex-row flex-wrap items-center justify-between gap-3 sm:gap-4">
           <CardTitle>Productos</CardTitle>
           <RequestProductFilters buscar={filters.buscar} pendiente={filters.pendiente} />
         </CardHeader>

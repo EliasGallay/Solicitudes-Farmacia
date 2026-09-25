@@ -1147,17 +1147,29 @@ El contenido debe aprovechar correctamente el viewport disponible.
 # 25. Responsive
 
 La implementación debe utilizar prácticas responsive aunque los mockups actuales estén enfocados en desktop.
-
-No diseñar una interfaz mobile específica a partir de referencias inexistentes.
+Plan y decisiones: `docs/plans/plan-responsive.md` (2026-09-25).
 
 En resoluciones menores:
 
-- evitar overflow horizontal de la página;
+- evitar overflow horizontal de la página (verificado desde 320px);
 - permitir overflow controlado en tablas cuando sea necesario;
 - reorganizar grids progresivamente;
 - mantener accesibles las acciones principales.
 
-No modificar la experiencia desktop para resolver anticipadamente diseños mobile no definidos.
+Reglas definidas:
+
+- **Breakpoints:** sidebar fijo desde `lg` (1024px). Debajo de `lg`, barra superior compacta
+  (marca + botón de menú) que abre el contenido del sidebar en un drawer (`<dialog>` modal).
+- **Listados:** desde `md`, `<Table>`; debajo de `md`, `MobileList` (`components/ui/mobile-list.tsx`)
+  con el mismo contenido. La tabla usa `containerClassName="hidden md:block"`.
+- **Filtros:** una columna en mobile, dos desde `sm`, fila flexible desde `lg` con los anchos de desktop.
+- **Acciones de un flujo** (wizard de nueva solicitud): barra fija al pie en mobile.
+- **Encabezado de página:** título `text-2xl` en mobile y `text-3xl` desde `sm`; acciones a ancho completo en mobile.
+- **Inputs:** `text-base` en mobile (evita el zoom automático de iOS) y `text-sm` desde `sm`.
+- **Táctil:** controles de 40px o más en mobile (paginación, stepper de cantidad).
+- **Poca altura:** variante `short` (`max-height: 820px`) para compactar layouts como el login.
+
+No modificar la experiencia desktop (≥ 1280px) salvo para corregir problemas de espacio.
 
 ---
 

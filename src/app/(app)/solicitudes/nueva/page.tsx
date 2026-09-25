@@ -57,7 +57,11 @@ async function ProductSelection({ buscar, tipo, page, pageSize, isAdmin }: { bus
     isAdmin ? supabase.from('health_centers').select('id, name').eq('active', true).order('name') : Promise.resolve({ data: null, error: null }),
   ])
   // PGRST103: la página pedida está fuera de rango; se trata como sin resultados.
-  if ((productsResult.error && productsResult.error.code !== 'PGRST103') || totalResult.error || centersResult.error) return <Card><ErrorState title="No pudimos cargar los productos" /></Card>
+  const loadError = (productsResult.error?.code !== 'PGRST103' && productsResult.error) || totalResult.error || centersResult.error
+  if (loadError) {
+    console.error('Error al cargar productos para nueva solicitud', loadError)
+    return <Card><ErrorState title="No pudimos cargar los productos" /></Card>
+  }
   return <NewRequestWizard products={(productsResult.data ?? []) as { id: string; name: string; presentation: string; product_type: ProductType }[]} total={totalResult.count ?? 0} matching={productsResult.count ?? 0} page={page} pageSize={pageSize} buscar={buscar} tipo={tipo} centers={isAdmin ? (centersResult.data ?? []) as { id: string; name: string }[] : undefined} />
 }
 
@@ -69,14 +73,14 @@ async function RequestSent({ id }: { id: string }) {
 
   const productCount = (data.request_items as { count: number }[] | null)?.[0]?.count ?? 0
   return (
-    <Card role="status" className="mx-auto flex max-w-xl motion-safe:animate-enter-from-below flex-col items-center gap-2 px-6 py-10 text-center">
+    <Card role="status" className="mx-auto flex max-w-xl motion-safe:animate-enter-from-below flex-col items-center gap-2 px-4 py-8 text-center sm:px-6 sm:py-10">
       <div className="mb-2 flex size-14 items-center justify-center rounded-full bg-success-muted text-success"><CircleCheck className="size-8" aria-hidden /></div>
       <h2 className="text-xl leading-7 font-bold text-foreground">Solicitud enviada correctamente</h2>
       <p className="text-sm leading-5 text-foreground-secondary">Tu solicitud quedó registrada con el número:</p>
       <p className="my-2 rounded-md bg-primary-50 px-4 py-2 text-2xl leading-8 font-bold text-primary-700">{formatRequestNumber(data.request_number as number)}</p>
       <p className="text-sm leading-5 text-foreground-secondary">Fecha: {formatDateTime(data.created_at as string)}</p>
       <p className="text-sm leading-5 text-foreground-secondary">{productCount} {productCount === 1 ? 'producto solicitado' : 'productos solicitados'}</p>
-      <div className="mt-4 flex flex-wrap justify-center gap-3">
+      <div className="mt-4 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-center">
         <Link href={`/solicitudes/${data.id}`} className={buttonVariants()}>Ver solicitud</Link>
         <Link href="/solicitudes/nueva" className={buttonVariants({ variant: 'secondary' })}><Plus />Nueva solicitud</Link>
       </div>
