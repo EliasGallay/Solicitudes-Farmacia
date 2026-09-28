@@ -1,14 +1,11 @@
-import { z } from 'zod'
+import { relationOne } from './requests'
 
-// Tipos del rubro 'pharmacy' en public.product_types (supabase/migrations/202609280001_areas.sql).
-export const productTypes = ['medication', 'disposable', 'equipment'] as const
-export type ProductType = (typeof productTypes)[number]
+// Tipos de producto por rubro (public.product_types). Se leen de la base con getProductTypes (./areas).
+export type ProductTypeOption = { area: string; key: string; label: string; active: boolean }
 
-export const productTypeLabels: Record<ProductType, string> = {
-  medication: 'Medicamento',
-  disposable: 'Descartable',
-  equipment: 'Equipamiento',
+// Relación embebida products → product_types (FK compuesta area + product_type), ej. `type:product_types(label)`.
+export type ProductTypeRelation = { label: string } | { label: string }[] | null | undefined
+
+export function productTypeLabel(relation: ProductTypeRelation) {
+  return relationOne(relation)?.label ?? '—'
 }
-
-export const productTypeSchema = z.enum(productTypes)
-export const productTypeParamSchema = productTypeSchema.optional().catch(undefined)

@@ -3,6 +3,10 @@ import { z } from 'zod'
 // Texto de búsqueda recibido por URL: recortado, acotado y opcional.
 export const searchParamSchema = z.string().trim().min(1).max(100).optional().catch(undefined)
 
+// Claves de rubro y de tipo de producto: mismo formato que los checks de public.areas y public.product_types.
+export const keySchema = z.string().regex(/^[a-z][a-z0-9_]*$/).max(50)
+export const keyParamSchema = keySchema.optional().catch(undefined)
+
 // Paginación estándar: tamaño elegible desde el pie de cada listado (?por_pagina=).
 export const PAGE_SIZES = [5, 10, 15, 25, 50] as const
 export const DEFAULT_PAGE_SIZE = 10

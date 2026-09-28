@@ -5,6 +5,7 @@ import { EmptyState } from '@/components/empty-state'
 import { ListFooter } from '@/components/list-footer'
 import { PageHeader } from '@/components/page-header'
 import { createProduct, toggleProduct, updateProduct } from '@/app/product-actions'
+import { getProductTypes } from '@/lib/areas'
 import { listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema } from '@/lib/filters'
 import { feedbackMessage } from '@/lib/feedback'
 import { requireRole } from '@/lib/session'
@@ -16,10 +17,13 @@ export default async function CatalogsPage({ searchParams }: { searchParams: Pro
   const page = pageParamSchema.parse(params.page)
   const pageSize = pageSizeParamSchema.parse(params.por_pagina)
 
-  const [{ data: products, count: productCount }, { data: centers }] = await Promise.all([
+  const [{ data: products, count: productCount }, { data: centers }, allTypes] = await Promise.all([
     supabase.from('products').select('id, name, presentation, product_type, active', { count: 'exact' }).order('name').range(...pageRange(page, pageSize)),
     supabase.from('health_centers').select('id, name, active').order('name'),
+    getProductTypes(),
   ])
+  // Único rubro hasta la fase 4 (docs/plans/plan-rubros.md), cuando el formulario elige el rubro.
+  const types = (allTypes ?? []).filter((type) => type.area === 'pharmacy')
 
   return (
     <>
@@ -30,7 +34,7 @@ export default async function CatalogsPage({ searchParams }: { searchParams: Pro
 
       <section className="mt-8 rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6">
         <h2 className="text-xl font-semibold">Nuevo producto</h2>
-        <div className="mt-4"><ProductForm action={createProduct} submitLabel="Agregar" /></div>
+        <div className="mt-4"><ProductForm action={createProduct} types={types} submitLabel="Agregar" /></div>
       </section>
 
       <section className="mt-8 rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6">
@@ -38,7 +42,7 @@ export default async function CatalogsPage({ searchParams }: { searchParams: Pro
         <div className="mt-4 space-y-4">
           {(products ?? []).map((product) => (
             <div key={product.id} className="rounded-lg border border-border p-4">
-              <ProductForm action={updateProduct} productId={product.id} defaultValues={{ name: product.name, presentation: product.presentation, product_type: product.product_type }} submitLabel="Guardar" />
+              <ProductForm action={updateProduct} types={types} productId={product.id} defaultValues={{ name: product.name, presentation: product.presentation, product_type: product.product_type }} submitLabel="Guardar" />
               <div className="mt-3 flex items-center justify-between gap-3 text-sm">
                 <span className={product.active ? 'text-success' : 'text-foreground-secondary'}>{product.active ? 'Activo' : 'Inactivo'}</span>
                 <form action={toggleProduct}><input type="hidden" name="id" value={product.id} /><input type="hidden" name="active" value={String(product.active)} /><ConfirmSubmit message={product.active ? '¿Desactivar este producto?' : '¿Reactivar este producto?'}>{product.active ? 'Desactivar' : 'Reactivar'}</ConfirmSubmit></form>

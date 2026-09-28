@@ -10,8 +10,9 @@ import { NewRequestWizard } from '@/components/requests/new-request-wizard'
 import { RequestStepper } from '@/components/requests/request-stepper'
 import { buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { likeContains, pageParamSchema, pageRange, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
-import { productTypeParamSchema, type ProductType } from '@/lib/product-types'
+import { getAreas, getProductTypes } from '@/lib/areas'
+import { keyParamSchema, likeContains, pageParamSchema, pageRange, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
+import { productTypeLabel, type ProductTypeRelation } from '@/lib/product-types'
 import { formatDateTime, formatRequestNumber } from '@/lib/requests'
 import { requireSession } from '@/lib/session'
 
@@ -20,7 +21,7 @@ export default async function NewRequestPage({ searchParams }: { searchParams: P
   const params = await searchParams
   const sentId = z.string().uuid().safeParse(params.enviada)
   const buscar = searchParamSchema.parse(params.buscar)
-  const tipo = productTypeParamSchema.parse(params.tipo)
+  const tipo = keyParamSchema.parse(params.tipo)
   const page = pageParamSchema.parse(params.page)
   const pageSize = pageSizeParamSchema.parse(params.por_pagina)
 
@@ -44,15 +45,20 @@ export default async function NewRequestPage({ searchParams }: { searchParams: P
 }
 
 // Búsqueda y paginación se resuelven en la base; el total general permite distinguir
-// "sin resultados" de "sin productos".
-async function ProductSelection({ buscar, tipo, page, pageSize, isAdmin }: { buscar?: string; tipo?: ProductType; page: number; pageSize: number; isAdmin: boolean }) {
+// "sin resultados" de "sin productos". El catálogo se limita al rubro de la solicitud.
+async function ProductSelection({ buscar, tipo, page, pageSize, isAdmin }: { buscar?: string; tipo?: string; page: number; pageSize: number; isAdmin: boolean }) {
   const { supabase } = await requireSession()
-  let query = supabase.from('products').select('id, name, presentation, product_type', { count: 'exact' }).eq('active', true)
+  const [areas, types] = await Promise.all([getAreas(), getProductTypes()])
+  if (!areas || !types) return <Card><ErrorState title="No pudimos cargar los productos" /></Card>
+  const area = areas[0]
+  if (!area) return <Card><EmptyState icon={FileQuestion} title="No tenés rubros habilitados">Pedile al administrador que te asigne un rubro para poder hacer solicitudes.</EmptyState></Card>
+
+  let query = supabase.from('products').select('id, name, presentation, type:product_types(label)', { count: 'exact' }).eq('active', true).eq('area', area.key)
   if (tipo) query = query.eq('product_type', tipo)
   for (const token of searchTokens(buscar ?? '')) query = query.ilike('product_search_text', likeContains(token))
   const [productsResult, totalResult, centersResult] = await Promise.all([
     query.order('name').range(...pageRange(page, pageSize)),
-    supabase.from('products').select('id', { count: 'exact', head: true }).eq('active', true),
+    supabase.from('products').select('id', { count: 'exact', head: true }).eq('active', true).eq('area', area.key),
     // Solo el admin elige centro; el solicitante usa siempre el de su perfil.
     isAdmin ? supabase.from('health_centers').select('id, name').eq('active', true).order('name') : Promise.resolve({ data: null, error: null }),
   ])
@@ -62,7 +68,9 @@ async function ProductSelection({ buscar, tipo, page, pageSize, isAdmin }: { bus
     console.error('Error al cargar productos para nueva solicitud', loadError)
     return <Card><ErrorState title="No pudimos cargar los productos" /></Card>
   }
-  return <NewRequestWizard products={(productsResult.data ?? []) as { id: string; name: string; presentation: string; product_type: ProductType }[]} total={totalResult.count ?? 0} matching={productsResult.count ?? 0} page={page} pageSize={pageSize} buscar={buscar} tipo={tipo} centers={isAdmin ? (centersResult.data ?? []) as { id: string; name: string }[] : undefined} />
+  const products = (productsResult.data ?? []).map((product) => ({ id: product.id as string, name: product.name as string, presentation: product.presentation as string, typeLabel: productTypeLabel(product.type as ProductTypeRelation) }))
+  const areaTypes = types.filter((type) => type.area === area.key && type.active)
+  return <NewRequestWizard area={area.key} types={areaTypes} products={products} total={totalResult.count ?? 0} matching={productsResult.count ?? 0} page={page} pageSize={pageSize} buscar={buscar} tipo={tipo} centers={isAdmin ? (centersResult.data ?? []) as { id: string; name: string }[] : undefined} />
 }
 
 async function RequestSent({ id }: { id: string }) {

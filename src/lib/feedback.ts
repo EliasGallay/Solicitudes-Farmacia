@@ -14,6 +14,7 @@ const messages = {
   'recuperacion-error': 'No pudimos enviar el enlace en este momento. Esperá unos minutos e intentá nuevamente.',
   'enlace-invalido': 'El enlace para restablecer la contraseña no es válido o ya venció. Pedí uno nuevo.',
   'solo-admin': 'Solo un administrador puede acceder a esta sección.',
+  'sin-rubro': 'No tenés habilitado ese rubro.',
   'producto-incompleto': 'Completá nombre, presentación y tipo.',
   'producto-invalido': 'Los datos del producto no son válidos.',
   'producto-duplicado': 'Ya existe un producto con ese nombre y presentación.',

@@ -1,6 +1,6 @@
 # Plan — Rubros de solicitud (farmacia, limpieza, laboratorio)
 
-Estado al 2026-09-28, rama base `develop`. **Hecho**: fases 1 y 2.
+Estado al 2026-09-28, rama base `develop`. **Hecho**: fases 1 a 3.
 Objetivo: ampliar el sistema de solicitudes de farmacia a otros rubros, con permisos por
 rubro que se puedan combinar por persona. Se resuelve por fases, en orden, y cada fase se
 mergea por separado sin romper lo existente. Marcar cada ítem al cerrarlo e indicar la
@@ -114,13 +114,16 @@ Al cerrar esta fase la app funciona igual que antes.
 
 ### Fase 3 — Sesión y guards en la app
 
-- [ ] 3.1 `getSession()` devuelve `areas: AreaKey[]` (vacío para el admin, que usa `role`).
-- [ ] 3.2 Guard `requireArea(area)` en `session.ts`: admin pasa siempre; solicitante solo con
-  el área asignada.
-- [ ] 3.3 `request-actions.ts`: `submitRequest` recibe el área, valida con `requireArea` y
+- [x] 3.1 `getSession()` devuelve `areas: AreaKey[]` (vacío para el admin, que usa `role`).
+- [x] 3.2 Guard `requireArea(area)` en `session.ts`: admin pasa siempre; solicitante solo con
+  el área asignada. Redirige a `/` con el aviso `sin-rubro`.
+- [x] 3.3 `request-actions.ts`: `submitRequest` recibe el área, valida con `requireArea` y
   la pasa a la RPC.
-- [ ] 3.4 `src/lib/product-types.ts`: los tipos se leen de la base por área en lugar de una
+- [x] 3.4 `src/lib/product-types.ts`: los tipos se leen de la base por área en lugar de una
   constante; los labels salen de `product_types.label`.
+  Decisión: los listados embeben el label (`type:product_types(label)`, por la FK compuesta) y los
+  filtros y formularios usan `getProductTypes()` de `src/lib/areas.ts`, junto con `getAreas()`.
+  Hasta la fase 4 el wizard usa el único rubro visible y `/catalogos` los tipos de `pharmacy`.
 
 ### Fase 4 — UI
 

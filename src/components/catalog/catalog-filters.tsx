@@ -7,11 +7,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useSearchFilter, useUrlFilters } from '@/hooks/use-url-filters'
-import { productTypeLabels, productTypes, type ProductType } from '@/lib/product-types'
 
 const ALL = 'todos'
 
-export function CatalogFilters({ buscar, tipo }: { buscar?: string; tipo?: ProductType }) {
+// `types`: tipos activos de los rubros visibles.
+export function CatalogFilters({ types, buscar, tipo }: { types: { key: string; label: string }[]; buscar?: string; tipo?: string }) {
   const { setFilters, clearFilters } = useUrlFilters()
   const search = useSearchFilter('buscar', buscar)
 
@@ -35,7 +35,7 @@ export function CatalogFilters({ buscar, tipo }: { buscar?: string; tipo?: Produ
           <SelectTrigger id="catalogo-tipo" className="lg:w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>Todos los tipos</SelectItem>
-            {productTypes.map((type) => <SelectItem key={type} value={type}>{productTypeLabels[type]}</SelectItem>)}
+            {types.map((type) => <SelectItem key={type.key} value={type.key}>{type.label}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>

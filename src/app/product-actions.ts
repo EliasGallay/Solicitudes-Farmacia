@@ -3,19 +3,21 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
-import { productTypeSchema } from '../lib/product-types'
+import { keySchema } from '../lib/filters'
 import { withFeedback } from '../lib/feedback'
 import { requireRole } from '../lib/session'
 
-// 23505: violación de unicidad (nombre + presentación ya existentes).
+// 23505: violación de unicidad (rubro + nombre + presentación ya existentes).
+// 23503: el tipo no existe en el rubro del producto (FK compuesta con product_types).
 function productErrorCode(error: { code?: string }) {
-  return error.code === '23505' ? 'producto-duplicado' : 'producto-error'
+  if (error.code === '23505') return 'producto-duplicado'
+  return error.code === '23503' ? 'producto-invalido' : 'producto-error'
 }
 
 const productSchema = z.object({
   name: z.string().trim().min(1).max(150),
   presentation: z.string().trim().min(1).max(150),
-  product_type: productTypeSchema,
+  product_type: keySchema,
 })
 
 const idSchema = z.string().uuid()

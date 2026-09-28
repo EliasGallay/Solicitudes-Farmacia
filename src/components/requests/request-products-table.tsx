@@ -3,14 +3,13 @@ import { EmptyState } from '@/components/empty-state'
 import { StatusBadge } from '@/components/status-badge'
 import { MobileList, MobileListFields, MobileListHeader, MobileListItem } from '@/components/ui/mobile-list'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { productTypeLabels, type ProductType } from '@/lib/product-types'
 import type { RequestStatus } from '@/lib/request-status'
 import { cn } from '@/lib/utils'
 
-export type RequestProductRow = { id: string; name: string; type: ProductType | null; presentation: string; requested: number; delivered: number; pending: number; status: RequestStatus }
+export type RequestProductRow = { id: string; name: string; type: string | null; presentation: string; requested: number; delivered: number; pending: number; status: RequestStatus }
 
 function productSubtitle(item: RequestProductRow) {
-  return [item.type ? productTypeLabels[item.type] : null, item.presentation].filter(Boolean).join(' · ')
+  return [item.type, item.presentation].filter(Boolean).join(' · ')
 }
 
 export function RequestProductsTable({ items }: { items: RequestProductRow[] }) {
@@ -50,7 +49,7 @@ export function RequestProductsTable({ items }: { items: RequestProductRow[] }) 
                 {/* Entre md y xl, tipo y presentación van bajo el nombre para que entren las 7 columnas. */}
                 <span className="block text-xs leading-4 text-foreground-secondary xl:hidden">{productSubtitle(item)}</span>
               </TableCell>
-              <TableCell className="hidden xl:table-cell">{item.type ? productTypeLabels[item.type] : '—'}</TableCell>
+              <TableCell className="hidden xl:table-cell">{item.type ?? '—'}</TableCell>
               <TableCell className="hidden text-foreground-secondary xl:table-cell">{item.presentation}</TableCell>
               <TableCell className="text-right tabular-nums">{item.requested}</TableCell>
               <TableCell className="text-right tabular-nums">{item.delivered}</TableCell>
