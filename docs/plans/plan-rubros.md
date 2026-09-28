@@ -1,6 +1,6 @@
 # Plan — Rubros de solicitud (farmacia, limpieza, laboratorio)
 
-Estado al 2026-09-28, rama base `develop`. **Hecho**: fases 1 a 4, salvo 4.5 (depende de `/usuarios`).
+Estado al 2026-09-28, rama base `develop`. **Hecho**: fases 1 a 4.
 **Pendiente**: fase 5, que necesita los tipos de limpieza y laboratorio (sección 4).
 Objetivo: ampliar el sistema de solicitudes de farmacia a otros rubros, con permisos por
 rubro que se puedan combinar por persona. Se resuelve por fases, en orden, y cada fase se
@@ -142,24 +142,30 @@ Al cerrar esta fase la app funciona igual que antes.
   selector de tipo depende del área elegida. Gestión de tipos por área.
   Decisión: el selector de rubro solo aparece con más de un rubro. Los tipos se crean con una
   clave derivada del nombre (inmutable), se renombran y se activan/desactivan; no se borran.
-- [ ] 4.5 **Usuarios** (`/usuarios`, cuando se implemente): checkboxes de áreas por
-  solicitante. **Pendiente**: `/usuarios` todavía no está implementado; mientras tanto los
-  rubros se asignan con SQL sobre `profile_areas` (RLS ya permite hacerlo al admin).
+- [x] 4.5 **Usuarios** (`/usuarios`, cuando se implemente): checkboxes de áreas por
+  solicitante. Implementado junto con la gestión de usuarios (`202609300001_user_admin.sql`):
+  los rubros se guardan con la RPC `admin_save_user`, atómica con el resto del perfil.
 - [x] 4.6 **Textos**: revisar lo que hoy dice "farmacia" o "farmacéutica" y volverlo genérico
   o dependiente del área (inicio, sidebar, wizard, `UI-SPEC.md`).
   El nombre visible pasa a "Solicitudes de Insumos" (título, sidebar, login).
 
 ### Fase 5 — Alta de rubros nuevos
 
-- [ ] 5.1 Cargar `cleaning` y sus tipos.
-- [ ] 5.2 Cargar `laboratory` y sus tipos.
-- [ ] 5.3 Asignar áreas a los solicitantes que correspondan.
+- [x] 5.1 Cargar `cleaning` y sus tipos.
+- [x] 5.2 Cargar `laboratory` y sus tipos.
+  También se agrega `stationery` (Librería). Seed `supabase/seed/rubros.sql` (idempotente), con el
+  catálogo normalizado de `catalogos-rubros-productos-solicitudes-farmacia.md`: Librería 14,
+  Laboratorio 9 y Limpieza 26 productos. **Pendiente**: ejecutarlo en el proyecto remoto.
+- [ ] 5.3 Asignar áreas a los solicitantes que correspondan (desde `/usuarios`).
 
 Solo carga de datos: no requiere cambios de código si las fases 1–4 están cerradas.
 
 ## 4. Pendientes a definir
 
-- [ ] Tipos concretos de limpieza y laboratorio.
+- [x] Tipos concretos de limpieza y laboratorio (y librería). Laboratorio queda con una
+  clasificación inicial (Tubos, Diagnóstico, Pipeteo, Otros insumos) a revisar si aparecen
+  nuevas familias de productos; los tipos se pueden ajustar desde Catálogos.
+- [ ] `Perfumina` vs. `Desodorante de ambiente aerosol`: hoy consolidados en el segundo.
 - [ ] Si algún rubro necesita atributos propios además de nombre, tipo y presentación
   (definiría una tabla de extensión por rubro).
 - [ ] Si las entregas de cada rubro las registra el admin o, en el futuro, un responsable

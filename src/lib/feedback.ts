@@ -30,6 +30,18 @@ const messages = {
   'tipo-actualizado': 'Tipo actualizado.',
   'tipo-desactivado': 'Tipo desactivado. Los productos que lo usan lo conservan.',
   'tipo-reactivado': 'Tipo reactivado.',
+  'usuario-creado': 'Usuario creado. Compartile el email y la contraseña temporal: la va a tener que cambiar al ingresar.',
+  'usuario-actualizado': 'Datos del usuario actualizados.',
+  'usuario-password': 'Contraseña temporal asignada. El usuario la va a tener que cambiar al ingresar.',
+  'usuario-desactivado': 'Usuario desactivado. Ya no puede ingresar al sistema.',
+  'usuario-reactivado': 'Usuario reactivado. Ya puede volver a ingresar.',
+  'usuario-eliminado': 'Usuario eliminado.',
+  'usuario-invalido': 'El usuario indicado no es válido.',
+  'usuario-propio': 'No podés desactivar ni eliminar tu propia cuenta.',
+  'usuario-con-actividad': 'El usuario tiene solicitudes o entregas registradas: desactivalo en lugar de eliminarlo.',
+  'usuario-error': 'No se pudo completar la acción sobre el usuario. Intentá nuevamente.',
+  'usuario-bloqueo-error': 'El perfil se actualizó, pero no se pudo cambiar el acceso de la cuenta. Intentá nuevamente.',
+  'usuario-eliminado-parcial': 'Se eliminó el perfil, pero no la cuenta de acceso. Revisala en Supabase > Authentication.',
 } as const
 
 export type FeedbackCode = keyof typeof messages
