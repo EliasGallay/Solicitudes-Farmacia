@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ArrowRight, ChevronRight } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { MobileList, MobileListItem } from '@/components/ui/mobile-list'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -8,11 +9,13 @@ import { StatusBadge } from '@/components/status-badge'
 import type { RequestStatus } from '@/lib/request-status'
 import { formatDateTime, formatRequestNumber } from '@/lib/requests'
 
-export type RequestRow = { id: string; number: number; createdAt: string; productCount: number; status: RequestStatus }
+// `area`: nombre del rubro, solo cuando el usuario ve más de uno.
+export type RequestRow = { id: string; number: number; createdAt: string; productCount: number; status: RequestStatus; area?: string }
 
 // Último movimiento queda fuera hasta que el backend lo provea.
 // Debajo de md cada solicitud es un enlace a su detalle; desde md, tabla.
 export function RequestsTable({ rows }: { rows: RequestRow[] }) {
+  const showArea = rows.some((row) => row.area)
   return (
     <>
       <MobileList>
@@ -25,6 +28,7 @@ export function RequestsTable({ rows }: { rows: RequestRow[] }) {
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <span className="text-sm leading-5 font-semibold text-foreground">{number}</span>
                     <StatusBadge status={row.status} />
+                    {row.area && <Badge>{row.area}</Badge>}
                   </div>
                   <p className="mt-1 text-xs leading-4 text-foreground-secondary">{formatDateTime(row.createdAt)} · {row.productCount} {row.productCount === 1 ? 'producto' : 'productos'}</p>
                 </div>
@@ -38,6 +42,7 @@ export function RequestsTable({ rows }: { rows: RequestRow[] }) {
         <TableHeader>
           <TableRow>
             <TableHead>N° solicitud</TableHead>
+            {showArea && <TableHead>Rubro</TableHead>}
             <TableHead>Fecha</TableHead>
             <TableHead className="text-right">Productos</TableHead>
             <TableHead>Estado</TableHead>
@@ -50,6 +55,7 @@ export function RequestsTable({ rows }: { rows: RequestRow[] }) {
             return (
               <TableRow key={row.id}>
                 <TableCell className="font-semibold whitespace-nowrap">{number}</TableCell>
+                {showArea && <TableCell>{row.area && <Badge>{row.area}</Badge>}</TableCell>}
                 <TableCell className="whitespace-nowrap">{formatDateTime(row.createdAt)}</TableCell>
                 <TableCell className="text-right tabular-nums">{row.productCount}</TableCell>
                 <TableCell><StatusBadge status={row.status} /></TableCell>

@@ -77,7 +77,7 @@ function Brand({ className }: { className?: string }) {
       <Landmark className="size-9 shrink-0" aria-hidden />
       <span className="flex min-w-0 flex-col">
         <span className="text-xs leading-4 font-bold tracking-wide uppercase">Municipalidad de Funes</span>
-        <span className="text-sm leading-5 text-sidebar-muted">Solicitudes de Farmacia</span>
+        <span className="text-sm leading-5 text-sidebar-muted">Solicitudes de Insumos</span>
       </span>
     </Link>
   )

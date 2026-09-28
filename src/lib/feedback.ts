@@ -15,14 +15,21 @@ const messages = {
   'enlace-invalido': 'El enlace para restablecer la contraseña no es válido o ya venció. Pedí uno nuevo.',
   'solo-admin': 'Solo un administrador puede acceder a esta sección.',
   'sin-rubro': 'No tenés habilitado ese rubro.',
-  'producto-incompleto': 'Completá nombre, presentación y tipo.',
+  'producto-incompleto': 'Completá rubro, nombre, presentación y tipo.',
   'producto-invalido': 'Los datos del producto no son válidos.',
-  'producto-duplicado': 'Ya existe un producto con ese nombre y presentación.',
+  'producto-duplicado': 'Ya existe un producto con ese nombre y presentación en el rubro.',
   'producto-error': 'No se pudo guardar el producto. Intentá nuevamente.',
   'producto-creado': 'Producto creado.',
   'producto-actualizado': 'Producto actualizado.',
   'producto-desactivado': 'Producto desactivado.',
   'producto-reactivado': 'Producto reactivado.',
+  'tipo-invalido': 'Completá el rubro y un nombre de tipo que tenga letras.',
+  'tipo-duplicado': 'Ya existe ese tipo en el rubro.',
+  'tipo-error': 'No se pudo guardar el tipo. Intentá nuevamente.',
+  'tipo-creado': 'Tipo creado.',
+  'tipo-actualizado': 'Tipo actualizado.',
+  'tipo-desactivado': 'Tipo desactivado. Los productos que lo usan lo conservan.',
+  'tipo-reactivado': 'Tipo reactivado.',
 } as const
 
 export type FeedbackCode = keyof typeof messages

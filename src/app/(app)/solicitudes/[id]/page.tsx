@@ -17,6 +17,7 @@ import { RequestsTableSkeleton } from '@/components/requests/requests-table'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { likeContains, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
+import { areaName, getAreas } from '@/lib/areas'
 import { formatDateTime, formatRequestNumber, relationOne, summarizeItems, type ItemQuantitiesRow } from '@/lib/requests'
 import { productTypeLabel, type ProductTypeRelation } from '@/lib/product-types'
 import type { RequestStatus } from '@/lib/request-status'
@@ -58,16 +59,19 @@ function NotFound() {
 // Último movimiento e historial no se muestran: dependen de la auditoría (Fase 7).
 async function RequestDetail({ id, filters }: { id: string; filters: ProductFilters }) {
   const { supabase } = await requireSession()
-  const { data, error } = await supabase.from('requests').select('id, request_number, created_at, request_status, observations, request_items(requested_quantity, delivered_quantity, pending_quantity)').eq('id', id).maybeSingle()
+  const areas = await getAreas() ?? []
+  const { data, error } = await supabase.from('requests').select('id, area, request_number, created_at, request_status, observations, request_items(requested_quantity, delivered_quantity, pending_quantity)').eq('id', id).maybeSingle()
   if (error) return <Card><ErrorState title="No pudimos cargar la solicitud" /></Card>
   if (!data) return <NotFound />
 
   const summary = summarizeItems((data.request_items ?? []) as ItemQuantitiesRow[])
 
   const createdAt = data.created_at as string
+  // El rubro solo se muestra cuando el usuario ve más de uno.
+  const area = areas.length > 1 ? ` · Rubro: ${areaName(areas, data.area as string)}` : ''
   return (
     <>
-      <PageHeader title={<span className="flex flex-wrap items-center gap-3">Solicitud {formatRequestNumber(data.request_number as number)}<StatusBadge status={data.request_status as RequestStatus} /></span>} description={`Fecha de solicitud: ${formatDateTime(createdAt)}`} />
+      <PageHeader title={<span className="flex flex-wrap items-center gap-3">Solicitud {formatRequestNumber(data.request_number as number)}<StatusBadge status={data.request_status as RequestStatus} /></span>} description={`Fecha de solicitud: ${formatDateTime(createdAt)}${area}`} />
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <MetricCard icon={Package} value={summary.products} label="Productos solicitados" />

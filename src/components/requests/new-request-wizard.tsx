@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { ArrowLeft, ArrowRight, Minus, PackageSearch, Plus, Search, Send, Trash2 } from 'lucide-react'
 import { submitRequest } from '@/app/request-actions'
 import { EmptyState } from '@/components/empty-state'
@@ -39,9 +40,9 @@ function productSubtitle(product: Product) {
 }
 
 // `products` llega ya filtrado por el servidor según `area`, `buscar` y `tipo`; la selección se conserva entre búsquedas.
-// `types`: tipos activos del rubro, para el filtro.
+// `types`: tipos activos del rubro, para el filtro. `canChangeArea`: el usuario tiene más de un rubro.
 // `centers` solo se recibe para el admin, que debe elegir el centro de la solicitud.
-export function NewRequestWizard({ area, types, products, total, matching, page, pageSize, buscar, tipo, centers }: { area: string; types: TypeOption[]; products: Product[]; total: number; matching: number; page: number; pageSize: number; buscar?: string; tipo?: string; centers?: Center[] }) {
+export function NewRequestWizard({ area, canChangeArea, types, products, total, matching, page, pageSize, buscar, tipo, centers }: { area: { key: string; name: string }; canChangeArea: boolean; types: TypeOption[]; products: Product[]; total: number; matching: number; page: number; pageSize: number; buscar?: string; tipo?: string; centers?: Center[] }) {
   const [step, setStep] = useState<1 | 2>(1)
   const search = useSearchFilter('buscar', buscar)
   const typeFilter = useUrlFilters()
@@ -94,7 +95,7 @@ export function NewRequestWizard({ area, types, products, total, matching, page,
     setError(undefined)
     const items = selected.map((entry) => ({ product_id: entry.product.id, quantity: parseQuantity(entry.quantity) ?? 0 }))
     startTransition(async () => {
-      const result = await submitRequest(area, items, observations.trim() || undefined, centerId)
+      const result = await submitRequest(area.key, items, observations.trim() || undefined, centerId)
       if (result?.error) setError(result.error)
     })
   }
@@ -106,7 +107,7 @@ export function NewRequestWizard({ area, types, products, total, matching, page,
         <Card className="motion-safe:animate-enter-from-below">
           <CardHeader>
             <CardTitle>Revisar solicitud</CardTitle>
-            <CardDescription>Verificá los productos y las cantidades antes de enviar la solicitud.</CardDescription>
+            <CardDescription>Verificá los productos y las cantidades antes de enviar la solicitud.{canChangeArea && <> Rubro: <span className="font-semibold text-foreground">{area.name}</span>.</>}</CardDescription>
           </CardHeader>
           <CardContent>
             {centers && (
@@ -177,6 +178,12 @@ export function NewRequestWizard({ area, types, products, total, matching, page,
       <Card className="motion-safe:animate-enter-from-below">
         <CardHeader>
           <CardTitle>Buscar y agregar productos</CardTitle>
+          {canChangeArea && (
+            <CardDescription>
+              Rubro: <span className="font-semibold text-foreground">{area.name}</span>{' · '}
+              <Link href="/solicitudes/nueva" className="font-medium text-primary-600 hover:underline">Cambiar rubro</Link>
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">

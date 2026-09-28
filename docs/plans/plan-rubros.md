@@ -1,6 +1,7 @@
 # Plan — Rubros de solicitud (farmacia, limpieza, laboratorio)
 
-Estado al 2026-09-28, rama base `develop`. **Hecho**: fases 1 a 3.
+Estado al 2026-09-28, rama base `develop`. **Hecho**: fases 1 a 4, salvo 4.5 (depende de `/usuarios`).
+**Pendiente**: fase 5, que necesita los tipos de limpieza y laboratorio (sección 4).
 Objetivo: ampliar el sistema de solicitudes de farmacia a otros rubros, con permisos por
 rubro que se puedan combinar por persona. Se resuelve por fases, en orden, y cada fase se
 mergea por separado sin romper lo existente. Marcar cada ítem al cerrarlo e indicar la
@@ -127,17 +128,26 @@ Al cerrar esta fase la app funciona igual que antes.
 
 ### Fase 4 — UI
 
-- [ ] 4.1 **Nueva solicitud**: con una sola área el wizard no cambia. Con varias, paso
+- [x] 4.1 **Nueva solicitud**: con una sola área el wizard no cambia. Con varias, paso
   previo para elegir el rubro; el catálogo del paso de productos se filtra por esa área.
-- [ ] 4.2 **Listados de solicitudes**: filtro por área, visible solo si el usuario tiene más
+  El rubro viaja en `?rubro=`; "Cambiar rubro" vuelve al paso previo y descarta la selección.
+- [x] 4.2 **Listados de solicitudes**: filtro por área, visible solo si el usuario tiene más
   de una (o es admin). Badge de rubro en cada fila cuando hay más de una.
-- [ ] 4.3 **Catálogo del solicitante** (`/catalogo`): filtro por área con la misma regla.
-- [ ] 4.4 **Catálogos del admin** (`/catalogos`): área en el formulario de producto; el
+  Decisión: la regla es "ve más de un rubro activo" también para el admin: con un único rubro
+  cargado no se muestra nada nuevo. Aplica también a Inicio y a los detalles de solicitud y producto.
+- [x] 4.3 **Catálogo del solicitante** (`/catalogo`): filtro por área con la misma regla.
+  Decisión: con varios rubros el filtro de tipo se habilita al elegir el rubro (las claves de
+  tipo pueden repetirse entre rubros); cambiar de rubro limpia el tipo.
+- [x] 4.4 **Catálogos del admin** (`/catalogos`): área en el formulario de producto; el
   selector de tipo depende del área elegida. Gestión de tipos por área.
+  Decisión: el selector de rubro solo aparece con más de un rubro. Los tipos se crean con una
+  clave derivada del nombre (inmutable), se renombran y se activan/desactivan; no se borran.
 - [ ] 4.5 **Usuarios** (`/usuarios`, cuando se implemente): checkboxes de áreas por
-  solicitante.
-- [ ] 4.6 **Textos**: revisar lo que hoy dice "farmacia" o "farmacéutica" y volverlo genérico
+  solicitante. **Pendiente**: `/usuarios` todavía no está implementado; mientras tanto los
+  rubros se asignan con SQL sobre `profile_areas` (RLS ya permite hacerlo al admin).
+- [x] 4.6 **Textos**: revisar lo que hoy dice "farmacia" o "farmacéutica" y volverlo genérico
   o dependiente del área (inicio, sidebar, wizard, `UI-SPEC.md`).
+  El nombre visible pasa a "Solicitudes de Insumos" (título, sidebar, login).
 
 ### Fase 5 — Alta de rubros nuevos
 

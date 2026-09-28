@@ -1,8 +1,11 @@
-# Solicitudes de Farmacia — UI Specification
+# Solicitudes de Insumos — UI Specification
 
 ## 1. Objetivo
 
-Definir la interfaz desktop del perfil FARMACÉUTICA.
+Definir la interfaz desktop del perfil SOLICITANTE (rol `requester`).
+
+El sistema nació para farmacia y se amplió a otros rubros (limpieza, laboratorio).
+Cada solicitante tiene uno o más rubros habilitados; ver `docs/plans/plan-rubros.md`.
 
 Las imágenes de `docs/ui-reference/` son referencias visuales.
 Este documento define comportamiento, estructura y contenido.
@@ -17,7 +20,7 @@ Si existe una contradicción:
 
 Perfil cubierto:
 
-- Farmacéutica.
+- Solicitante (de uno o más rubros).
 
 Pantallas:
 
@@ -55,7 +58,7 @@ se reemplaza por una barra superior compacta con un menú que abre el mismo cont
 
 El sidebar no cambia de estructura entre pantallas.
 
-## 5. Navegación Farmacéutica
+## 5. Navegación del solicitante
 
 Orden:
 
@@ -78,7 +81,7 @@ Referencia:
 
 ### Objetivo
 
-Permitir que la farmacéutica entienda rápidamente el estado de las
+Permitir que el solicitante entienda rápidamente el estado de las
 solicitudes de su centro e iniciar una nueva.
 
 ### Header
@@ -178,7 +181,10 @@ Ruta:
 
 Es el único flujo de creación de solicitudes (la ruta anterior `/nueva-solicitud`
 redirige aquí). Para el perfil administrador, el paso 2 agrega la selección
-obligatoria del centro de salud; la farmacéutica usa siempre el centro de su perfil.
+obligatoria del centro de salud; el solicitante usa siempre el centro de su perfil.
+
+Una solicitud es de un solo rubro. Con un rubro habilitado el flujo no cambia; con varios,
+un paso previo pide elegir el rubro y el catálogo del paso 1 se limita a ese rubro.
 
 Flujo de 3 pasos:
 
@@ -287,12 +293,14 @@ una acción "Editar". No aparece en el listado de Solicitudes.
 
 Mostrar movimientos cronológicamente.
 
-La farmacéutica tiene acceso de consulta.
+El solicitante tiene acceso de consulta.
 Las operaciones administrativas no deben aparecer.
 
 ## 9.1 Tipo de producto
 
-Todo producto tiene un tipo (`products.product_type`), definido por el administrador:
+Todo producto pertenece a un rubro (`products.area`) y tiene un tipo de ese rubro
+(`products.product_type` → `product_types`). El administrador gestiona los tipos por rubro
+desde Catálogos. Tipos de farmacia:
 
 - Medicamento.
 - Descartable.
@@ -300,7 +308,11 @@ Todo producto tiene un tipo (`products.product_type`), definido por el administr
 
 Se muestra en Nueva solicitud (columna y filtro) y en el detalle (columna Tipo).
 La columna "Unidad" de los mockups corresponde a la presentación del producto.
-Rubro y stock de referencia no forman parte del modelo.
+Stock de referencia no forma parte del modelo.
+
+El rubro solo se muestra (filtro en Solicitudes y Catálogo, badge en los listados, dato en los
+detalles) cuando el usuario ve más de un rubro. En Catálogo, el filtro de tipo depende del
+rubro elegido.
 
 ## 9.2 Catálogo
 
