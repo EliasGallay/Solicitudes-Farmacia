@@ -53,7 +53,7 @@ async function ProductSelection({ buscar, tipo, page, pageSize, isAdmin }: { bus
   const [productsResult, totalResult, centersResult] = await Promise.all([
     query.order('name').range(...pageRange(page, pageSize)),
     supabase.from('products').select('id', { count: 'exact', head: true }).eq('active', true),
-    // Solo el admin elige centro; la farmacéutica usa siempre el de su perfil.
+    // Solo el admin elige centro; el solicitante usa siempre el de su perfil.
     isAdmin ? supabase.from('health_centers').select('id, name').eq('active', true).order('name') : Promise.resolve({ data: null, error: null }),
   ])
   // PGRST103: la página pedida está fuera de rango; se trata como sin resultados.

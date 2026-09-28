@@ -11,7 +11,7 @@ const observationsSchema = z.string().trim().max(OBSERVATIONS_MAX_LENGTH).option
 const healthCenterSchema = z.string().uuid()
 
 // Paso 2 de /solicitudes/nueva: persiste solo al confirmar.
-// Farmacéutica: el centro es siempre el de su perfil. Admin: el centro elegido en el wizard.
+// Solicitante: el centro es siempre el de su perfil. Admin: el centro elegido en el wizard.
 // La RPC vuelve a aplicar esta misma regla en la base.
 export async function submitRequest(items: { product_id: string; quantity: number }[], observations?: string, healthCenterId?: string): Promise<{ error: string }> {
   const parsed = itemsSchema.safeParse(items)

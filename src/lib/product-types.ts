@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-// Valores del enum public.product_type (supabase/migrations/202609240005_product_type.sql).
+// Tipos del rubro 'pharmacy' en public.product_types (supabase/migrations/202609280001_areas.sql).
 export const productTypes = ['medication', 'disposable', 'equipment'] as const
 export type ProductType = (typeof productTypes)[number]
 

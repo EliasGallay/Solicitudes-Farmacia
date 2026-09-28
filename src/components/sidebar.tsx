@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 
 type NavItem = { label: string; icon: LucideIcon; href: string }
 
-const pharmacistNavigation: NavItem[] = [
+const requesterNavigation: NavItem[] = [
   { href: '/', label: 'Inicio', icon: House },
   { href: '/solicitudes', label: 'Solicitudes', icon: FileText },
   { href: '/solicitudes/nueva', label: 'Nueva solicitud', icon: CirclePlus },
@@ -51,7 +51,7 @@ export function SidebarItem({ item, active }: { item: NavItem; active: boolean }
 
 function Navigation({ role, className }: { role: AppRole | null; className?: string }) {
   const pathname = usePathname()
-  const items = role === 'admin' ? adminNavigation : pharmacistNavigation
+  const items = role === 'admin' ? adminNavigation : requesterNavigation
   const current = activeHref(items, pathname)
   return (
     <nav aria-label="Navegación principal" className={className}>

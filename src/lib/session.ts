@@ -4,7 +4,7 @@ import { withFeedback } from './feedback'
 import { relationOne } from './requests'
 import { createSupabaseServerClient } from './supabase/server'
 
-export type AppRole = 'admin' | 'pharmacist'
+export type AppRole = 'admin' | 'requester'
 
 // Cached per request: pages and AppShell share one profile lookup.
 export const getSession = cache(async () => {

@@ -49,7 +49,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
   )
 }
 
-// Solo productos activos: la política RLS ya los restringe para la farmacéutica y se explicita acá.
+// Solo productos activos: la política RLS ya los restringe para el solicitante y se explicita acá.
 async function ProductList({ filters }: { filters: Filters }) {
   const { supabase } = await requireSession()
   let query = supabase.from('products').select('id, name, presentation, product_type', { count: 'exact' }).eq('active', true)

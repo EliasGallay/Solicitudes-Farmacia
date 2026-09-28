@@ -25,7 +25,8 @@ export async function createProduct(formData: FormData) {
   if (!parsed.success) redirect(withFeedback('/catalogos', 'error', 'producto-incompleto'))
 
   const { supabase } = await requireRole('admin')
-  const { error } = await supabase.from('products').insert({ ...parsed.data, is_test_data: false })
+  // Único rubro hasta la fase 4 (docs/plans/plan-rubros.md), cuando el formulario elige el rubro.
+  const { error } = await supabase.from('products').insert({ ...parsed.data, area: 'pharmacy', is_test_data: false })
   if (error) redirect(withFeedback('/catalogos', 'error', productErrorCode(error)))
   revalidatePath('/catalogos')
   revalidatePath('/solicitudes/nueva')
