@@ -22,5 +22,6 @@ export async function requestPasswordReset(formData: FormData) {
 
   // Límite de envíos u otra falla del servicio: se informa sin detalles técnicos.
   if (error) redirect(withFeedback('/recuperar-contrasena', 'error', 'recuperacion-error'))
-  redirect(withFeedback('/recuperar-contrasena', 'success', 'recuperacion-enviada'))
+  // ?enviado=1 mantiene oculto el formulario (el toast de ?success= se muestra una vez y se quita de la URL).
+  redirect(withFeedback('/recuperar-contrasena?enviado=1', 'success', 'recuperacion-enviada'))
 }

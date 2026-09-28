@@ -1,19 +1,20 @@
 'use client'
 
-import { FilterX, Search } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { CenterDot } from '@/components/center-badge'
+import { ClearFiltersButton, FilterBar, FilterField, FilterSearch } from '@/components/filter-bar'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useSearchFilter, useUrlFilters } from '@/hooks/use-url-filters'
 import type { Area } from '@/lib/areas'
-import { requestStatusLabels, requestStatuses, type RequestStatus } from '@/lib/request-status'
+import { requestStatusLabels, requestStatuses, statusViewLabels, type StatusView } from '@/lib/request-status'
 
 const ALL = 'todos'
+const INBOX = 'por_atender'
 
 // `areas`: solo cuando el usuario ve más de un rubro; si no, el filtro de rubro no se muestra.
-export function RequestFilters({ areas, rubro, buscar, desde, hasta, estado }: { areas?: Area[]; rubro?: string; buscar?: string; desde?: string; hasta?: string; estado?: RequestStatus }) {
+// `centers`: solo para el admin, con el color de cada centro (centerTone).
+// `inbox`: bandeja del admin. Sin ?estado= muestra "Por atender"; "Todos los estados" es ?estado=todos.
+export function RequestFilters({ inbox = false, areas, centers, rubro, centro, buscar, desde, hasta, estado }: { inbox?: boolean; areas?: Area[]; centers?: { id: string; name: string; tone: number }[]; rubro?: string; centro?: string; buscar?: string; desde?: string; hasta?: string; estado?: StatusView }) {
   const { setFilters, clearFilters } = useUrlFilters()
   const search = useSearchFilter('buscar', buscar)
 
@@ -23,45 +24,52 @@ export function RequestFilters({ areas, rubro, buscar, desde, hasta, estado }: {
   }
 
   return (
-    <Card key={`${desde}-${hasta}`} className="mb-6 grid gap-4 p-4 min-[360px]:grid-cols-2 lg:flex lg:flex-wrap lg:items-end">
-      <div className="flex flex-col gap-2 min-[360px]:col-span-2 lg:min-w-56 lg:flex-1">
-        <Label htmlFor="filtro-buscar">Buscar</Label>
-        <div className="relative">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-foreground-muted" aria-hidden />
-          <Input id="filtro-buscar" type="search" placeholder="N° de solicitud o producto..." className="pl-9" value={search.value} onChange={(event) => search.setValue(event.target.value)} />
-        </div>
-      </div>
-      <div className="flex flex-col gap-2 min-[360px]:col-span-2 sm:col-span-1">
-        <Label htmlFor="filtro-estado">Estado</Label>
-        <Select value={estado ?? ALL} onValueChange={(value) => setFilters({ estado: value === ALL ? undefined : value })}>
-          <SelectTrigger id="filtro-estado" className="lg:w-48"><SelectValue /></SelectTrigger>
+    // La key remonta las fechas (no controladas) cuando cambian por URL, p. ej. al limpiar.
+    <FilterBar key={`${desde}-${hasta}`}>
+      <FilterField id="filtro-buscar" label="Buscar" wide>
+        <FilterSearch id="filtro-buscar" placeholder="N° de solicitud o producto..." value={search.value} onChange={search.setValue} />
+      </FilterField>
+      <FilterField id="filtro-estado" label="Estado">
+        <Select value={estado ?? (inbox ? INBOX : ALL)} onValueChange={(value) => setFilters({ estado: value === (inbox ? INBOX : ALL) ? undefined : value === ALL ? 'todos' : value })}>
+          <SelectTrigger id="filtro-estado"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>Todos los estados</SelectItem>
+            {inbox && <SelectItem value={INBOX}>{statusViewLabels.por_atender}</SelectItem>}
+            <SelectItem value={inbox ? 'todos' : ALL}>Todos los estados</SelectItem>
             {requestStatuses.map((status) => <SelectItem key={status} value={status}>{requestStatusLabels[status]}</SelectItem>)}
+            <SelectItem value="por_confirmar">{statusViewLabels.por_confirmar}</SelectItem>
+            <SelectItem value="con_diferencia">{statusViewLabels.con_diferencia}</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </FilterField>
+      {centers && (
+        <FilterField id="filtro-centro" label="Centro de salud">
+          <Select value={centro ?? ALL} onValueChange={(value) => setFilters({ centro: value === ALL ? undefined : value })}>
+            <SelectTrigger id="filtro-centro"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>Todos los centros</SelectItem>
+              {centers.map((center) => <SelectItem key={center.id} value={center.id}><span className="flex items-center gap-2"><CenterDot tone={center.tone} />{center.name}</span></SelectItem>)}
+            </SelectContent>
+          </Select>
+        </FilterField>
+      )}
       {areas && (
-        <div className="flex flex-col gap-2 min-[360px]:col-span-2 sm:col-span-1">
-          <Label htmlFor="filtro-rubro">Rubro</Label>
+        <FilterField id="filtro-rubro" label="Rubro">
           <Select value={rubro ?? ALL} onValueChange={(value) => setFilters({ rubro: value === ALL ? undefined : value })}>
-            <SelectTrigger id="filtro-rubro" className="lg:w-44"><SelectValue /></SelectTrigger>
+            <SelectTrigger id="filtro-rubro"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL}>Todos los rubros</SelectItem>
               {areas.map((area) => <SelectItem key={area.key} value={area.key}>{area.name}</SelectItem>)}
             </SelectContent>
           </Select>
-        </div>
+        </FilterField>
       )}
-      <div className="flex min-w-0 flex-col gap-2">
-        <Label htmlFor="filtro-desde">Fecha desde</Label>
-        <Input id="filtro-desde" type="date" className="min-w-0 lg:w-44" defaultValue={desde} max={hasta} onChange={(event) => setFilters({ desde: event.target.value })} />
-      </div>
-      <div className="flex min-w-0 flex-col gap-2">
-        <Label htmlFor="filtro-hasta">Fecha hasta</Label>
-        <Input id="filtro-hasta" type="date" className="min-w-0 lg:w-44" defaultValue={hasta} min={desde} onChange={(event) => setFilters({ hasta: event.target.value })} />
-      </div>
-      <Button variant="secondary" className="self-end min-[360px]:col-span-2 sm:col-span-1" disabled={!rubro && !buscar && !desde && !hasta && !estado} onClick={clear}><FilterX />Limpiar filtros</Button>
-    </Card>
+      <FilterField id="filtro-desde" label="Fecha desde">
+        <Input id="filtro-desde" type="date" className="min-w-0" defaultValue={desde} max={hasta} onChange={(event) => setFilters({ desde: event.target.value })} />
+      </FilterField>
+      <FilterField id="filtro-hasta" label="Fecha hasta">
+        <Input id="filtro-hasta" type="date" className="min-w-0" defaultValue={hasta} min={desde} onChange={(event) => setFilters({ hasta: event.target.value })} />
+      </FilterField>
+      <ClearFiltersButton disabled={!rubro && !centro && !buscar && !desde && !hasta && !estado} onClick={clear} />
+    </FilterBar>
   )
 }

@@ -6,7 +6,7 @@ import { BackButton } from '@/components/back-button'
 import { ConfirmSubmit } from '@/components/confirm-submit'
 import { EmptyState } from '@/components/empty-state'
 import { ErrorState } from '@/components/error-state'
-import { FormError, FormSuccess } from '@/components/form-feedback'
+import { FormError } from '@/components/form-feedback'
 import { PageHeader } from '@/components/page-header'
 import { TemporaryPasswordForm } from '@/components/users/temporary-password-form'
 import { UserForm } from '@/components/users/user-form'
@@ -50,12 +50,7 @@ export default async function UserDetailPage({ params, searchParams }: { params:
         title={<span className="flex flex-wrap items-center gap-3">{profile.full_name as string}{isSelf && <span className="text-base font-normal text-foreground-secondary">(vos)</span>}<UserStatusBadges active={active} mustChangePassword={profile.must_change_password as boolean} /></span>}
         description={`${roleLabels[profile.role as AppRole]} · Alta: ${formatDateTime(profile.created_at as string)} · Último ingreso: ${lastSignIn ? formatDateTime(lastSignIn) : 'nunca'}`}
       />
-      {(feedback.error || feedback.success) && (
-        <div className="-mt-4 mb-6">
-          <FormError>{feedbackMessage(feedback.error)}</FormError>
-          <FormSuccess>{feedbackMessage(feedback.success)}</FormSuccess>
-        </div>
-      )}
+      {feedbackMessage(feedback.error) && <div className="-mt-4 mb-6"><FormError>{feedbackMessage(feedback.error)}</FormError></div>}
 
       <Card>
         <CardHeader><CardTitle>Datos del usuario</CardTitle></CardHeader>
@@ -91,7 +86,13 @@ export default async function UserDetailPage({ params, searchParams }: { params:
                 <form action={toggleUserActive}>
                   <input type="hidden" name="id" value={profile.user_id as string} />
                   <input type="hidden" name="active" value={String(active)} />
-                  <ConfirmSubmit variant={active ? 'destructive' : 'secondary'} message={active ? `¿Desactivar a ${profile.full_name}? No podrá ingresar al sistema.` : `¿Reactivar a ${profile.full_name}?`}>{active ? 'Desactivar' : 'Reactivar'}</ConfirmSubmit>
+                  <ConfirmSubmit
+                    variant={active ? 'destructive' : 'secondary'}
+                    title={active ? `Desactivar a ${profile.full_name}` : `Reactivar a ${profile.full_name}`}
+                    description={active ? 'No va a poder ingresar al sistema. Sus solicitudes y registros se conservan.' : 'Vuelve a poder ingresar con su contraseña actual.'}
+                  >
+                    {active ? 'Desactivar' : 'Reactivar'}
+                  </ConfirmSubmit>
                 </form>
               )}
           </CardContent>
@@ -110,7 +111,7 @@ export default async function UserDetailPage({ params, searchParams }: { params:
                 : (
                   <form action={deleteUser}>
                     <input type="hidden" name="id" value={profile.user_id as string} />
-                    <ConfirmSubmit variant="destructive" message={`¿Eliminar definitivamente a ${profile.full_name}? Esta acción no se puede deshacer.`}>Eliminar</ConfirmSubmit>
+                    <ConfirmSubmit variant="destructive" title={`Eliminar a ${profile.full_name}`} description="Se borra la cuenta de forma definitiva. Esta acción no se puede deshacer." confirmLabel="Eliminar definitivamente">Eliminar</ConfirmSubmit>
                   </form>
                 )}
           </CardContent>

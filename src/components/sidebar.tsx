@@ -18,9 +18,9 @@ const requesterNavigation: NavItem[] = [
 ]
 
 // Administrative navigation is kept as it was; its screens are outside this UI scope.
+// "Nueva solicitud" está oculta para el admin por ahora; la ruta sigue disponible.
 const adminNavigation: NavItem[] = [
   { href: '/', label: 'Panel', icon: House },
-  { href: '/solicitudes/nueva', label: 'Nueva solicitud', icon: CirclePlus },
   { href: '/solicitudes', label: 'Solicitudes', icon: FileText },
   { href: '/entregas', label: 'Entregas', icon: Truck },
   { href: '/catalogos', label: 'Catálogos', icon: Package },

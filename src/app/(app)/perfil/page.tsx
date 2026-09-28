@@ -1,4 +1,4 @@
-import { FormError, FormSuccess } from '@/components/form-feedback'
+import { FormError } from '@/components/form-feedback'
 import { PageHeader } from '@/components/page-header'
 import { ProfileDetails } from '@/components/profile/profile-details'
 import { SecuritySection } from '@/components/profile/security-section'
@@ -7,8 +7,8 @@ import { feedbackMessage } from '@/lib/feedback'
 import { requireSession } from '@/lib/session'
 import { roleLabels } from '@/lib/users'
 
-// Resultados de changeOwnPassword: se muestran dentro de la sección Seguridad.
-const PASSWORD_FEEDBACK = new Set(['perfil-password', 'password-invalida', 'password-igual', 'password-debil', 'password-error'])
+// Errores de changeOwnPassword: se muestran dentro de la sección Seguridad.
+const PASSWORD_FEEDBACK = new Set(['password-invalida', 'password-igual', 'password-debil', 'password-error'])
 
 // Datos personales del usuario logueado, en modo lectura. Solo el nombre y la contraseña son
 // editables: email, rol, centro y rubros los gestiona el administrador desde /usuarios.
@@ -24,20 +24,14 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   const email = error ? null : ((profile?.profile_email as string | null | undefined) ?? null)
   const requester = role === 'requester'
 
+  // Los resultados exitosos se muestran como toast (SuccessToast, en el layout raíz).
   const passwordError = feedback.error && PASSWORD_FEEDBACK.has(feedback.error) ? feedback.error : undefined
-  const passwordSuccess = feedback.success && PASSWORD_FEEDBACK.has(feedback.success) ? feedback.success : undefined
   const pageError = passwordError ? undefined : feedback.error
-  const pageSuccess = passwordSuccess ? undefined : feedback.success
 
   return (
     <div className="max-w-6xl">
       <PageHeader title="Mi perfil" description="Consultá tus datos personales y la información de tu cuenta." />
-      {(feedbackMessage(pageError) || feedbackMessage(pageSuccess)) && (
-        <div className="-mt-4 mb-6">
-          <FormError>{feedbackMessage(pageError)}</FormError>
-          <FormSuccess>{feedbackMessage(pageSuccess)}</FormSuccess>
-        </div>
-      )}
+      {feedbackMessage(pageError) && <div className="-mt-4 mb-6"><FormError>{feedbackMessage(pageError)}</FormError></div>}
 
       <div className="flex flex-col gap-6">
         <ProfileDetails
@@ -48,12 +42,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
           areaNames={requester ? assignedAreas.map((key) => areaName(areas ?? [], key)) : undefined}
         />
         <SecuritySection
-          feedback={(passwordError || passwordSuccess) && (
-            <>
-              <FormError>{feedbackMessage(passwordError)}</FormError>
-              <FormSuccess>{feedbackMessage(passwordSuccess)}</FormSuccess>
-            </>
-          )}
+          feedback={passwordError && <FormError>{feedbackMessage(passwordError)}</FormError>}
         />
       </div>
     </div>
