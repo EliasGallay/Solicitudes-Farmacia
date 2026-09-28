@@ -11,3 +11,9 @@ export function getSupabaseEnv() {
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   })
 }
+
+// Clave secreta de Supabase (sb_secret_... o service_role). Solo existe en el servidor: sin el
+// prefijo NEXT_PUBLIC_, Next.js nunca la incluye en el bundle del navegador.
+export function getSupabaseSecretKey() {
+  return z.string().min(1, 'Falta SUPABASE_SECRET_KEY').parse(process.env.SUPABASE_SECRET_KEY)
+}

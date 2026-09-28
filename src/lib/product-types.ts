@@ -1,14 +1,19 @@
-import { z } from 'zod'
+import { normalizeSearch } from './filters'
+import { relationOne } from './requests'
 
-// Valores del enum public.product_type (supabase/migrations/202609240005_product_type.sql).
-export const productTypes = ['medication', 'disposable', 'equipment'] as const
-export type ProductType = (typeof productTypes)[number]
+// Tipos de producto por rubro (public.product_types). Se leen de la base con getProductTypes (./areas).
+export type ProductTypeOption = { area: string; key: string; label: string; active: boolean }
 
-export const productTypeLabels: Record<ProductType, string> = {
-  medication: 'Medicamento',
-  disposable: 'Descartable',
-  equipment: 'Equipamiento',
+// Relación embebida products → product_types (FK compuesta area + product_type), ej. `type:product_types(label)`.
+export type ProductTypeRelation = { label: string } | { label: string }[] | null | undefined
+
+export function productTypeLabel(relation: ProductTypeRelation) {
+  return relationOne(relation)?.label ?? '—'
 }
 
-export const productTypeSchema = z.enum(productTypes)
-export const productTypeParamSchema = productTypeSchema.optional().catch(undefined)
+// Clave de un tipo nuevo a partir de su label ("Artículos de limpieza" -> "articulos_de_limpieza"),
+// con el formato del check de public.product_types.key. Vacía si el label no tiene letras.
+export function productTypeKey(label: string) {
+  const key = normalizeSearch(label).replace(/[^a-z0-9]+/g, '_').replace(/^[^a-z]+/, '')
+  return key.slice(0, 50).replace(/_+$/, '')
+}

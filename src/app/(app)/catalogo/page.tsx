@@ -12,25 +12,35 @@ import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { MobileList, MobileListItem } from '@/components/ui/mobile-list'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { likeContains, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
-import { productTypeLabels, productTypeParamSchema, type ProductType } from '@/lib/product-types'
+import { areaName, getAreas, getProductTypes, selectedArea, type Area } from '@/lib/areas'
+import { keyParamSchema, likeContains, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
+import { productTypeLabel, type ProductTypeRelation } from '@/lib/product-types'
 import { requireSession } from '@/lib/session'
 
 const filtersSchema = z.object({
+  rubro: keyParamSchema,
   buscar: searchParamSchema,
-  tipo: productTypeParamSchema,
+  tipo: keyParamSchema,
   page: pageParamSchema,
   por_pagina: pageSizeParamSchema,
 })
 type Filters = z.infer<typeof filtersSchema>
 
 function pageHref(filters: Filters, page: number) {
-  return listHref('/catalogo', { buscar: filters.buscar, tipo: filters.tipo, por_pagina: pageSizeParam(filters.por_pagina) }, page)
+  return listHref('/catalogo', { rubro: filters.rubro, buscar: filters.buscar, tipo: filters.tipo, por_pagina: pageSizeParam(filters.por_pagina) }, page)
 }
 
 export default async function CatalogPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   await requireSession()
   const filters = filtersSchema.parse(await searchParams)
+  const [areas, allTypes] = await Promise.all([getAreas(), getProductTypes()])
+  // Con un solo rubro no hay filtro de rubro y el tipo es de ese rubro. Con varios, el tipo
+  // depende del rubro elegido: las claves de tipo pueden repetirse entre rubros.
+  const multipleAreas = (areas ?? []).length > 1
+  const area = multipleAreas ? selectedArea(areas ?? [], filters.rubro) : areas?.[0]
+  if (!multipleAreas || !area) filters.rubro = undefined
+  const types = area ? (allTypes ?? []).filter((type) => type.area === area.key && type.active) : []
+  if (!area) filters.tipo = undefined
 
   return (
     <>
@@ -39,20 +49,21 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
         description="Consultá los productos disponibles para solicitar."
         actions={<Link href="/solicitudes/nueva" className={buttonVariants()}><Plus />Nueva solicitud</Link>}
       />
-      <CatalogFilters buscar={filters.buscar} tipo={filters.tipo} />
+      <CatalogFilters areas={multipleAreas ? areas ?? [] : undefined} rubro={filters.rubro} types={types} buscar={filters.buscar} tipo={filters.tipo} />
       <Card>
         <Suspense key={pageHref(filters, filters.page)} fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
-          <ProductList filters={filters} />
+          <ProductList filters={filters} areas={multipleAreas ? areas ?? [] : undefined} />
         </Suspense>
       </Card>
     </>
   )
 }
 
-// Solo productos activos: la política RLS ya los restringe para la farmacéutica y se explicita acá.
-async function ProductList({ filters }: { filters: Filters }) {
+// Solo productos activos: la política RLS ya los restringe para el solicitante y se explicita acá.
+async function ProductList({ filters, areas }: { filters: Filters; areas?: Area[] }) {
   const { supabase } = await requireSession()
-  let query = supabase.from('products').select('id, name, presentation, product_type', { count: 'exact' }).eq('active', true)
+  let query = supabase.from('products').select('id, area, name, presentation, type:product_types(label)', { count: 'exact' }).eq('active', true)
+  if (filters.rubro) query = query.eq('area', filters.rubro)
   if (filters.tipo) query = query.eq('product_type', filters.tipo)
   // Cada palabra debe aparecer en nombre o presentación, sin distinguir acentos (product_search_text).
   for (const token of searchTokens(filters.buscar ?? '')) query = query.ilike('product_search_text', likeContains(token))
@@ -61,10 +72,10 @@ async function ProductList({ filters }: { filters: Filters }) {
   // PGRST103: la página pedida está fuera de rango; se trata como sin resultados.
   if (error && error.code !== 'PGRST103') return <ErrorState title="No pudimos cargar el catálogo" />
 
-  const products = (data ?? []) as { id: string; name: string; presentation: string; product_type: ProductType }[]
+  const products = (data ?? []).map((product) => ({ id: product.id as string, name: product.name as string, presentation: product.presentation as string, typeLabel: productTypeLabel(product.type as ProductTypeRelation), area: areas ? areaName(areas, product.area as string) : undefined }))
   const total = count ?? 0
   if (products.length === 0) {
-    return filters.buscar || filters.tipo || total > 0
+    return filters.rubro || filters.buscar || filters.tipo || total > 0
       ? <EmptyState icon={SearchX} title="No encontramos productos">Probá modificando los filtros aplicados.</EmptyState>
       : <EmptyState icon={Package} title="Todavía no hay productos disponibles">Cuando se carguen productos aparecerán en este catálogo.</EmptyState>
   }
@@ -78,7 +89,7 @@ async function ProductList({ filters }: { filters: Filters }) {
               <Link href={`/catalogo/${product.id}`} aria-label={`Ver ${product.name}`} className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm leading-5 font-semibold break-words text-foreground">{product.name}</p>
-                  <p className="mt-0.5 text-xs leading-4 break-words text-foreground-secondary">{productTypeLabels[product.product_type]} · {product.presentation}</p>
+                  <p className="mt-0.5 text-xs leading-4 break-words text-foreground-secondary">{[product.area, product.typeLabel, product.presentation].filter(Boolean).join(' · ')}</p>
                 </div>
                 <ChevronRight className="size-5 shrink-0 text-foreground-muted" aria-hidden />
               </Link>
@@ -89,6 +100,7 @@ async function ProductList({ filters }: { filters: Filters }) {
           <TableHeader>
             <TableRow>
               <TableHead>Producto</TableHead>
+              {areas && <TableHead>Rubro</TableHead>}
               <TableHead>Tipo</TableHead>
               <TableHead>Presentación</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
@@ -98,7 +110,8 @@ async function ProductList({ filters }: { filters: Filters }) {
             {products.map((product) => (
               <TableRow key={product.id}>
                 <TableCell className="font-semibold">{product.name}</TableCell>
-                <TableCell>{productTypeLabels[product.product_type]}</TableCell>
+                {areas && <TableCell>{product.area}</TableCell>}
+                <TableCell>{product.typeLabel}</TableCell>
                 <TableCell className="text-foreground-secondary">{product.presentation}</TableCell>
                 <TableCell className="text-right">
                   <Link href={`/catalogo/${product.id}`} aria-label={`Ver ${product.name}`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Ver<ArrowRight /></Link>
