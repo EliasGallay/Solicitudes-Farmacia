@@ -5,10 +5,10 @@ import { cn } from '@/lib/utils'
 const buttonVariants = cva('inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0', {
   variants: {
     variant: {
-      default: 'bg-primary-600 text-white hover:bg-primary-700',
+      default: 'bg-action text-white hover:bg-action-hover',
       secondary: 'border border-border bg-surface text-primary-600 hover:border-primary-100 hover:bg-primary-50',
       ghost: 'text-primary-600 hover:bg-primary-50',
-      destructive: 'bg-danger text-white hover:bg-danger/90',
+      destructive: 'bg-action-danger text-white hover:bg-action-danger-hover',
     },
     size: {
       default: 'h-10 px-4 py-2',
