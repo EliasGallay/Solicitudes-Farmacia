@@ -15,8 +15,10 @@ export const PASSWORD_MIN_LENGTH = 8
 
 export const passwordSchema = z.string().min(PASSWORD_MIN_LENGTH, `Usá al menos ${PASSWORD_MIN_LENGTH} caracteres`).max(72, 'Máximo 72 caracteres')
 
+const fullNameSchema = z.string().trim().min(1, 'El nombre es obligatorio').max(120, 'Máximo 120 caracteres')
+
 const userFields = z.object({
-  full_name: z.string().trim().min(1, 'El nombre es obligatorio').max(120, 'Máximo 120 caracteres'),
+  full_name: fullNameSchema,
   email: z.string().trim().toLowerCase().email('Ingresá un email válido'),
   role: z.enum(userRoles, { errorMap: () => ({ message: 'Seleccioná un rol' }) }),
   health_center_id: z.string().optional(),
@@ -35,8 +37,20 @@ export const newUserSchema = userFields.extend({ password: passwordSchema }).sup
 // Mismo formulario en edición: la contraseña se gestiona aparte y no se valida acá.
 export const editUserFormSchema = userFields.extend({ password: z.string() }).superRefine(requesterRules)
 
+// Datos personales que cada usuario edita por su cuenta en /perfil (update_own_profile).
+export const profileSchema = z.object({ full_name: fullNameSchema })
+
 export type UserValues = z.infer<typeof userSchema>
+export type ProfileValues = z.infer<typeof profileSchema>
 export type NewUserValues = z.infer<typeof newUserSchema>
+
+// Iniciales para el avatar: primera y última palabra del nombre ('María del Carmen López' → 'ML').
+export function initials(fullName: string) {
+  const words = fullName.trim().split(/\s+/).filter(Boolean)
+  if (words.length === 0) return '?'
+  const letters = words.length === 1 ? [words[0][0]] : [words[0][0], words[words.length - 1][0]]
+  return letters.join('').toLocaleUpperCase('es')
+}
 
 // Sin caracteres ambiguos (0/O, 1/l/I) para dictarla o copiarla a mano.
 const PASSWORD_GROUPS = ['abcdefghijkmnopqrstuvwxyz', 'ABCDEFGHJKLMNPQRSTUVWXYZ', '23456789']

@@ -1,4 +1,6 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
+import { SuccessToast } from '@/components/success-toast'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -7,5 +9,13 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="es"><body>{children}</body></html>
+  return (
+    <html lang="es">
+      <body>
+        {children}
+        {/* useSearchParams necesita un límite de Suspense para no bloquear el render estático. */}
+        <Suspense fallback={null}><SuccessToast /></Suspense>
+      </body>
+    </html>
+  )
 }

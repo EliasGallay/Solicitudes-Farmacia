@@ -1,124 +1,154 @@
-import { ProductForm } from '@/components/products/product-form'
-import { FormError, FormSuccess } from '@/components/form-feedback'
-import { ConfirmSubmit } from '@/components/confirm-submit'
+import { Suspense } from 'react'
+import Link from 'next/link'
+import { ArrowRight, ChevronRight, Package, Plus, SearchX } from 'lucide-react'
+import { z } from 'zod'
 import { EmptyState } from '@/components/empty-state'
+import { ErrorState } from '@/components/error-state'
+import { FormError } from '@/components/form-feedback'
 import { ListFooter } from '@/components/list-footer'
+import { RequestListSkeleton } from '@/components/page-skeletons'
 import { PageHeader } from '@/components/page-header'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { createProduct, createProductType, toggleProduct, toggleProductType, updateProduct, updateProductType } from '@/app/product-actions'
-import { getAreas, getProductTypes } from '@/lib/areas'
-import { listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema } from '@/lib/filters'
+import { CatalogTabs } from '@/components/products/catalog-tabs'
+import { ProductFilters } from '@/components/products/product-filters'
+import { ProductStatusBadge } from '@/components/products/product-status-badge'
+import { buttonVariants } from '@/components/ui/button'
+import { Card, CardContent, CardFooter } from '@/components/ui/card'
+import { MobileList, MobileListItem } from '@/components/ui/mobile-list'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { areaName, getAreas, getProductTypes, selectedArea, type Area } from '@/lib/areas'
 import { feedbackMessage } from '@/lib/feedback'
+import { keyParamSchema, likeContains, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
+import { productTypeLabel, type ProductTypeRelation } from '@/lib/product-types'
 import { requireRole } from '@/lib/session'
 
-export default async function CatalogsPage({ searchParams }: { searchParams: Promise<{ error?: string; success?: string; page?: string; por_pagina?: string }> }) {
-  const { supabase } = await requireRole('admin')
+const filtersSchema = z.object({
+  buscar: searchParamSchema,
+  rubro: keyParamSchema,
+  tipo: keyParamSchema,
+  estado: z.enum(['activo', 'inactivo']).optional().catch(undefined),
+  page: pageParamSchema,
+  por_pagina: pageSizeParamSchema,
+})
+type Filters = z.infer<typeof filtersSchema>
 
+function pageHref(filters: Filters, page: number) {
+  return listHref('/catalogos', { buscar: filters.buscar, rubro: filters.rubro, tipo: filters.tipo, estado: filters.estado, por_pagina: pageSizeParam(filters.por_pagina) }, page)
+}
+
+export default async function CatalogsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  await requireRole('admin')
   const params = await searchParams
-  const page = pageParamSchema.parse(params.page)
-  const pageSize = pageSizeParamSchema.parse(params.por_pagina)
+  const filters = filtersSchema.parse(params)
 
-  const [{ data: products, count: productCount }, { data: centers }, allAreas, allTypes] = await Promise.all([
-    supabase.from('products').select('id, area, name, presentation, product_type, active', { count: 'exact' }).order('name').range(...pageRange(page, pageSize)),
-    supabase.from('health_centers').select('id, name, active').order('name'),
-    getAreas(true),
-    getProductTypes(),
-  ])
+  const [allAreas, allTypes] = await Promise.all([getAreas(true), getProductTypes()])
   const areas = allAreas ?? []
   const types = allTypes ?? []
-  // Los productos nuevos y los tipos nuevos solo van a rubros activos; un producto existente puede
-  // seguir en un rubro inactivo.
-  const activeAreas = areas.filter((area) => area.active)
+
+  // Igual que el catálogo del solicitante: con un solo rubro no hay filtro de rubro y el tipo es de
+  // ese rubro; con varios, el tipo depende del rubro elegido (las claves pueden repetirse entre rubros).
+  const multipleAreas = areas.length > 1
+  const area = multipleAreas ? selectedArea(areas, filters.rubro) : areas[0]
+  if (!multipleAreas || !area) filters.rubro = undefined
+  const filterTypes = area ? types.filter((type) => type.area === area.key) : []
+  if (!area) filters.tipo = undefined
 
   return (
     <>
-      <PageHeader title="Catálogos" description="Administrá los productos disponibles para las solicitudes." />
+      <PageHeader
+        title="Catálogos"
+        description="Administrá los productos disponibles para las solicitudes."
+        actions={<Link href="/catalogos/nuevo" className={buttonVariants()}><Plus />Nuevo producto</Link>}
+      />
+      <CatalogTabs />
+      {feedbackMessage(params.error) && <div className="mb-6"><FormError>{feedbackMessage(params.error)}</FormError></div>}
+      <ProductFilters areas={multipleAreas ? areas : undefined} rubro={filters.rubro} types={filterTypes} buscar={filters.buscar} tipo={filters.tipo} estado={filters.estado} />
+      <Card>
+        <Suspense key={pageHref(filters, filters.page)} fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
+          <ProductsList filters={filters} areas={multipleAreas ? areas : undefined} />
+        </Suspense>
+      </Card>
+    </>
+  )
+}
 
-      <FormError>{feedbackMessage(params.error)}</FormError>
-      <FormSuccess>{feedbackMessage(params.success)}</FormSuccess>
+type ProductRow = { id: string; name: string; presentation: string; typeLabel: string; area?: string; active: boolean }
 
-      <section className="mt-8 rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6">
-        <h2 className="text-xl font-semibold">Nuevo producto</h2>
-        <div className="mt-4"><ProductForm action={createProduct} areas={activeAreas} types={types} submitLabel="Agregar" /></div>
-      </section>
+async function ProductsList({ filters, areas }: { filters: Filters; areas?: Area[] }) {
+  const { supabase } = await requireRole('admin')
+  let query = supabase.from('products').select('id, area, name, presentation, active, type:product_types(label)', { count: 'exact' })
+  if (filters.rubro) query = query.eq('area', filters.rubro)
+  if (filters.tipo) query = query.eq('product_type', filters.tipo)
+  if (filters.estado) query = query.eq('active', filters.estado === 'activo')
+  // Cada palabra debe aparecer en nombre o presentación, sin distinguir acentos (product_search_text).
+  for (const token of searchTokens(filters.buscar ?? '')) query = query.ilike('product_search_text', likeContains(token))
+  const { data, count, error } = await query.order('name').range(...pageRange(filters.page, filters.por_pagina))
 
-      <section className="mt-8 rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1"><h2 className="text-xl font-semibold">Productos</h2><span className="text-sm text-foreground-secondary">{productCount ?? 0} registro(s)</span></div>
-        <div className="mt-4 space-y-4">
-          {(products ?? []).map((product) => (
-            <div key={product.id} className="rounded-lg border border-border p-4">
-              <ProductForm action={updateProduct} areas={areas.filter((area) => area.active || area.key === product.area)} types={types} productId={product.id} defaultValues={{ area: product.area, name: product.name, presentation: product.presentation, product_type: product.product_type }} submitLabel="Guardar" />
-              <div className="mt-3 flex items-center justify-between gap-3 text-sm">
-                <span className={product.active ? 'text-success' : 'text-foreground-secondary'}>{product.active ? 'Activo' : 'Inactivo'}</span>
-                <form action={toggleProduct}><input type="hidden" name="id" value={product.id} /><input type="hidden" name="active" value={String(product.active)} /><ConfirmSubmit message={product.active ? '¿Desactivar este producto?' : '¿Reactivar este producto?'}>{product.active ? 'Desactivar' : 'Reactivar'}</ConfirmSubmit></form>
-              </div>
-            </div>
+  // PGRST103: la página pedida está fuera de rango; se trata como sin resultados.
+  if (error && error.code !== 'PGRST103') return <ErrorState title="No pudimos cargar los productos" />
+
+  const rows: ProductRow[] = (data ?? []).map((product) => ({
+    id: product.id as string,
+    name: product.name as string,
+    presentation: product.presentation as string,
+    typeLabel: productTypeLabel(product.type as ProductTypeRelation),
+    area: areas ? areaName(areas, product.area as string) : undefined,
+    active: product.active as boolean,
+  }))
+  const total = count ?? 0
+
+  if (rows.length === 0) {
+    return filters.buscar || filters.rubro || filters.tipo || filters.estado || total > 0
+      ? <EmptyState icon={SearchX} title="No encontramos productos">Probá modificando los filtros aplicados.</EmptyState>
+      : <EmptyState icon={Package} title="Todavía no hay productos" action={<Link href="/catalogos/nuevo" className={buttonVariants()}><Plus />Nuevo producto</Link>} />
+  }
+
+  return (
+    <>
+      <CardContent className="pt-5">
+        <MobileList>
+          {rows.map((row) => (
+            <MobileListItem key={row.id} className="py-0 first:pt-0 last:pb-0">
+              <Link href={`/catalogos/${row.id}`} aria-label={`Editar ${row.name}`} className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="text-sm leading-5 font-semibold break-words text-foreground">{row.name}</span>
+                    <ProductStatusBadge active={row.active} />
+                  </div>
+                  <p className="mt-1 text-xs leading-4 break-words text-foreground-secondary">{[row.area, row.typeLabel, row.presentation].filter(Boolean).join(' · ')}</p>
+                </div>
+                <ChevronRight className="size-5 shrink-0 text-foreground-muted" aria-hidden />
+              </Link>
+            </MobileListItem>
           ))}
-          {(products ?? []).length === 0 && <EmptyState>No hay productos cargados.</EmptyState>}
-          {(products ?? []).length > 0 && (
-            <div className="border-t border-border pt-3">
-              <ListFooter page={page} pageSize={pageSize} shown={(products ?? []).length} total={productCount ?? 0} noun="productos" hrefFor={(value) => listHref('/catalogos', { por_pagina: pageSizeParam(pageSize) }, value)} />
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className="mt-8 rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6">
-        <h2 className="text-xl font-semibold">Tipos de producto</h2>
-        <p className="mt-1 text-sm text-foreground-secondary">Cada rubro tiene sus propios tipos. Un tipo desactivado deja de ofrecerse, pero los productos que ya lo usan lo conservan.</p>
-        <form action={createProductType} className="mt-4 grid gap-4 sm:grid-cols-[auto_1fr_auto] sm:items-end">
-          {activeAreas.length > 1 ? (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="tipo-rubro">Rubro</Label>
-              <Select name="area" required>
-                <SelectTrigger id="tipo-rubro" className="sm:w-48"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                <SelectContent>{activeAreas.map((area) => <SelectItem key={area.key} value={area.key}>{area.name}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-          ) : <input type="hidden" name="area" value={activeAreas[0]?.key ?? ''} />}
-          <div className="flex flex-col gap-2 sm:col-start-2">
-            <Label htmlFor="tipo-nombre">Nuevo tipo</Label>
-            <Input id="tipo-nombre" name="label" required maxLength={60} placeholder="Ej.: Reactivo" />
-          </div>
-          <Button type="submit">Agregar</Button>
-        </form>
-        <div className="mt-6 space-y-6">
-          {areas.map((area) => {
-            const areaTypes = types.filter((type) => type.area === area.key)
-            return (
-              <div key={area.key}>
-                <h3 className="text-base font-semibold">{area.name}{!area.active && <span className="ml-2 text-sm font-normal text-foreground-secondary">(rubro inactivo)</span>}</h3>
-                {areaTypes.length > 0 ? (
-                  <ul className="mt-2 divide-y divide-border rounded-lg border border-border">
-                    {areaTypes.map((type) => (
-                      <li key={type.key} className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
-                        <form action={updateProductType} className="flex min-w-0 flex-1 items-center gap-3">
-                          <input type="hidden" name="area" value={type.area} />
-                          <input type="hidden" name="key" value={type.key} />
-                          <Input name="label" aria-label={`Nombre del tipo ${type.label}`} defaultValue={type.label} required maxLength={60} className="min-w-0 sm:max-w-xs" />
-                          <Button type="submit" variant="secondary" size="sm">Guardar</Button>
-                        </form>
-                        <div className="flex items-center justify-between gap-3 text-sm sm:justify-end">
-                          <span className={type.active ? 'text-success' : 'text-foreground-secondary'}>{type.active ? 'Activo' : 'Inactivo'}</span>
-                          <form action={toggleProductType}><input type="hidden" name="area" value={type.area} /><input type="hidden" name="key" value={type.key} /><input type="hidden" name="active" value={String(type.active)} /><ConfirmSubmit message={type.active ? '¿Desactivar este tipo?' : '¿Reactivar este tipo?'}>{type.active ? 'Desactivar' : 'Reactivar'}</ConfirmSubmit></form>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : <p className="mt-2 text-sm text-foreground-secondary">Todavía no hay tipos en este rubro.</p>}
-              </div>
-            )
-          })}
-        </div>
-      </section>
-
-      <section className="mt-8 rounded-lg border border-border bg-surface p-4 shadow-card sm:p-6">
-        <h2 className="text-xl font-semibold">Centros de salud</h2>
-        <ul className="mt-4 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">{(centers ?? []).map((center) => <li key={center.id} className="rounded-md border border-border p-3"><span className="font-medium">{center.name}</span><span className="ml-2 text-foreground-secondary">{center.active ? 'Activo' : 'Inactivo'}</span></li>)}</ul>
-      </section>
+        </MobileList>
+        <Table containerClassName="hidden md:block">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Producto</TableHead>
+              {areas && <TableHead>Rubro</TableHead>}
+              <TableHead>Tipo</TableHead>
+              <TableHead>Presentación</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((row) => (
+              <TableRow key={row.id}>
+                <TableCell className="font-semibold">{row.name}</TableCell>
+                {areas && <TableCell>{row.area}</TableCell>}
+                <TableCell>{row.typeLabel}</TableCell>
+                <TableCell className="text-foreground-secondary">{row.presentation}</TableCell>
+                <TableCell><ProductStatusBadge active={row.active} /></TableCell>
+                <TableCell className="text-right">
+                  <Link href={`/catalogos/${row.id}`} aria-label={`Editar ${row.name}`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Editar<ArrowRight /></Link>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+      <CardFooter divided><ListFooter page={filters.page} pageSize={filters.por_pagina} shown={rows.length} total={total} noun="productos" hrefFor={(page) => pageHref(filters, page)} /></CardFooter>
     </>
   )
 }

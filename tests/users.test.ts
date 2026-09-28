@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { generateTemporaryPassword, newUserSchema, passwordSchema, userSchema } from '../src/lib/users'
+import { generateTemporaryPassword, initials, newUserSchema, passwordSchema, profileSchema, userSchema } from '../src/lib/users'
 
 const center = '10000000-0000-4000-8000-000000000001'
 const requester = { full_name: ' María López ', email: ' Maria@Funes.gob.ar ', role: 'requester' as const, health_center_id: center, areas: ['pharmacy'] }
@@ -34,4 +34,17 @@ describe('contraseña temporal', () => {
       expect(password).not.toMatch(/[0O1lI]/)
     }
   })
+})
+
+describe('datos personales', () => {
+  it('normaliza el nombre', () => expect(profileSchema.parse({ full_name: '  Ana Pérez ' }).full_name).toBe('Ana Pérez'))
+  it('exige un nombre no vacío', () => expect(profileSchema.safeParse({ full_name: '   ' }).success).toBe(false))
+})
+
+describe('iniciales', () => {
+  it('usa la primera y la última palabra', () => expect(initials('María del Carmen López')).toBe('ML'))
+  it('con una sola palabra usa su inicial', () => expect(initials('farmacia')).toBe('F'))
+  it('ignora espacios de más', () => expect(initials('  Ana   Pérez ')).toBe('AP'))
+  it('conserva tildes', () => expect(initials('Ángel Ñandú')).toBe('ÁÑ'))
+  it('sin nombre muestra un signo', () => expect(initials('   ')).toBe('?'))
 })

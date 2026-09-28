@@ -42,6 +42,30 @@ const messages = {
   'usuario-error': 'No se pudo completar la acción sobre el usuario. Intentá nuevamente.',
   'usuario-bloqueo-error': 'El perfil se actualizó, pero no se pudo cambiar el acceso de la cuenta. Intentá nuevamente.',
   'usuario-eliminado-parcial': 'Se eliminó el perfil, pero no la cuenta de acceso. Revisala en Supabase > Authentication.',
+  'entrega-registrada': 'Entrega registrada.',
+  'entrega-anulada': 'Entrega anulada. Sus cantidades volvieron a quedar pendientes.',
+  'pendiente-cerrado': 'Pendiente cerrado. Esas cantidades ya no se van a entregar.',
+  'solicitud-cancelada': 'Solicitud cancelada.',
+  'gestion-sobreentrega': 'La cantidad supera lo pendiente del producto. Revisá las cantidades: puede que otra operación haya cambiado la solicitud.',
+  'gestion-entrega-vacia': 'Indicá al menos un producto con cantidad a entregar.',
+  'gestion-sin-pendiente': 'No hay cantidades pendientes para cerrar en los productos elegidos.',
+  'gestion-motivo-requerido': 'Indicá el motivo.',
+  'gestion-ya-anulada': 'La entrega ya estaba anulada.',
+  'gestion-con-entregas': 'La solicitud ya tiene entregas: no se puede cancelar. Consultá con la administración.',
+  'gestion-nota-larga': 'El texto puede tener hasta 500 caracteres.',
+  'gestion-datos-invalidos': 'Los datos de la operación no son válidos. Recargá la página e intentá nuevamente.',
+  'gestion-error': 'No se pudo completar la operación. Intentá nuevamente.',
+  'gestion-con-recepcion': 'El centro ya confirmó la recepción de esta entrega: no se puede anular.',
+  'recepcion-confirmada': 'Recepción confirmada.',
+  'recepcion-confirmada-parcial': 'Recepción confirmada para los productos marcados. Todavía quedan productos entregados sin confirmar.',
+  'recepcion-vacia': 'Marcá al menos un producto como recibido.',
+  'recepcion-ya-confirmada': 'Alguno de los productos ya estaba confirmado. Recargá la página.',
+  'recepcion-comentario-requerido': 'Si la cantidad recibida es menor a la entregada, describí la diferencia.',
+  'recepcion-entrega-anulada': 'Alguna de las entregas fue anulada. Recargá la página.',
+  'diferencia-resuelta': 'Diferencia resuelta.',
+  'diferencia-ya-resuelta': 'La diferencia ya estaba resuelta.',
+  'perfil-actualizado': 'Tus datos se actualizaron.',
+  'perfil-password': 'Tu contraseña se actualizó.',
 } as const
 
 export type FeedbackCode = keyof typeof messages
@@ -51,6 +75,7 @@ export function feedbackMessage(code: string | undefined) {
   return code && Object.hasOwn(messages, code) ? messages[code as FeedbackCode] : undefined
 }
 
+// `path` puede traer su propia query (ej. /catalogos/tipos?nuevo=1).
 export function withFeedback(path: string, kind: 'error' | 'success', code: FeedbackCode) {
-  return `${path}?${kind}=${code}`
+  return `${path}${path.includes('?') ? '&' : '?'}${kind}=${code}`
 }

@@ -58,6 +58,7 @@ insert into public.products (area, name, presentation, product_type, is_test_dat
   ('pharmacy', 'Guante de látex talle L', 'unidad', 'disposable', false),
   ('pharmacy', 'Guante de nitrilo talle S', 'unidad', 'disposable', false),
   ('pharmacy', 'Guante de nitrilo talle M', 'unidad', 'disposable', false),
+  ('pharmacy', 'Guante de nitrilo talle L', 'unidad', 'disposable', false),
   ('pharmacy', 'Hilo de sutura N° 3', 'unidad', 'disposable', false),
   ('pharmacy', 'Hilo de sutura N° 4', 'unidad', 'disposable', false),
   ('pharmacy', 'Hilo de sutura N° 5', 'unidad', 'disposable', false),

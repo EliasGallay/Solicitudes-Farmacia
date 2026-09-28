@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Building2, CircleCheck, Clock, FileText, Package, PackageCheck, Plus, Truck } from 'lucide-react'
+import { ArrowRight, Building2, Clock, FileText, Inbox, Package, PackageCheck, Plus, TriangleAlert, Truck } from 'lucide-react'
 import { EmptyState } from '@/components/empty-state'
 import { MetricCard } from '@/components/metric-card'
 import { ErrorState } from '@/components/error-state'
@@ -10,8 +10,9 @@ import { RequestsTable } from '@/components/requests/requests-table'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { areaName, getAreas } from '@/lib/areas'
-import type { RequestStatus } from '@/lib/request-status'
-import { formatDate, formatRequestNumber, relationOne } from '@/lib/requests'
+import { listHref } from '@/lib/filters'
+import { INBOX_FILTER, openStatuses, type RequestStatus } from '@/lib/request-status'
+import { argentinaDate, formatDate, formatRequestNumber, relationOne, shiftDate, WAIT_WARNING_DAYS } from '@/lib/requests'
 import { greeting } from '@/lib/greeting'
 import { requireSession } from '@/lib/session'
 
@@ -47,17 +48,18 @@ async function DashboardContent() {
   const areas = await getAreas() ?? []
   // Filtrado, orden y límite se resuelven en la base.
   const countByStatus = (status: RequestStatus) => supabase.from('requests').select('id', { count: 'exact', head: true }).eq('request_status', status)
-  const [recentResult, pendingResult, pendingCount, partialCount, completedCount] = await Promise.all([
-    supabase.from('requests').select('id, area, request_number, created_at, request_status, request_items(count)').order('created_at', { ascending: false }).limit(RECENT_LIMIT),
+  const [recentResult, pendingResult, pendingCount, partialCount, unconfirmedCount] = await Promise.all([
+    supabase.from('requests').select('id, area, request_number, created_at, request_status, receipt_unconfirmed_count, receipt_discrepancy_count, request_items(count)').order('created_at', { ascending: false }).limit(RECENT_LIMIT),
     supabase.from('request_items').select('id, pending_quantity, product:products(name), request:requests(id, request_number, created_at)').gt('pending_quantity', 0).order('request(created_at)', { ascending: false }).limit(PENDING_LIMIT),
     countByStatus('pending'),
     countByStatus('partial'),
-    countByStatus('completed'),
+    // Solicitudes con entregas que el centro todavía no confirmó.
+    supabase.from('requests').select('id', { count: 'exact', head: true }).gt('receipt_unconfirmed_count', 0),
   ])
-  if ([recentResult, pendingResult, pendingCount, partialCount, completedCount].some((result) => result.error)) return <Card><ErrorState /></Card>
+  if ([recentResult, pendingResult, pendingCount, partialCount, unconfirmedCount].some((result) => result.error)) return <Card><ErrorState /></Card>
 
   const content = {
-    recent: (recentResult.data ?? []).map((request) => ({ id: request.id as string, number: request.request_number as number, createdAt: request.created_at as string, productCount: (request.request_items as { count: number }[] | null)?.[0]?.count ?? 0, status: request.request_status as RequestStatus, area: areas.length > 1 ? areaName(areas, request.area as string) : undefined })),
+    recent: (recentResult.data ?? []).map((request) => ({ id: request.id as string, number: request.request_number as number, createdAt: request.created_at as string, productCount: (request.request_items as { count: number }[] | null)?.[0]?.count ?? 0, status: request.request_status as RequestStatus, area: areas.length > 1 ? areaName(areas, request.area as string) : undefined, unconfirmed: (request.receipt_unconfirmed_count as number) > 0, discrepancy: (request.receipt_discrepancy_count as number) > 0 })),
     pending: (pendingResult.data ?? []).flatMap((item) => {
       const request = relationOne(item.request as { id: string; request_number: number; created_at: string } | { id: string; request_number: number; created_at: string }[] | null)
       const product = relationOne(item.product as { name: string } | { name: string }[] | null)
@@ -70,7 +72,7 @@ async function DashboardContent() {
       <div className="grid gap-4 md:grid-cols-3 xl:col-span-3">
         <MetricCard icon={Clock} value={pendingCount.count ?? 0} label="Pendientes" tone="warning" href="/solicitudes?estado=pending" />
         <MetricCard icon={Truck} value={partialCount.count ?? 0} label="Entregas parciales" tone="info" href="/solicitudes?estado=partial" />
-        <MetricCard icon={CircleCheck} value={completedCount.count ?? 0} label="Completadas" tone="success" href="/solicitudes?estado=completed" />
+        <MetricCard icon={PackageCheck} value={unconfirmedCount.count ?? 0} label="Por confirmar recepción" tone="success" href="/solicitudes?estado=por_confirmar" />
       </div>
       <Card className="xl:col-span-2">
         <CardHeader className="flex-row items-center justify-between gap-3">
@@ -113,32 +115,32 @@ async function DashboardContent() {
   )
 }
 
+// Argentina no aplica horario de verano: los límites de día se expresan en -03:00.
+const DAY_OFFSET = '-03:00'
+
+// Indicadores de trabajo del admin; cada uno lleva al listado con el filtro equivalente.
 async function AdminPanel() {
   const { supabase, fullName } = await requireSession()
-  const [{ count: requestCount }, { count: productCount }] = await Promise.all([
-    supabase.from('requests').select('id', { count: 'exact', head: true }),
-    supabase.from('products').select('id', { count: 'exact', head: true }).eq('active', true),
+  const today = argentinaDate(Date.now())
+  // "Esperando": abiertas creadas hasta ese día inclusive (WAIT_WARNING_DAYS días calendario o más).
+  const lateUntil = shiftDate(today, -WAIT_WARNING_DAYS)
+  const requestCount = () => supabase.from('requests').select('id', { count: 'exact', head: true })
+  const [{ count: openCount }, { count: lateCount }, { count: deliveriesToday }, { count: discrepancyCount }] = await Promise.all([
+    // Misma vista que la bandeja: con pendiente o con diferencia de recepción sin resolver.
+    requestCount().or(INBOX_FILTER),
+    requestCount().in('request_status', openStatuses).lt('created_at', `${shiftDate(lateUntil, 1)}T00:00:00${DAY_OFFSET}`),
+    supabase.from('deliveries').select('id', { count: 'exact', head: true }).is('voided_at', null).gte('created_at', `${today}T00:00:00${DAY_OFFSET}`),
+    requestCount().gt('receipt_discrepancy_count', 0),
   ])
 
   return (
     <>
       <PageHeader title="Panel de trabajo" description={`Hola, ${fullName}.`} />
-      <section className="grid gap-4 md:grid-cols-2">
-        <Link href="/solicitudes" className="rounded-lg border border-border bg-surface p-6 shadow-card transition hover:border-primary-500">
-          <p className="text-sm text-foreground-secondary">Solicitudes registradas</p>
-          <p className="mt-2 text-3xl font-bold">{requestCount ?? 0}</p>
-          <p className="mt-3 text-sm text-foreground-secondary">Consultar historial y seguimiento</p>
-        </Link>
-        <Link href="/catalogos" className="rounded-lg border border-border bg-surface p-6 shadow-card transition hover:border-primary-500">
-          <p className="text-sm text-foreground-secondary">Productos activos</p>
-          <p className="mt-2 text-3xl font-bold">{productCount ?? 0}</p>
-          <p className="mt-3 text-sm text-foreground-secondary">Consultar catálogos disponibles</p>
-        </Link>
-      </section>
-      <section className="mt-8 rounded-lg border border-border bg-surface p-6 shadow-card">
-        <h2 className="text-xl font-bold">Acciones rápidas</h2>
-        <p className="mt-2 text-foreground-secondary">Elegí un módulo desde la navegación para continuar.</p>
-        <Link href="/solicitudes/nueva" className={buttonVariants({ className: 'mt-5' })}>Crear nueva solicitud</Link>
+      <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        <MetricCard icon={Inbox} value={openCount ?? 0} label="Solicitudes por atender" tone="warning" href="/solicitudes" />
+        <MetricCard icon={Clock} value={lateCount ?? 0} label={`Esperando ${WAIT_WARNING_DAYS} días o más`} tone="warning" href={listHref('/solicitudes', { hasta: lateUntil })} />
+        <MetricCard icon={Truck} value={deliveriesToday ?? 0} label="Entregas de hoy" tone="success" href={listHref('/entregas', { desde: today, estado: 'activa' })} />
+        <MetricCard icon={TriangleAlert} value={discrepancyCount ?? 0} label="Diferencias de recepción por resolver" tone="warning" href={listHref('/solicitudes', { estado: 'con_diferencia' })} />
       </section>
     </>
   )

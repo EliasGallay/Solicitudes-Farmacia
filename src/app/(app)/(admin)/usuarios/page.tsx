@@ -2,19 +2,22 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { ArrowRight, ChevronRight, Plus, SearchX, Users } from 'lucide-react'
 import { z } from 'zod'
+import { CenterDot } from '@/components/center-badge'
 import { EmptyState } from '@/components/empty-state'
 import { ErrorState } from '@/components/error-state'
-import { FormError, FormSuccess } from '@/components/form-feedback'
+import { FormError } from '@/components/form-feedback'
 import { ListFooter } from '@/components/list-footer'
 import { RequestListSkeleton } from '@/components/page-skeletons'
 import { PageHeader } from '@/components/page-header'
 import { UserFilters } from '@/components/users/user-filters'
 import { UserStatusBadges } from '@/components/users/user-status-badges'
+import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
-import { Card, CardContent, CardFooter } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { MobileList, MobileListItem } from '@/components/ui/mobile-list'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { areaName, getAreas } from '@/lib/areas'
+import { centerTone } from '@/lib/centers'
 import { feedbackMessage } from '@/lib/feedback'
 import { likeContains, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
 import { formatDateTime, relationOne } from '@/lib/requests'
@@ -39,7 +42,8 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   const { supabase } = await requireRole('admin')
   const params = await searchParams
   const filters = filtersSchema.parse(params)
-  const { data: centers } = await supabase.from('health_centers').select('id, name').order('name')
+  const { data } = await supabase.from('health_centers').select('id, name, active').order('name')
+  const centers = (data ?? []) as { id: string; name: string; active: boolean }[]
 
   return (
     <>
@@ -48,17 +52,32 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         description="Administrá las cuentas, sus roles, centros y rubros habilitados."
         actions={<Link href="/usuarios/nuevo" className={buttonVariants()}><Plus />Nuevo usuario</Link>}
       />
-      {(params.error || params.success) && (
-        <div className="-mt-4 mb-6">
-          <FormError>{feedbackMessage(params.error)}</FormError>
-          <FormSuccess>{feedbackMessage(params.success)}</FormSuccess>
-        </div>
-      )}
-      <UserFilters centers={(centers ?? []) as { id: string; name: string }[]} buscar={filters.buscar} rol={filters.rol} centro={filters.centro} estado={filters.estado} />
+      {feedbackMessage(params.error) && <div className="-mt-4 mb-6"><FormError>{feedbackMessage(params.error)}</FormError></div>}
+      <UserFilters centers={centers} buscar={filters.buscar} rol={filters.rol} centro={filters.centro} estado={filters.estado} />
       <Card>
         <Suspense key={pageHref(filters, filters.page)} fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
           <UsersList filters={filters} />
         </Suspense>
+      </Card>
+
+      {/* Solo consulta: los centros se administran desde la base. */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Centros de salud</CardTitle>
+          <CardDescription>Centros disponibles para asignar a los solicitantes.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ul className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            {centers.map((center) => (
+              <li key={center.id}>
+                <Link href={listHref('/usuarios', { centro: center.id })} className="flex items-center justify-between gap-3 rounded-md border border-border p-3 hover:border-primary-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
+                  <span className="flex min-w-0 items-center gap-2 font-medium"><CenterDot tone={centerTone(centers, center.id)} />{center.name}</span>
+                  <Badge variant={center.active ? 'success' : 'neutral'}>{center.active ? 'Activo' : 'Inactivo'}</Badge>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
       </Card>
     </>
   )

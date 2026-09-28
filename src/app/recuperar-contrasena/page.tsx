@@ -1,16 +1,16 @@
 import Link from 'next/link'
-import { ArrowLeft, KeyRound } from 'lucide-react'
+import { ArrowLeft, KeyRound, MailCheck } from 'lucide-react'
 import { requestPasswordReset } from './actions'
 import { AuthShell } from '../../components/auth/auth-shell'
 import { RecoveryForm } from '../../components/auth/recovery-form'
-import { FormError, FormSuccess } from '../../components/form-feedback'
+import { FormError } from '../../components/form-feedback'
 import { feedbackMessage } from '../../lib/feedback'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
-export default async function RecoverPasswordPage({ searchParams }: { searchParams: Promise<{ error?: string; success?: string }> }) {
+export default async function RecoverPasswordPage({ searchParams }: { searchParams: Promise<{ error?: string; enviado?: string }> }) {
   const params = await searchParams
-  const sent = feedbackMessage(params.success)
+  const sent = params.enviado === '1'
 
   return (
     <AuthShell>
@@ -27,7 +27,9 @@ export default async function RecoverPasswordPage({ searchParams }: { searchPara
         <CardContent className="p-6 pt-0 sm:p-8 sm:pt-0">
           <FormError>{feedbackMessage(params.error)}</FormError>
           {/* Tras el envío se oculta el formulario para evitar reenvíos repetidos. */}
-          {sent ? <FormSuccess>{sent}</FormSuccess> : <RecoveryForm action={requestPasswordReset} />}
+          {sent
+            ? <p className="mt-6 flex gap-3 rounded-md bg-surface-muted p-4 text-sm text-foreground-secondary"><MailCheck className="size-5 shrink-0 text-primary-600" aria-hidden />Si el email corresponde a una cuenta habilitada, te enviamos un enlace para crear una nueva contraseña. Revisá tu bandeja de entrada y la carpeta de spam.</p>
+            : <RecoveryForm action={requestPasswordReset} />}
           <Link href="/login" className={buttonVariants({ variant: 'ghost', className: 'mt-4 w-full' })}><ArrowLeft />Volver a iniciar sesión</Link>
         </CardContent>
       </Card>
