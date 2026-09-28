@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { productTypeSchema } from '../lib/product-types'
 import { withFeedback } from '../lib/feedback'
-import { createSupabaseServerClient } from '../lib/supabase/server'
+import { requireRole } from '../lib/session'
 
 // 23505: violación de unicidad (nombre + presentación ya existentes).
 function productErrorCode(error: { code?: string }) {
@@ -20,21 +20,11 @@ const productSchema = z.object({
 
 const idSchema = z.string().uuid()
 
-async function requireAdmin() {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  const { data: profile } = await supabase.from('profiles').select('role').eq('user_id', user.id).maybeSingle()
-  if (profile?.role !== 'admin') redirect(withFeedback('/catalogos', 'error', 'solo-admin'))
-  return supabase
-}
-
 export async function createProduct(formData: FormData) {
   const parsed = productSchema.safeParse({ name: formData.get('name'), presentation: formData.get('presentation'), product_type: formData.get('product_type') })
   if (!parsed.success) redirect(withFeedback('/catalogos', 'error', 'producto-incompleto'))
 
-  const supabase = await requireAdmin()
+  const { supabase } = await requireRole('admin')
   const { error } = await supabase.from('products').insert({ ...parsed.data, is_test_data: false })
   if (error) redirect(withFeedback('/catalogos', 'error', productErrorCode(error)))
   revalidatePath('/catalogos')
@@ -47,7 +37,7 @@ export async function updateProduct(formData: FormData) {
   const product = productSchema.safeParse({ name: formData.get('name'), presentation: formData.get('presentation'), product_type: formData.get('product_type') })
   if (!id.success || !product.success) redirect(withFeedback('/catalogos', 'error', 'producto-invalido'))
 
-  const supabase = await requireAdmin()
+  const { supabase } = await requireRole('admin')
   const { error } = await supabase.from('products').update(product.data).eq('id', id.data)
   if (error) redirect(withFeedback('/catalogos', 'error', productErrorCode(error)))
   revalidatePath('/catalogos')
@@ -60,7 +50,7 @@ export async function toggleProduct(formData: FormData) {
   const active = formData.get('active') === 'true'
   if (!id.success) redirect(withFeedback('/catalogos', 'error', 'producto-invalido'))
 
-  const supabase = await requireAdmin()
+  const { supabase } = await requireRole('admin')
   const { error } = await supabase.from('products').update({ active: !active }).eq('id', id.data)
   if (error) redirect(withFeedback('/catalogos', 'error', productErrorCode(error)))
   revalidatePath('/catalogos')

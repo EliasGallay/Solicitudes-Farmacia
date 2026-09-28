@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation'
 import { ProductForm } from '@/components/products/product-form'
 import { FormError, FormSuccess } from '@/components/form-feedback'
 import { ConfirmSubmit } from '@/components/confirm-submit'
@@ -7,25 +6,20 @@ import { ListFooter } from '@/components/list-footer'
 import { PageHeader } from '@/components/page-header'
 import { createProduct, toggleProduct, updateProduct } from '@/app/product-actions'
 import { listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema } from '@/lib/filters'
-import { feedbackMessage, withFeedback } from '@/lib/feedback'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { feedbackMessage } from '@/lib/feedback'
+import { requireRole } from '@/lib/session'
 
 export default async function CatalogsPage({ searchParams }: { searchParams: Promise<{ error?: string; success?: string; page?: string; por_pagina?: string }> }) {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { supabase } = await requireRole('admin')
 
   const params = await searchParams
   const page = pageParamSchema.parse(params.page)
   const pageSize = pageSizeParamSchema.parse(params.por_pagina)
 
-  const [{ data: profile }, { data: products, count: productCount }, { data: centers }] = await Promise.all([
-    supabase.from('profiles').select('role, must_change_password').eq('user_id', user.id).maybeSingle(),
+  const [{ data: products, count: productCount }, { data: centers }] = await Promise.all([
     supabase.from('products').select('id, name, presentation, product_type, active', { count: 'exact' }).order('name').range(...pageRange(page, pageSize)),
     supabase.from('health_centers').select('id, name, active').order('name'),
   ])
-  if (profile?.must_change_password) redirect('/change-password')
-  if (profile?.role !== 'admin') redirect(withFeedback('/', 'error', 'solo-admin'))
 
   return (
     <>

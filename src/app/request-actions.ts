@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { OBSERVATIONS_MAX_LENGTH } from '../lib/requests'
-import { createSupabaseServerClient } from '../lib/supabase/server'
+import { requireSession } from '../lib/session'
 
 const itemsSchema = z.array(z.object({ product_id: z.string().uuid(), quantity: z.number().int().positive() })).min(1)
 const observationsSchema = z.string().trim().max(OBSERVATIONS_MAX_LENGTH).optional()
@@ -19,13 +19,9 @@ export async function submitRequest(items: { product_id: string; quantity: numbe
   const parsedObservations = observationsSchema.safeParse(observations)
   if (!parsedObservations.success) return { error: `La observación puede tener hasta ${OBSERVATIONS_MAX_LENGTH} caracteres.` }
 
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  const { data: profile } = await supabase.from('profiles').select('role, health_center_id').eq('user_id', user.id).maybeSingle()
-  let centerId = profile?.health_center_id ?? null
-  if (profile?.role === 'admin') {
+  const { supabase, role, healthCenterId: ownCenterId } = await requireSession()
+  let centerId = ownCenterId
+  if (role === 'admin') {
     const parsedCenter = healthCenterSchema.safeParse(healthCenterId)
     if (!parsedCenter.success) return { error: 'Seleccioná el centro de salud de la solicitud.' }
     centerId = parsedCenter.data
