@@ -1,6 +1,6 @@
 # Plan — Rubros de solicitud (farmacia, limpieza, laboratorio)
 
-Estado al 2026-09-28, rama base `develop`. **Hecho**: fase 1.
+Estado al 2026-09-28, rama base `develop`. **Hecho**: fases 1 y 2.
 Objetivo: ampliar el sistema de solicitudes de farmacia a otros rubros, con permisos por
 rubro que se puedan combinar por persona. Se resuelve por fases, en orden, y cada fase se
 mergea por separado sin romper lo existente. Marcar cada ítem al cerrarlo e indicar la
@@ -93,20 +93,24 @@ Al cerrar esta fase la app funciona igual que antes.
 
 ### Fase 2 — RLS y RPC
 
-- [ ] 2.1 Función `has_area(area text)`: true si el usuario es admin activo o tiene esa área
+- [x] 2.1 Función `has_area(area text)`: true si el usuario es admin activo o tiene esa área
   en `profile_areas` (y el perfil está activo). `security definer`, como las actuales.
-- [ ] 2.2 `products` select: el solicitante ve solo los activos de sus áreas. Insert y
+- [x] 2.2 `products` select: el solicitante ve solo los activos de sus áreas. Insert y
   update siguen siendo solo del admin.
-- [ ] 2.3 `product_types` y `areas` select: el admin ve todo; el solicitante, las de sus
+- [x] 2.3 `product_types` y `areas` select: el admin ve todo; el solicitante, las de sus
+  áreas. El admin además puede crear y editar tipos (para la gestión de la fase 4).
+- [x] 2.4 `requests` y `deliveries` select: el solicitante ve las de su centro **y** de sus
   áreas.
-- [ ] 2.4 `requests` y `deliveries` select: el solicitante ve las de su centro **y** de sus
-  áreas.
-- [ ] 2.5 `profile_areas` select: cada usuario ve las propias; el admin, todas. Escritura
-  solo del admin.
-- [ ] 2.6 `create_request_with_items(area, health_center_id, items, observations)`: rechaza
+- [x] 2.5 `profile_areas` select: cada usuario ve las propias; el admin, todas. Escritura
+  solo del admin (insert y delete).
+- [x] 2.6 `create_request_with_items(area, health_center_id, items, observations)`: rechaza
   si el usuario no tiene el área o si algún producto pertenece a otra área.
-- [ ] 2.7 Trigger o check en `request_items` que impida insertar un producto de otra área
+  Decisión: también rechaza un rubro inactivo (`areas.active = false`): desactivar un rubro corta
+  las solicitudes nuevas sin ocultar el historial. Se elimina el default transitorio de
+  `requests.area`; la app envía `'pharmacy'` hasta la fase 3.
+- [x] 2.7 Trigger o check en `request_items` que impida insertar un producto de otra área
   que la de la solicitud (defensa por si se inserta fuera de la RPC).
+  Trigger `request_items_check_area` (`security definer`). Migración `202609280002_area_policies.sql`.
 
 ### Fase 3 — Sesión y guards en la app
 

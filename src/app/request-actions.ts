@@ -27,7 +27,9 @@ export async function submitRequest(items: { product_id: string; quantity: numbe
     centerId = parsedCenter.data
   }
 
+  // Único rubro hasta la fase 3 (docs/plans/plan-rubros.md), cuando el wizard envía el rubro.
   const { data: requestId, error } = await supabase.rpc('create_request_with_items', {
+    requested_area: 'pharmacy',
     requested_health_center_id: centerId,
     requested_items: parsed.data,
     requested_observations: parsedObservations.data || null,
