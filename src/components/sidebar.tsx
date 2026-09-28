@@ -85,17 +85,20 @@ function Brand({ className }: { className?: string }) {
 
 // Contenido compartido entre el sidebar de desktop y el drawer de pantallas chicas.
 function SidebarBody({ role, userName, centerName }: SidebarProps) {
+  const pathname = usePathname()
+  const onProfile = pathname === '/perfil'
   return (
     <>
       <Navigation role={role} className="flex flex-col gap-1" />
       <div className="mt-auto flex flex-col gap-1 border-t border-sidebar-muted/25 pt-4">
-        <div className="flex items-center gap-3 px-4 py-2">
-          <CircleUser className="size-8 shrink-0 text-sidebar-muted" aria-hidden />
+        <Link href="/perfil" title="Mi perfil" aria-current={onProfile ? 'page' : undefined} className={cn('flex items-center gap-3 rounded-md px-4 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400', onProfile ? 'bg-sidebar-active text-white' : 'hover:bg-sidebar-hover')}>
+          <CircleUser className={cn('size-8 shrink-0', onProfile ? 'text-white' : 'text-sidebar-muted')} aria-hidden />
           <span className="flex min-w-0 flex-col">
             <span className="truncate text-sm leading-5 font-semibold">{userName}</span>
-            {centerName && <span className="truncate text-xs leading-4 text-sidebar-muted">{centerName}</span>}
+            {centerName && <span className={cn('truncate text-xs leading-4', onProfile ? 'text-white/80' : 'text-sidebar-muted')}>{centerName}</span>}
+            <span className="sr-only">Mi perfil</span>
           </span>
-        </div>
+        </Link>
         <LogoutButton />
       </div>
     </>

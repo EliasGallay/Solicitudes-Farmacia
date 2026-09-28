@@ -42,6 +42,8 @@ const messages = {
   'usuario-error': 'No se pudo completar la acción sobre el usuario. Intentá nuevamente.',
   'usuario-bloqueo-error': 'El perfil se actualizó, pero no se pudo cambiar el acceso de la cuenta. Intentá nuevamente.',
   'usuario-eliminado-parcial': 'Se eliminó el perfil, pero no la cuenta de acceso. Revisala en Supabase > Authentication.',
+  'perfil-actualizado': 'Tus datos se actualizaron.',
+  'perfil-password': 'Tu contraseña se actualizó.',
 } as const
 
 export type FeedbackCode = keyof typeof messages
