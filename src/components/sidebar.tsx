@@ -7,6 +7,7 @@ import { CircleUser, ClipboardList, CirclePlus, FileText, House, Landmark, LogOu
 import { logout } from '@/app/login/actions'
 import type { AppRole } from '@/lib/session'
 import { cn } from '@/lib/utils'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 type NavItem = { label: string; icon: LucideIcon; href: string }
 
@@ -99,6 +100,7 @@ function SidebarBody({ role, userName, centerName }: SidebarProps) {
             <span className="sr-only">Mi perfil</span>
           </span>
         </Link>
+        <ThemeToggle />
         <LogoutButton />
       </div>
     </>
