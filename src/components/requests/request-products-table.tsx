@@ -6,7 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import type { RequestStatus } from '@/lib/request-status'
 import { cn } from '@/lib/utils'
 
-export type RequestProductRow = { id: string; name: string; type: string | null; presentation: string; requested: number; delivered: number; pending: number; status: RequestStatus }
+// `closed`: cantidad cerrada sin entregar (docs/plans/plan-gestion-solicitudes.md).
+export type RequestProductRow = { id: string; name: string; type: string | null; presentation: string; requested: number; delivered: number; closed: number; pending: number; status: RequestStatus }
 
 function productSubtitle(item: RequestProductRow) {
   return [item.type, item.presentation].filter(Boolean).join(' · ')
@@ -14,6 +15,8 @@ function productSubtitle(item: RequestProductRow) {
 
 export function RequestProductsTable({ items }: { items: RequestProductRow[] }) {
   if (items.length === 0) return <EmptyState icon={SearchX} title="No encontramos productos">Probá modificando los filtros aplicados.</EmptyState>
+  // La columna Cerrado solo aparece si algo se cerró, para no sumar una columna vacía.
+  const showClosed = items.some((item) => item.closed > 0)
 
   return (
     <>
@@ -26,6 +29,7 @@ export function RequestProductsTable({ items }: { items: RequestProductRow[] }) 
               { label: 'Entregado', value: item.delivered },
               { label: 'Pendiente', value: item.pending, className: cn(item.pending > 0 && 'text-warning') },
             ]} />
+            {item.closed > 0 && <p className="text-xs text-foreground-secondary">Cerrado sin entregar: <span className="font-semibold tabular-nums">{item.closed}</span></p>}
           </MobileListItem>
         ))}
       </MobileList>
@@ -37,6 +41,7 @@ export function RequestProductsTable({ items }: { items: RequestProductRow[] }) 
             <TableHead className="hidden xl:table-cell">Presentación</TableHead>
             <TableHead className="text-right">Solicitado</TableHead>
             <TableHead className="text-right">Entregado</TableHead>
+            {showClosed && <TableHead className="text-right">Cerrado</TableHead>}
             <TableHead className="text-right">Pendiente</TableHead>
             <TableHead>Estado</TableHead>
           </TableRow>
@@ -46,13 +51,14 @@ export function RequestProductsTable({ items }: { items: RequestProductRow[] }) 
             <TableRow key={item.id}>
               <TableCell>
                 <span className="font-semibold">{item.name}</span>
-                {/* Entre md y xl, tipo y presentación van bajo el nombre para que entren las 7 columnas. */}
+                {/* Entre md y xl, tipo y presentación van bajo el nombre para que entren las columnas. */}
                 <span className="block text-xs leading-4 text-foreground-secondary xl:hidden">{productSubtitle(item)}</span>
               </TableCell>
               <TableCell className="hidden xl:table-cell">{item.type ?? '—'}</TableCell>
               <TableCell className="hidden text-foreground-secondary xl:table-cell">{item.presentation}</TableCell>
               <TableCell className="text-right tabular-nums">{item.requested}</TableCell>
               <TableCell className="text-right tabular-nums">{item.delivered}</TableCell>
+              {showClosed && <TableCell className="text-right text-foreground-secondary tabular-nums">{item.closed}</TableCell>}
               <TableCell className={cn('text-right tabular-nums', item.pending > 0 && 'font-semibold text-warning')}>{item.pending}</TableCell>
               <TableCell><StatusBadge status={item.status} /></TableCell>
             </TableRow>

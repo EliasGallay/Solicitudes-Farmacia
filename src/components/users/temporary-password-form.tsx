@@ -5,6 +5,7 @@ import { KeyRound } from 'lucide-react'
 import { setTemporaryPassword } from '@/app/user-actions'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { generateTemporaryPassword, passwordSchema } from '@/lib/users'
@@ -13,15 +14,23 @@ import { generateTemporaryPassword, passwordSchema } from '@/lib/users'
 export function TemporaryPasswordForm({ userId }: { userId: string }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string>()
+  const [confirming, setConfirming] = useState(false)
   const [pending, startTransition] = useTransition()
 
   function submit() {
     const parsed = passwordSchema.safeParse(password)
     if (!parsed.success) return setError(parsed.error.issues[0]?.message)
-    if (!window.confirm('La contraseña actual del usuario dejará de funcionar. ¿Continuar?')) return
     setError(undefined)
+    setConfirming(true)
+  }
+
+  // El diálogo queda abierto (y bloqueado) mientras se asigna.
+  function confirm() {
+    const parsed = passwordSchema.safeParse(password)
+    if (!parsed.success) return setConfirming(false)
     startTransition(async () => {
       const result = await setTemporaryPassword(userId, parsed.data)
+      setConfirming(false)
       if (result?.error) setError(result.error)
     })
   }
@@ -37,6 +46,19 @@ export function TemporaryPasswordForm({ userId }: { userId: string }) {
         </div>
       </div>
       {error && <Alert variant="destructive" className="mt-2">{error}</Alert>}
+      <ConfirmDialog
+        open={confirming}
+        pending={pending}
+        onCancel={() => setConfirming(false)}
+        onConfirm={confirm}
+        tone="destructive"
+        icon={KeyRound}
+        title="Asignar contraseña temporal"
+        description="La contraseña actual del usuario deja de funcionar. Va a tener que cambiar la temporal en su próximo ingreso."
+        confirmLabel={pending ? 'Asignando...' : 'Asignar'}
+      >
+        <p className="rounded-md bg-surface-muted px-3 py-2 font-mono text-sm break-all">{password}</p>
+      </ConfirmDialog>
     </form>
   )
 }

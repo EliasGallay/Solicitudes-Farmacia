@@ -42,6 +42,25 @@
   --color-danger: #dc2626;
   --color-danger-muted: #fee2e2;
 
+  /* Centros de salud: color para identificarlos en listados (src/lib/centers.ts).
+     Evita verde, ámbar y rojo, ya usados por la marca y los estados. Texto AA sobre su fondo. */
+  --color-center-1: #1d4ed8;
+  --color-center-1-muted: #dbeafe;
+  --color-center-2: #6d28d9;
+  --color-center-2-muted: #ede9fe;
+  --color-center-3: #be185d;
+  --color-center-3-muted: #fce7f3;
+  --color-center-4: #0f766e;
+  --color-center-4-muted: #ccfbf1;
+  --color-center-5: #c2410c;
+  --color-center-5-muted: #ffedd5;
+  --color-center-6: #0e7490;
+  --color-center-6-muted: #cffafe;
+  --color-center-7: #a21caf;
+  --color-center-7-muted: #fae8ff;
+  --color-center-8: #4338ca;
+  --color-center-8-muted: #e0e7ff;
+
   /* Radius */
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -114,6 +133,20 @@
   --color-destructive-foreground: var(--color-white);
   --color-input: var(--color-border);
   --color-ring: var(--color-primary-500);
+}
+
+/* Toasts (nextjs-toast-notify): colores y forma del Design System. La librería inyecta sus variables
+   en :root al cargar; `html:root` tiene más especificidad y las pisa. */
+html:root {
+  --toast-bg-color: var(--color-surface);
+  --toast-text-color: var(--color-foreground);
+  --toast-close-color: var(--color-foreground-secondary);
+  --toast-success-color: var(--color-success);
+  --toast-error-color: var(--color-danger);
+  --toast-warning-color: var(--color-warning);
+  --toast-info-color: var(--color-primary-600);
+  --toast-border-radius: var(--radius-md);
+  --toast-box-shadow: var(--shadow-elevated);
 }
 
 @layer base {

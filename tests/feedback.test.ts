@@ -7,4 +7,5 @@ describe('mensajes de resultado por URL', () => {
   it('ignora propiedades heredadas', () => expect(feedbackMessage('toString')).toBeUndefined())
   it('ignora la ausencia de código', () => expect(feedbackMessage(undefined)).toBeUndefined())
   it('arma la URL solo con el código ASCII', () => expect(withFeedback('/login', 'error', 'login-fallido')).toBe('/login?error=login-fallido'))
+  it('conserva la query existente de la ruta', () => expect(withFeedback('/catalogos/tipos?nuevo=1', 'error', 'tipo-duplicado')).toBe('/catalogos/tipos?nuevo=1&error=tipo-duplicado'))
 })

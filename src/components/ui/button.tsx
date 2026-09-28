@@ -22,7 +22,8 @@ const buttonVariants = cva('inline-flex items-center justify-center gap-2 whites
   defaultVariants: { variant: 'default', size: 'default' },
 })
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {}
+// ComponentProps incluye `ref` (React 19 lo pasa como prop).
+export interface ButtonProps extends React.ComponentProps<'button'>, VariantProps<typeof buttonVariants> {}
 
 export function Button({ className, variant, size, ...props }: ButtonProps) {
   return <button className={cn(buttonVariants({ variant, size, className }))} {...props} />

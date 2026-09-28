@@ -13,7 +13,4 @@ export function FormError({ children }: { children?: ReactNode }) {
   return <Alert variant="destructive" className="mt-4">{children}</Alert>
 }
 
-export function FormSuccess({ children }: { children?: ReactNode }) {
-  if (!children) return null
-  return <Alert variant="success" className="mt-4">{children}</Alert>
-}
+// Los resultados exitosos no van en una tarjeta: se muestran como toast (src/components/success-toast.tsx).
