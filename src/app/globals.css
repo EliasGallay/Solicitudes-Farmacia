@@ -74,6 +74,7 @@
   /* Motion — use with `motion-safe:` so prefers-reduced-motion is respected */
   --animate-enter-from-left: enter-from-left 500ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   --animate-enter-from-below: enter-from-below 450ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-breath: breath 1.8s ease-in-out infinite;
   --animate-drift: drift 24s ease-in-out infinite alternate;
   --animate-step-fill: step-fill 500ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   --animate-step-pop: step-pop 450ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
@@ -105,6 +106,11 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
+  @keyframes breath {
+    0%, 100% { opacity: 0.58; }
+    50% { opacity: 1; }
+  }
+
   @keyframes drift {
     from { transform: translate3d(0, 0, 0); }
     to { transform: translate3d(-16px, 12px, 0); }
@@ -131,8 +137,64 @@
   --color-accent-foreground: var(--color-primary-700);
   --color-destructive: var(--color-danger);
   --color-destructive-foreground: var(--color-white);
+  --color-action: var(--color-primary-600);
+  --color-action-hover: var(--color-primary-700);
+  --color-action-danger: var(--color-danger);
+  --color-action-danger-hover: var(--color-danger);
   --color-input: var(--color-border);
   --color-ring: var(--color-primary-500);
+}
+
+/* Paleta oscura: los componentes consumen los mismos tokens semÃ¡nticos. */
+.dark {
+  --color-page: #101814;
+  --color-surface: #17221c;
+  --color-surface-muted: #203028;
+  --color-surface-accent: #254434;
+  --color-foreground: #edf5ef;
+  --color-foreground-secondary: #b4c5ba;
+  --color-foreground-muted: #8fa296;
+  --color-border: #304238;
+  --color-border-strong: #496052;
+  --color-primary-50: #1c3227;
+  --color-primary-100: #244535;
+  --color-primary-400: #82d5a5;
+  --color-primary-500: #57b47d;
+  --color-primary-600: #69c88f;
+  --color-primary-700: #8bddaa;
+  --color-success: #4ade80;
+  --color-success-muted: #173b27;
+  --color-warning: #fbbf24;
+  --color-warning-muted: #463511;
+  --color-info: #69c88f;
+  --color-info-muted: #1c3829;
+  --color-danger: #f87171;
+  --color-danger-muted: #451f23;
+  --color-action: #17603b;
+  --color-action-hover: #1e7045;
+  --color-action-danger: #a83232;
+  --color-action-danger-hover: #bd3d3d;
+
+  /* Centros: tonos profundos para badges legibles sin fondos blancos. */
+  --color-center-1: #93c5fd;
+  --color-center-1-muted: #1e3a5f;
+  --color-center-2: #c4b5fd;
+  --color-center-2-muted: #3b256e;
+  --color-center-3: #f9a8d4;
+  --color-center-3-muted: #5a2448;
+  --color-center-4: #5eead4;
+  --color-center-4-muted: #164e4a;
+  --color-center-5: #fdba74;
+  --color-center-5-muted: #5a2a16;
+  --color-center-6: #67e8f9;
+  --color-center-6-muted: #164e63;
+  --color-center-7: #f0abfc;
+  --color-center-7-muted: #4f1d54;
+  --color-center-8: #a5b4fc;
+  --color-center-8-muted: #2e2a67;
+
+  --shadow-card: 0 1px 3px rgb(0 0 0 / 0.24);
+  --shadow-elevated: 0 4px 12px rgb(0 0 0 / 0.32);
 }
 
 /* Toasts (nextjs-toast-notify): colores y forma del Design System. La librería inyecta sus variables
@@ -149,8 +211,32 @@ html:root {
   --toast-box-shadow: var(--shadow-elevated);
 }
 
+html.dark {
+  --toast-bg-color: var(--color-surface);
+  --toast-text-color: var(--color-foreground);
+  --toast-close-color: var(--color-foreground-secondary);
+  --toast-success-color: var(--color-success);
+  --toast-error-color: var(--color-danger);
+  --toast-warning-color: var(--color-warning);
+  --toast-info-color: var(--color-primary-400);
+}
+
+.theme-switch-thumb {
+  transform: translateX(0);
+  transition: transform 700ms ease-in-out;
+}
+
+.theme-switch-thumb[data-dark='true'] {
+  transform: translateX(20px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-switch-thumb { transition: none; }
+}
+
 @layer base {
   :root { color-scheme: light; }
+  html.dark { color-scheme: dark; }
   * { border-color: var(--color-border); }
   body { margin: 0; background: var(--color-page); color: var(--color-foreground); font-family: Arial, Helvetica, sans-serif; }
 }
