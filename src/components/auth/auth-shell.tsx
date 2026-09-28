@@ -25,7 +25,7 @@ function InstitutionalPanel() {
       </div>
 
       <div className="relative z-10 my-auto hidden max-w-md flex-col py-10 lg:flex lg:short:py-6">
-        <Badge className="w-fit border border-sidebar-muted/20 bg-sidebar-hover text-sidebar-foreground">Solicitudes de Farmacia</Badge>
+        <Badge className="w-fit border border-sidebar-muted/20 bg-sidebar-hover text-sidebar-foreground">Solicitudes de Insumos</Badge>
         <h1 className="mt-6 text-5xl leading-tight font-bold lg:short:mt-4 lg:short:text-4xl">Gestión simple y organizada</h1>
         <p className="mt-4 text-lg leading-7 text-sidebar-muted lg:short:mt-3 lg:short:text-base lg:short:leading-6">Solicitá los productos para tu centro de salud de forma ágil y segura.</p>
         <ul className="mt-10 flex flex-col gap-5 lg:short:mt-6 lg:short:gap-3">

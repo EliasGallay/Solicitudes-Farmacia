@@ -11,8 +11,9 @@ import { RequestFilters } from '@/components/requests/request-filters'
 import { RequestsTable } from '@/components/requests/requests-table'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
+import { areaName, getAreas, selectedArea, type Area } from '@/lib/areas'
 import { statusParamSchema, type RequestStatus } from '@/lib/request-status'
-import { likeContains, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
+import { keyParamSchema, likeContains, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
 import { parseRequestNumber } from '@/lib/requests'
 import { requireSession } from '@/lib/session'
 
@@ -20,6 +21,7 @@ import { requireSession } from '@/lib/session'
 const DAY_OFFSET = '-03:00'
 
 const filtersSchema = z.object({
+  rubro: keyParamSchema,
   buscar: searchParamSchema,
   desde: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().catch(undefined),
   hasta: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().catch(undefined),
@@ -36,31 +38,35 @@ function nextDay(date: string) {
 }
 
 function pageHref(filters: Filters, page: number) {
-  return listHref('/solicitudes', { buscar: filters.buscar, desde: filters.desde, hasta: filters.hasta, estado: filters.estado, por_pagina: pageSizeParam(filters.por_pagina) }, page)
+  return listHref('/solicitudes', { rubro: filters.rubro, buscar: filters.buscar, desde: filters.desde, hasta: filters.hasta, estado: filters.estado, por_pagina: pageSizeParam(filters.por_pagina) }, page)
 }
 
 export default async function RequestsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   await requireSession()
   const filters = filtersSchema.parse(await searchParams)
+  // El rubro solo se muestra y se filtra cuando el usuario ve más de uno.
+  const areas = await getAreas() ?? []
+  const multipleAreas = areas.length > 1
+  if (!multipleAreas || !selectedArea(areas, filters.rubro)) filters.rubro = undefined
 
   return (
     <>
       <PageHeader
         title="Solicitudes"
-        description="Visualizá todas tus solicitudes de insumos de farmacia."
+        description="Visualizá todas tus solicitudes de insumos."
         actions={<Link href="/solicitudes/nueva" className={buttonVariants()}><Plus />Nueva solicitud</Link>}
       />
-      <RequestFilters buscar={filters.buscar} desde={filters.desde} hasta={filters.hasta} estado={filters.estado} />
+      <RequestFilters areas={multipleAreas ? areas : undefined} rubro={filters.rubro} buscar={filters.buscar} desde={filters.desde} hasta={filters.hasta} estado={filters.estado} />
       <Card>
         <Suspense key={pageHref(filters, filters.page)} fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
-          <RequestsList filters={filters} />
+          <RequestsList filters={filters} areas={multipleAreas ? areas : undefined} />
         </Suspense>
       </Card>
     </>
   )
 }
 
-async function RequestsList({ filters }: { filters: Filters }) {
+async function RequestsList({ filters, areas }: { filters: Filters; areas?: Area[] }) {
   const { supabase } = await requireSession()
   // Búsqueda (en la base, columnas de supabase/migrations/202609240006_search.sql):
   // - un número ("2", "#2", "SOL-2") busca por número parcial y ordena ascendente, por lo que la
@@ -68,7 +74,8 @@ async function RequestsList({ filters }: { filters: Filters }) {
   // - cualquier otro texto busca cada palabra en el número y los productos, sin distinguir acentos.
   const number = filters.buscar ? parseRequestNumber(filters.buscar) : null
 
-  let query = supabase.from('requests').select('id, request_number, created_at, request_status, request_items(count)', { count: 'exact' })
+  let query = supabase.from('requests').select('id, area, request_number, created_at, request_status, request_items(count)', { count: 'exact' })
+  if (filters.rubro) query = query.eq('area', filters.rubro)
   if (number !== null) query = query.ilike('request_number_text', likeContains(String(number)))
   else for (const token of searchTokens(filters.buscar ?? '')) query = query.ilike('request_search_text', likeContains(token))
   if (filters.desde) query = query.gte('created_at', `${filters.desde}T00:00:00${DAY_OFFSET}`)
@@ -80,9 +87,9 @@ async function RequestsList({ filters }: { filters: Filters }) {
   // PGRST103: la página pedida está fuera de rango; se trata como sin resultados.
   if (error && error.code !== 'PGRST103') return <ErrorState title="No pudimos cargar las solicitudes" />
 
-  const rows = (data ?? []).map((request) => ({ id: request.id as string, number: request.request_number as number, createdAt: request.created_at as string, productCount: (request.request_items as { count: number }[] | null)?.[0]?.count ?? 0, status: request.request_status as RequestStatus }))
+  const rows = (data ?? []).map((request) => ({ id: request.id as string, number: request.request_number as number, createdAt: request.created_at as string, productCount: (request.request_items as { count: number }[] | null)?.[0]?.count ?? 0, status: request.request_status as RequestStatus, area: areas ? areaName(areas, request.area as string) : undefined }))
   const total = count ?? 0
-  const hasFilters = Boolean(filters.buscar || filters.desde || filters.hasta || filters.estado)
+  const hasFilters = Boolean(filters.rubro || filters.buscar || filters.desde || filters.hasta || filters.estado)
 
   if (rows.length === 0) {
     return hasFilters || total > 0

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_PAGE_SIZE, likeContains, listHref, normalizeSearch, pageRange, pageSizeParam, pageSizeParamSchema, searchTokens } from '../src/lib/filters'
+import { DEFAULT_PAGE_SIZE, keyParamSchema, likeContains, listHref, normalizeSearch, pageRange, pageSizeParam, pageSizeParamSchema, searchTokens } from '../src/lib/filters'
 
 describe('búsqueda normalizada', () => {
   it('quita acentos y mayúsculas', () => expect(normalizeSearch('Algodón ÑANDÚ')).toBe('algodon nandu'))
@@ -30,4 +30,10 @@ describe('paginación', () => {
     expect(pageSizeParam(15)).toBe('15')
   })
   it('calcula el rango de la página', () => expect(pageRange(3, 15)).toEqual([30, 44]))
+})
+
+describe('claves de rubro y tipo', () => {
+  it('acepta claves válidas', () => expect(keyParamSchema.parse('pharmacy')).toBe('pharmacy'))
+  it('descarta claves con otro formato', () => expect(keyParamSchema.parse('Farmacia; drop')).toBeUndefined())
+  it('es opcional', () => expect(keyParamSchema.parse(undefined)).toBeUndefined())
 })

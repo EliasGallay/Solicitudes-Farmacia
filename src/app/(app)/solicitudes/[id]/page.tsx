@@ -17,8 +17,9 @@ import { RequestsTableSkeleton } from '@/components/requests/requests-table'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { likeContains, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
+import { areaName, getAreas } from '@/lib/areas'
 import { formatDateTime, formatRequestNumber, relationOne, summarizeItems, type ItemQuantitiesRow } from '@/lib/requests'
-import type { ProductType } from '@/lib/product-types'
+import { productTypeLabel, type ProductTypeRelation } from '@/lib/product-types'
 import type { RequestStatus } from '@/lib/request-status'
 import { requireSession } from '@/lib/session'
 
@@ -58,16 +59,19 @@ function NotFound() {
 // Último movimiento e historial no se muestran: dependen de la auditoría (Fase 7).
 async function RequestDetail({ id, filters }: { id: string; filters: ProductFilters }) {
   const { supabase } = await requireSession()
-  const { data, error } = await supabase.from('requests').select('id, request_number, created_at, request_status, observations, request_items(requested_quantity, delivered_quantity, pending_quantity)').eq('id', id).maybeSingle()
+  const areas = await getAreas() ?? []
+  const { data, error } = await supabase.from('requests').select('id, area, request_number, created_at, request_status, observations, request_items(requested_quantity, delivered_quantity, pending_quantity)').eq('id', id).maybeSingle()
   if (error) return <Card><ErrorState title="No pudimos cargar la solicitud" /></Card>
   if (!data) return <NotFound />
 
   const summary = summarizeItems((data.request_items ?? []) as ItemQuantitiesRow[])
 
   const createdAt = data.created_at as string
+  // El rubro solo se muestra cuando el usuario ve más de uno.
+  const area = areas.length > 1 ? ` · Rubro: ${areaName(areas, data.area as string)}` : ''
   return (
     <>
-      <PageHeader title={<span className="flex flex-wrap items-center gap-3">Solicitud {formatRequestNumber(data.request_number as number)}<StatusBadge status={data.request_status as RequestStatus} /></span>} description={`Fecha de solicitud: ${formatDateTime(createdAt)}`} />
+      <PageHeader title={<span className="flex flex-wrap items-center gap-3">Solicitud {formatRequestNumber(data.request_number as number)}<StatusBadge status={data.request_status as RequestStatus} /></span>} description={`Fecha de solicitud: ${formatDateTime(createdAt)}${area}`} />
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <MetricCard icon={Package} value={summary.products} label="Productos solicitados" />
@@ -104,7 +108,7 @@ async function RequestDetail({ id, filters }: { id: string; filters: ProductFilt
 
 // Filtra en la base: búsqueda sobre products y pendiente vía columnas computadas
 // (supabase/migrations/202609240001_request_item_quantities.sql).
-type ProductRow = { name: string; presentation: string; product_type: ProductType }
+type ProductRow = { name: string; presentation: string; type: ProductTypeRelation }
 
 function productsHref(requestId: string, filters: ProductFilters, page: number) {
   return listHref(`/solicitudes/${requestId}`, { buscar: filters.buscar, pendiente: filters.pendiente, por_pagina: pageSizeParam(filters.por_pagina) }, page)
@@ -112,7 +116,7 @@ function productsHref(requestId: string, filters: ProductFilters, page: number) 
 
 async function RequestProducts({ requestId, filters }: { requestId: string; filters: ProductFilters }) {
   const { supabase } = await requireSession()
-  let query = supabase.from('request_items').select(`id, requested_quantity, delivered_quantity, pending_quantity, item_status, product:products(name, presentation, product_type)`, { count: 'exact' }).eq('request_id', requestId)
+  let query = supabase.from('request_items').select(`id, requested_quantity, delivered_quantity, pending_quantity, item_status, product:products(name, presentation, type:product_types(label))`, { count: 'exact' }).eq('request_id', requestId)
   // Búsqueda sobre item_search_text (producto normalizado): todas las palabras deben coincidir.
   for (const token of searchTokens(filters.buscar ?? '')) query = query.ilike('item_search_text', likeContains(token))
   if (filters.pendiente === 'con') query = query.gt('pending_quantity', 0)
@@ -127,7 +131,7 @@ async function RequestProducts({ requestId, filters }: { requestId: string; filt
       id: item.id as string,
       name: product?.name ?? 'Producto no disponible',
       presentation: product?.presentation ?? '—',
-      type: product?.product_type ?? null,
+      type: product ? productTypeLabel(product.type) : null,
       requested: item.requested_quantity as number,
       delivered: item.delivered_quantity as number,
       pending: item.pending_quantity as number,

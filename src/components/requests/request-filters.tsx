@@ -7,11 +7,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useSearchFilter, useUrlFilters } from '@/hooks/use-url-filters'
+import type { Area } from '@/lib/areas'
 import { requestStatusLabels, requestStatuses, type RequestStatus } from '@/lib/request-status'
 
 const ALL = 'todos'
 
-export function RequestFilters({ buscar, desde, hasta, estado }: { buscar?: string; desde?: string; hasta?: string; estado?: RequestStatus }) {
+// `areas`: solo cuando el usuario ve más de un rubro; si no, el filtro de rubro no se muestra.
+export function RequestFilters({ areas, rubro, buscar, desde, hasta, estado }: { areas?: Area[]; rubro?: string; buscar?: string; desde?: string; hasta?: string; estado?: RequestStatus }) {
   const { setFilters, clearFilters } = useUrlFilters()
   const search = useSearchFilter('buscar', buscar)
 
@@ -39,6 +41,18 @@ export function RequestFilters({ buscar, desde, hasta, estado }: { buscar?: stri
           </SelectContent>
         </Select>
       </div>
+      {areas && (
+        <div className="flex flex-col gap-2 min-[360px]:col-span-2 sm:col-span-1">
+          <Label htmlFor="filtro-rubro">Rubro</Label>
+          <Select value={rubro ?? ALL} onValueChange={(value) => setFilters({ rubro: value === ALL ? undefined : value })}>
+            <SelectTrigger id="filtro-rubro" className="lg:w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>Todos los rubros</SelectItem>
+              {areas.map((area) => <SelectItem key={area.key} value={area.key}>{area.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <div className="flex min-w-0 flex-col gap-2">
         <Label htmlFor="filtro-desde">Fecha desde</Label>
         <Input id="filtro-desde" type="date" className="min-w-0 lg:w-44" defaultValue={desde} max={hasta} onChange={(event) => setFilters({ desde: event.target.value })} />
@@ -47,7 +61,7 @@ export function RequestFilters({ buscar, desde, hasta, estado }: { buscar?: stri
         <Label htmlFor="filtro-hasta">Fecha hasta</Label>
         <Input id="filtro-hasta" type="date" className="min-w-0 lg:w-44" defaultValue={hasta} min={desde} onChange={(event) => setFilters({ hasta: event.target.value })} />
       </div>
-      <Button variant="secondary" className="self-end min-[360px]:col-span-2 sm:col-span-1" disabled={!buscar && !desde && !hasta && !estado} onClick={clear}><FilterX />Limpiar filtros</Button>
+      <Button variant="secondary" className="self-end min-[360px]:col-span-2 sm:col-span-1" disabled={!rubro && !buscar && !desde && !hasta && !estado} onClick={clear}><FilterX />Limpiar filtros</Button>
     </Card>
   )
 }

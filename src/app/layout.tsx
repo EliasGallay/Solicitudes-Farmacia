@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Solicitudes de Farmacia',
+  title: 'Solicitudes de Insumos',
   description: 'Base técnica local — Secretaría de Salud',
 }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { ArrowLeft, ArrowRight, Minus, PackageSearch, Plus, Search, Send, Trash2 } from 'lucide-react'
 import { submitRequest } from '@/app/request-actions'
 import { EmptyState } from '@/components/empty-state'
@@ -15,12 +16,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { usePageHref, useSearchFilter, useUrlFilters } from '@/hooks/use-url-filters'
-import { productTypeLabels, productTypes, type ProductType } from '@/lib/product-types'
 import { OBSERVATIONS_MAX_LENGTH } from '@/lib/requests'
 import { cn } from '@/lib/utils'
 import { RequestStepper } from './request-stepper'
 
-type Product = { id: string; name: string; presentation: string; product_type: ProductType }
+export type WizardProduct = { id: string; name: string; presentation: string; typeLabel: string }
+type Product = WizardProduct
+type TypeOption = { key: string; label: string }
 
 type Center = { id: string; name: string }
 
@@ -34,12 +36,13 @@ function parseQuantity(value: string) {
 const stepActionsClasses = 'sticky bottom-0 z-10 -mx-4 mt-4 flex items-center gap-3 border-t border-border bg-surface px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-elevated sm:static sm:mx-0 sm:flex-wrap sm:gap-4 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none'
 
 function productSubtitle(product: Product) {
-  return `${productTypeLabels[product.product_type]} · ${product.presentation}`
+  return `${product.typeLabel} · ${product.presentation}`
 }
 
-// `products` llega ya filtrado por el servidor según `buscar` y `tipo`; la selección se conserva entre búsquedas.
+// `products` llega ya filtrado por el servidor según `area`, `buscar` y `tipo`; la selección se conserva entre búsquedas.
+// `types`: tipos activos del rubro, para el filtro. `canChangeArea`: el usuario tiene más de un rubro.
 // `centers` solo se recibe para el admin, que debe elegir el centro de la solicitud.
-export function NewRequestWizard({ products, total, matching, page, pageSize, buscar, tipo, centers }: { products: Product[]; total: number; matching: number; page: number; pageSize: number; buscar?: string; tipo?: ProductType; centers?: Center[] }) {
+export function NewRequestWizard({ area, canChangeArea, types, products, total, matching, page, pageSize, buscar, tipo, centers }: { area: { key: string; name: string }; canChangeArea: boolean; types: TypeOption[]; products: Product[]; total: number; matching: number; page: number; pageSize: number; buscar?: string; tipo?: string; centers?: Center[] }) {
   const [step, setStep] = useState<1 | 2>(1)
   const search = useSearchFilter('buscar', buscar)
   const typeFilter = useUrlFilters()
@@ -92,7 +95,7 @@ export function NewRequestWizard({ products, total, matching, page, pageSize, bu
     setError(undefined)
     const items = selected.map((entry) => ({ product_id: entry.product.id, quantity: parseQuantity(entry.quantity) ?? 0 }))
     startTransition(async () => {
-      const result = await submitRequest(items, observations.trim() || undefined, centerId)
+      const result = await submitRequest(area.key, items, observations.trim() || undefined, centerId)
       if (result?.error) setError(result.error)
     })
   }
@@ -104,7 +107,7 @@ export function NewRequestWizard({ products, total, matching, page, pageSize, bu
         <Card className="motion-safe:animate-enter-from-below">
           <CardHeader>
             <CardTitle>Revisar solicitud</CardTitle>
-            <CardDescription>Verificá los productos y las cantidades antes de enviar la solicitud.</CardDescription>
+            <CardDescription>Verificá los productos y las cantidades antes de enviar la solicitud.{canChangeArea && <> Rubro: <span className="font-semibold text-foreground">{area.name}</span>.</>}</CardDescription>
           </CardHeader>
           <CardContent>
             {centers && (
@@ -140,7 +143,7 @@ export function NewRequestWizard({ products, total, matching, page, pageSize, bu
                     {selected.map(({ product, quantity }) => (
                       <TableRow key={product.id}>
                         <TableCell className="font-semibold">{product.name}</TableCell>
-                        <TableCell>{productTypeLabels[product.product_type]}</TableCell>
+                        <TableCell>{product.typeLabel}</TableCell>
                         <TableCell className="text-foreground-secondary">{product.presentation}</TableCell>
                         <TableCell className="text-right tabular-nums">{quantity}</TableCell>
                         <TableCell className="text-right">
@@ -175,6 +178,12 @@ export function NewRequestWizard({ products, total, matching, page, pageSize, bu
       <Card className="motion-safe:animate-enter-from-below">
         <CardHeader>
           <CardTitle>Buscar y agregar productos</CardTitle>
+          {canChangeArea && (
+            <CardDescription>
+              Rubro: <span className="font-semibold text-foreground">{area.name}</span>{' · '}
+              <Link href="/solicitudes/nueva" className="font-medium text-primary-600 hover:underline">Cambiar rubro</Link>
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -186,7 +195,7 @@ export function NewRequestWizard({ products, total, matching, page, pageSize, bu
               <SelectTrigger aria-label="Filtrar por tipo" className="sm:w-48"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL_TYPES}>Todos los tipos</SelectItem>
-                {productTypes.map((type) => <SelectItem key={type} value={type}>{productTypeLabels[type]}</SelectItem>)}
+                {types.map((type) => <SelectItem key={type.key} value={type.key}>{type.label}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -213,7 +222,7 @@ export function NewRequestWizard({ products, total, matching, page, pageSize, bu
                   {products.map((product) => (
                     <TableRow key={product.id}>
                       <TableCell className="font-semibold">{product.name}</TableCell>
-                      <TableCell>{productTypeLabels[product.product_type]}</TableCell>
+                      <TableCell>{product.typeLabel}</TableCell>
                       <TableCell className="text-foreground-secondary">{product.presentation}</TableCell>
                       <TableCell className="text-right">{quantityControl(product)}</TableCell>
                     </TableRow>

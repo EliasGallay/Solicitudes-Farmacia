@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/page-header'
 import { RequestsTable } from '@/components/requests/requests-table'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { areaName, getAreas } from '@/lib/areas'
 import type { RequestStatus } from '@/lib/request-status'
 import { formatDate, formatRequestNumber, relationOne } from '@/lib/requests'
 import { greeting } from '@/lib/greeting'
@@ -43,10 +44,11 @@ export default async function Home() {
 
 async function DashboardContent() {
   const { supabase } = await requireSession()
+  const areas = await getAreas() ?? []
   // Filtrado, orden y límite se resuelven en la base.
   const countByStatus = (status: RequestStatus) => supabase.from('requests').select('id', { count: 'exact', head: true }).eq('request_status', status)
   const [recentResult, pendingResult, pendingCount, partialCount, completedCount] = await Promise.all([
-    supabase.from('requests').select('id, request_number, created_at, request_status, request_items(count)').order('created_at', { ascending: false }).limit(RECENT_LIMIT),
+    supabase.from('requests').select('id, area, request_number, created_at, request_status, request_items(count)').order('created_at', { ascending: false }).limit(RECENT_LIMIT),
     supabase.from('request_items').select('id, pending_quantity, product:products(name), request:requests(id, request_number, created_at)').gt('pending_quantity', 0).order('request(created_at)', { ascending: false }).limit(PENDING_LIMIT),
     countByStatus('pending'),
     countByStatus('partial'),
@@ -55,7 +57,7 @@ async function DashboardContent() {
   if ([recentResult, pendingResult, pendingCount, partialCount, completedCount].some((result) => result.error)) return <Card><ErrorState /></Card>
 
   const content = {
-    recent: (recentResult.data ?? []).map((request) => ({ id: request.id as string, number: request.request_number as number, createdAt: request.created_at as string, productCount: (request.request_items as { count: number }[] | null)?.[0]?.count ?? 0, status: request.request_status as RequestStatus })),
+    recent: (recentResult.data ?? []).map((request) => ({ id: request.id as string, number: request.request_number as number, createdAt: request.created_at as string, productCount: (request.request_items as { count: number }[] | null)?.[0]?.count ?? 0, status: request.request_status as RequestStatus, area: areas.length > 1 ? areaName(areas, request.area as string) : undefined })),
     pending: (pendingResult.data ?? []).flatMap((item) => {
       const request = relationOne(item.request as { id: string; request_number: number; created_at: string } | { id: string; request_number: number; created_at: string }[] | null)
       const product = relationOne(item.product as { name: string } | { name: string }[] | null)
