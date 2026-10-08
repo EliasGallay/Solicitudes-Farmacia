@@ -104,7 +104,7 @@ export function NewRequestWizard({ area, canChangeArea, types, products, total, 
     return (
       <>
         <RequestStepper current={2} />
-        <Card className="motion-safe:animate-enter-from-below">
+        <Card data-workflow="review" className="motion-safe:animate-enter-from-below">
           <CardHeader>
             <CardTitle>Revisar solicitud</CardTitle>
             <CardDescription>Verificá los productos y las cantidades antes de enviar la solicitud.{canChangeArea && <> Rubro: <span className="font-semibold text-foreground">{area.name}</span>.</>}</CardDescription>
@@ -155,7 +155,7 @@ export function NewRequestWizard({ area, canChangeArea, types, products, total, 
                 </Table>
               </>
             ) : <EmptyState icon={PackageSearch} title="No hay productos seleccionados">Volvé al paso anterior para agregar productos.</EmptyState>}
-            <div className="mt-6 flex flex-col gap-2">
+            <div data-workflow="observations" className="mt-6 flex flex-col gap-2">
               <Label htmlFor="observaciones">Observaciones (opcional)</Label>
               <Textarea id="observaciones" rows={3} maxLength={OBSERVATIONS_MAX_LENGTH} placeholder="Agregá alguna nota o comentario para esta solicitud..." aria-describedby="observaciones-ayuda" disabled={pending} value={observations} onChange={(event) => setObservations(event.target.value)} />
               <p id="observaciones-ayuda" className="text-right text-xs text-foreground-muted">{observations.length}/{OBSERVATIONS_MAX_LENGTH}</p>
@@ -166,7 +166,7 @@ export function NewRequestWizard({ area, canChangeArea, types, products, total, 
         {/* Acciones del paso: fuera de la card, a nivel del wizard. */}
         <div className={cn(stepActionsClasses, 'sm:justify-between')}>
           <Button variant="secondary" className="flex-1 sm:flex-none" disabled={pending} onClick={() => setStep(1)}><ArrowLeft />Volver</Button>
-          <Button className="flex-1 sm:flex-none" disabled={pending || !canSubmit} onClick={submit}>{pending ? 'Enviando...' : 'Enviar solicitud'}<Send /></Button>
+          <Button data-workflow="submit" className="flex-1 sm:flex-none" disabled={pending || !canSubmit} onClick={submit}>{pending ? 'Enviando...' : 'Enviar solicitud'}<Send /></Button>
         </div>
       </>
     )
@@ -175,7 +175,7 @@ export function NewRequestWizard({ area, canChangeArea, types, products, total, 
   return (
     <>
       <RequestStepper current={1} />
-      <Card className="motion-safe:animate-enter-from-below">
+      <Card data-workflow="products" className="motion-safe:animate-enter-from-below">
         <CardHeader>
           <CardTitle>Buscar y agregar productos</CardTitle>
           {canChangeArea && (
@@ -186,7 +186,7 @@ export function NewRequestWizard({ area, canChangeArea, types, products, total, 
           )}
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <div data-workflow="search" className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <div className="relative w-full sm:min-w-64 sm:flex-1 md:max-w-md">
               <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-foreground-muted" aria-hidden />
               <Input type="search" aria-label="Buscar producto por nombre" placeholder="Buscar producto por nombre..." className="pl-9" value={search.value} onChange={(event) => search.setValue(event.target.value)} />
@@ -242,7 +242,7 @@ export function NewRequestWizard({ area, canChangeArea, types, products, total, 
       <div aria-hidden className="h-20" />
       <div className="fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-20 flex items-center gap-3 rounded-lg border border-border bg-surface py-2 pr-2 pl-4 shadow-elevated motion-safe:animate-enter-from-below sm:right-6 sm:bottom-6 lg:right-8 lg:bottom-8">
         <p className="text-sm font-semibold whitespace-nowrap text-primary-600" aria-live="polite">{selected.length} <span className="max-sm:hidden">{selected.length === 1 ? 'producto agregado' : 'productos agregados'}</span><span className="sm:hidden">{selected.length === 1 ? 'agregado' : 'agregados'}</span></p>
-        <Button disabled={!allValid} onClick={() => setStep(2)}>Siguiente<ArrowRight /></Button>
+        <Button data-workflow="next" disabled={!allValid} onClick={() => setStep(2)}>Siguiente<ArrowRight /></Button>
       </div>
     </>
   )

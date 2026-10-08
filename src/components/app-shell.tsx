@@ -28,7 +28,7 @@ export function ShellFrame({ user, unreadCount = 0, children }: { user: ShellUse
               <NotificationBell tone="page" />
             </div>
           )}
-          <main className={cn('min-w-0 px-4 py-5 sm:px-6 sm:py-6 lg:p-8', user.role && 'lg:pt-2')}>{children}</main>
+          <main data-tour="main" className={cn('min-w-0 px-4 py-5 sm:px-6 sm:py-6 lg:p-8', user.role && 'lg:pt-2')}>{children}</main>
         </div>
       </div>
     </NotificationCountProvider>
