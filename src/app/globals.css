@@ -80,6 +80,26 @@
   --animate-step-pop: step-pop 450ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
   --animate-step-pop-delayed: step-pop 450ms 300ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
   --animate-step-halo: step-halo 2.4s 750ms ease-out infinite;
+  /* Campana de notificaciones: se sacude al llegar una nueva; el contador late mientras haya sin leer. */
+  --animate-bell-ring: bell-ring 1s ease-in-out both;
+  --animate-badge-ping: badge-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+
+  @keyframes bell-ring {
+    0%, 100% { transform: rotate(0); }
+    10% { transform: rotate(16deg); }
+    20% { transform: rotate(-14deg); }
+    30% { transform: rotate(12deg); }
+    40% { transform: rotate(-10deg); }
+    50% { transform: rotate(7deg); }
+    60% { transform: rotate(-5deg); }
+    70% { transform: rotate(3deg); }
+    80% { transform: rotate(-1deg); }
+  }
+
+  @keyframes badge-ping {
+    0% { opacity: 0.7; transform: scale(1); }
+    75%, 100% { opacity: 0; transform: scale(2); }
+  }
 
   @keyframes step-fill {
     from { transform: scaleX(0); }

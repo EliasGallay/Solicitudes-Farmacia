@@ -28,11 +28,17 @@ function DeliveryActions({ delivery, requestId }: { delivery: DeliverySummary; r
       <div className="flex flex-wrap gap-2">
         <Link href={`/entregas/${delivery.id}`} className={buttonVariants({ variant: 'secondary', size: 'sm' })}>Ver entrega</Link>
         {!delivery.voidedAt && <Link href={`/remitos/${delivery.id}`} target="_blank" className={buttonVariants({ variant: 'secondary', size: 'sm' })}><Printer />Remito</Link>}
+        {delivery.confirmed && <ReceiptNoteLink deliveryId={delivery.id} />}
       </div>
       {/* Con la recepción confirmada por el centro, la entrega ya no se anula. */}
       {!delivery.voidedAt && !delivery.confirmed && <VoidDeliveryForm deliveryId={delivery.id} requestId={requestId} number={delivery.number} from="solicitud" />}
     </div>
   )
+}
+
+// Constancia imprimible de lo que el centro confirmó haber recibido (/recepciones/[id]).
+function ReceiptNoteLink({ deliveryId }: { deliveryId: string }) {
+  return <Link href={`/recepciones/${deliveryId}`} target="_blank" className={buttonVariants({ variant: 'secondary', size: 'sm' })}><Printer />Constancia de recepción</Link>
 }
 
 // Anulación con motivo obligatorio. Plegada por defecto para no invitar a usarla por error.
@@ -159,6 +165,8 @@ export function RequestHistory({ requestId, isAdmin, createdAt, createdBy, deliv
                 <p className="text-xs leading-4 text-foreground-secondary">{formatDateTime(event.at)}</p>
                 {event.detail && <p className="mt-1 text-sm break-words whitespace-pre-wrap text-foreground-secondary">{event.detail}</p>}
                 {isAdmin && event.delivery && <DeliveryActions delivery={event.delivery} requestId={requestId} />}
+                {/* El centro imprime la constancia de lo que confirmó haber recibido. */}
+                {!isAdmin && event.delivery?.confirmed && <div className="mt-2"><ReceiptNoteLink deliveryId={event.delivery.id} /></div>}
               </div>
             </li>
           ))}

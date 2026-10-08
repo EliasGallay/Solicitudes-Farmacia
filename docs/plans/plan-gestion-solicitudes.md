@@ -162,6 +162,11 @@ solicitante del centro y rubro.
   `/entregas/[id]` y columna "Recepción" en `/entregas`.
 - [x] 8.5 Historial y auditoría: recepciones, diferencias y resoluciones con autor.
 - [x] 8.6 Solicitante: filtro y indicador "Por confirmar recepción".
+- [x] 8.7 Constancia de recepción imprimible por entrega (`/recepciones/[id]`, fuera del shell como
+  el remito): entregado vs. recibido por producto, estado de cada línea (conforme, faltante en
+  revisión, reenviado o cerrado, sin confirmar), observaciones, quién confirmó y firmas. Se abre
+  desde el historial de la solicitud (centro y admin) y desde `/solicitudes/[id]/recibir`. Solo
+  existe si la entrega tiene alguna línea confirmada; los nombres salen de `request_actor_names`.
 
 ## 4. Riesgos y notas
 
