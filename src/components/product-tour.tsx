@@ -9,7 +9,15 @@ import type { AppRole } from '@/lib/session'
 const TOUR_SEEN_KEY = 'solicitudes-insumos:tour-v1-seen'
 const WORKFLOW_KEY = 'solicitudes-insumos:workflow-requester'
 
-let workflowTour: { destroy: () => void; drive: () => void } | undefined
+type Tour = { destroy: () => void; drive: () => void }
+
+// ProductTour y WorkflowTour se montan dos veces (sidebar de desktop y menú mobile, que se renderiza
+// aunque esté oculto). Cada driver() agrega su propio cartel al body: con dos instancias, al cerrar
+// una la otra queda visible para siempre. Por eso el estado es del módulo y hay un solo tour activo.
+let productTour: Tour | undefined
+let autoStartDone = false
+let workflowTour: Tour | undefined
+let workflowSignature = ''
 
 function visibleElement(selector: string) {
   return Array.from(document.querySelectorAll<HTMLElement>(selector)).find((element) => {
@@ -45,7 +53,8 @@ export function startProductTour(role: AppRole | null) {
 
   if (steps.length === 0) return
 
-  driver({
+  productTour?.destroy()
+  productTour = driver({
     showProgress: true,
     nextBtnText: 'Siguiente',
     prevBtnText: 'Anterior',
@@ -53,14 +62,19 @@ export function startProductTour(role: AppRole | null) {
     overlayColor: 'var(--color-foreground)',
     overlayOpacity: 0.55,
     steps,
-  }).drive()
+    onDestroyed: () => { productTour = undefined },
+  })
+  productTour.drive()
 }
 
 export function ProductTour({ role }: { role: AppRole | null }) {
   useEffect(() => {
-    if (window.localStorage.getItem(TOUR_SEEN_KEY)) return
+    if (autoStartDone || window.localStorage.getItem(TOUR_SEEN_KEY)) return
 
+    // Las dos instancias programan el arranque; solo la primera lo ejecuta.
     const frame = window.requestAnimationFrame(() => {
+      if (autoStartDone) return
+      autoStartDone = true
       window.localStorage.setItem(TOUR_SEEN_KEY, 'true')
       startProductTour(role)
     })
@@ -125,11 +139,10 @@ export function WorkflowTour({ role }: { role: AppRole | null }) {
   useEffect(() => {
     if (role === 'admin') return
 
-    let shownSignature = ''
-
     const stop = () => {
       workflowTour?.destroy()
       workflowTour = undefined
+      workflowSignature = ''
     }
 
     const show = () => {
@@ -137,9 +150,10 @@ export function WorkflowTour({ role }: { role: AppRole | null }) {
       const steps = workflowSteps(pathname)
       if (steps.length === 0) return
       const signature = steps.map((step) => step.element).join('|')
-      if (signature === shownSignature) return
-      shownSignature = signature
+      // La firma es del módulo: la otra instancia no vuelve a crear el mismo tour.
+      if (signature === workflowSignature) return
       stop()
+      workflowSignature = signature
       workflowTour = driver({
         showProgress: true,
         nextBtnText: 'Siguiente',
