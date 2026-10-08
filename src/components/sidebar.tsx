@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CircleUser, ClipboardList, CirclePlus, FileText, House, Landmark, LogOut, Menu, Package, Truck, Users, X, type LucideIcon } from 'lucide-react'
+import { ChevronDown, CircleUser, ClipboardList, CirclePlus, FileText, House, Landmark, LogOut, Menu, Package, Settings2, Truck, Users, X, type LucideIcon } from 'lucide-react'
 import { logout } from '@/app/login/actions'
 import type { AppRole } from '@/lib/session'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { ProductTour, WorkflowTour } from '@/components/product-tour'
 
 type NavItem = { label: string; icon: LucideIcon; href: string }
 
@@ -55,7 +56,7 @@ function Navigation({ role, className }: { role: AppRole | null; className?: str
   const items = role === 'admin' ? adminNavigation : requesterNavigation
   const current = activeHref(items, pathname)
   return (
-    <nav aria-label="Navegación principal" className={className}>
+    <nav data-tour="navigation" aria-label="Navegación principal" className={className}>
       {items.map((item) => <SidebarItem key={item.label} item={item} active={item.href === current} />)}
     </nav>
   )
@@ -74,7 +75,7 @@ function LogoutButton({ className }: { className?: string }) {
 
 function Brand({ className }: { className?: string }) {
   return (
-    <Link href="/" className={cn('flex min-w-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400', className)}>
+    <Link data-tour="brand" href="/" className={cn('flex min-w-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400', className)}>
       <Landmark className="size-9 shrink-0" aria-hidden />
       <span className="flex min-w-0 flex-col">
         <span className="text-xs leading-4 font-bold tracking-wide uppercase">Municipalidad de Funes</span>
@@ -91,7 +92,7 @@ function SidebarBody({ role, userName, centerName }: SidebarProps) {
   return (
     <>
       <Navigation role={role} className="flex flex-col gap-1" />
-      <div className="mt-auto flex flex-col gap-1 border-t border-sidebar-muted/25 pt-4">
+      <div data-tour="profile" className="mt-auto flex flex-col gap-1 border-t border-sidebar-muted/25 pt-4">
         <Link href="/perfil" title="Mi perfil" aria-current={onProfile ? 'page' : undefined} className={cn('flex items-center gap-3 rounded-md px-4 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400', onProfile ? 'bg-sidebar-active text-white' : 'hover:bg-sidebar-hover')}>
           <CircleUser className={cn('size-8 shrink-0', onProfile ? 'text-white' : 'text-sidebar-muted')} aria-hidden />
           <span className="flex min-w-0 flex-col">
@@ -100,8 +101,21 @@ function SidebarBody({ role, userName, centerName }: SidebarProps) {
             <span className="sr-only">Mi perfil</span>
           </span>
         </Link>
-        <ThemeToggle />
-        <LogoutButton />
+        <details className="group relative rounded-md">
+          <summary className="flex h-11 cursor-pointer list-none items-center justify-between gap-2 rounded-md px-3 text-sm whitespace-nowrap text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 [&::-webkit-details-marker]:hidden">
+            <span className="flex min-w-0 items-center gap-2 whitespace-nowrap">
+              <Settings2 className="size-5 shrink-0" aria-hidden />
+              Sistema y tutoriales
+            </span>
+            <ChevronDown className="size-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden />
+          </summary>
+          <div className="absolute right-0 bottom-full left-0 z-50 mb-2 flex flex-col gap-1 rounded-lg border border-sidebar-muted/30 bg-sidebar p-2 shadow-elevated">
+            <ThemeToggle />
+            <ProductTour role={role} />
+            <WorkflowTour role={role} />
+            <LogoutButton />
+          </div>
+        </details>
       </div>
     </>
   )
@@ -138,7 +152,7 @@ export function MobileNavigation(props: SidebarProps) {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 bg-sidebar px-2 text-sidebar-foreground sm:px-4 lg:hidden">
       <Brand className="px-2 py-1 [&>svg]:size-7" />
-      <button type="button" aria-label="Abrir menú" aria-haspopup="dialog" aria-expanded={open} aria-controls="menu-principal" onClick={openMenu} className="flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-sidebar-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400">
+      <button data-tour="navigation" type="button" aria-label="Abrir menú" aria-haspopup="dialog" aria-expanded={open} aria-controls="menu-principal" onClick={openMenu} className="flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-sidebar-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400">
         <Menu className="size-6" aria-hidden />
       </button>
       <dialog
