@@ -12,7 +12,7 @@ const steps = [
 // transición recién ocurrida (línea hacia el paso actual, paso actual y paso recién completado).
 export function RequestStepper({ current }: { current: 1 | 2 | 3 }) {
   return (
-    <ol aria-label="Pasos de la solicitud" className="mb-6 flex items-start justify-center sm:mb-8">
+    <ol data-workflow="stepper" aria-label="Pasos de la solicitud" className="mb-6 flex items-start justify-center sm:mb-8">
       {steps.map(({ label, short }, index) => {
         const step = index + 1
         const done = step < current
