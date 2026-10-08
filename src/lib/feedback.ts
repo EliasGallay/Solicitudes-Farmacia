@@ -66,6 +66,9 @@ const messages = {
   'diferencia-ya-resuelta': 'La diferencia ya estaba resuelta.',
   'perfil-actualizado': 'Tus datos se actualizaron.',
   'perfil-password': 'Tu contraseña se actualizó.',
+  'notificaciones-leidas': 'Marcamos todas las notificaciones como leídas.',
+  'notificacion-invalida': 'La notificación no existe o ya no está disponible.',
+  'notificaciones-error': 'No se pudieron actualizar las notificaciones. Intentá nuevamente.',
 } as const
 
 export type FeedbackCode = keyof typeof messages

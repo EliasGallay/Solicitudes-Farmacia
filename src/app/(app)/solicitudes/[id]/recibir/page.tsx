@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { PackageCheck } from 'lucide-react'
+import { PackageCheck, Printer } from 'lucide-react'
 import { z } from 'zod'
 import { BackButton } from '@/components/back-button'
 import { EmptyState } from '@/components/empty-state'
@@ -9,7 +9,7 @@ import { PageHeader } from '@/components/page-header'
 import { ReceiptForm, type ReceiptGroup } from '@/components/requests/receipt-form'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { formatRequestNumber, relationOne } from '@/lib/requests'
+import { formatDeliveryNumber, formatRequestNumber, relationOne } from '@/lib/requests'
 import { requireSession } from '@/lib/session'
 
 type ProductRelation = { name: string; presentation: string } | { name: string; presentation: string }[] | null
@@ -44,6 +44,11 @@ export default async function ConfirmReceiptPage({ params }: { params: Promise<{
       .sort((a, b) => a.name.localeCompare(b.name, 'es')),
   })).filter((group) => group.lines.length > 0)
 
+  // Entregas con alguna línea ya confirmada: tienen constancia de recepción para imprimir.
+  const printable = (deliveries ?? [])
+    .filter((delivery) => ((delivery.delivery_items ?? []) as LineRow[]).some((line) => line.status === 'active' && relationOne(line.receipt)))
+    .map((delivery) => ({ id: delivery.id as string, number: delivery.delivery_number as number }))
+
   return (
     <>
       <BackButton fallback={detailHref} />
@@ -56,6 +61,21 @@ export default async function ConfirmReceiptPage({ params }: { params: Promise<{
           ? <EmptyState icon={PackageCheck} title="No hay entregas para confirmar" action={<Link href={detailHref} className={buttonVariants({ variant: 'secondary' })}>Volver a la solicitud</Link>}>Todo lo entregado ya fue confirmado.</EmptyState>
           : <CardContent className="pt-5"><ReceiptForm requestId={id.data} groups={groups} cancelHref={detailHref} /></CardContent>}
       </Card>
+      {printable.length > 0 && (
+        <Card className="mt-6 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="flex items-center gap-3 text-sm">
+            <Printer className="size-5 shrink-0 text-primary-600" aria-hidden />
+            <span>Constancia de lo que ya confirmaste como recibido, para imprimir y firmar.</span>
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {printable.map((delivery) => (
+              <Link key={delivery.id} href={`/recepciones/${delivery.id}`} target="_blank" className={buttonVariants({ variant: 'secondary', size: 'sm' })}>
+                <Printer />Imprimir {formatDeliveryNumber(delivery.number)}
+              </Link>
+            ))}
+          </div>
+        </Card>
+      )}
     </>
   )
 }

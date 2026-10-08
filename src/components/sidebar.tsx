@@ -8,6 +8,7 @@ import { logout } from '@/app/login/actions'
 import type { AppRole } from '@/lib/session'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { NotificationBell } from '@/components/notifications/notification-bell'
 
 type NavItem = { label: string; icon: LucideIcon; href: string }
 
@@ -138,9 +139,12 @@ export function MobileNavigation(props: SidebarProps) {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 bg-sidebar px-2 text-sidebar-foreground sm:px-4 lg:hidden">
       <Brand className="px-2 py-1 [&>svg]:size-7" />
-      <button type="button" aria-label="Abrir menú" aria-haspopup="dialog" aria-expanded={open} aria-controls="menu-principal" onClick={openMenu} className="flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-sidebar-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400">
-        <Menu className="size-6" aria-hidden />
-      </button>
+      <div className="flex shrink-0 items-center gap-1">
+        {props.role && <NotificationBell tone="sidebar" />}
+        <button type="button" aria-label="Abrir menú" aria-haspopup="dialog" aria-expanded={open} aria-controls="menu-principal" onClick={openMenu} className="flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-sidebar-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400">
+          <Menu className="size-6" aria-hidden />
+        </button>
+      </div>
       <dialog
         ref={dialogRef}
         id="menu-principal"
