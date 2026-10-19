@@ -53,8 +53,8 @@ export function notificationText(context: NotificationContext): { title: string;
       return { title: 'Recepción confirmada', body: `Se confirmó la recepción de lo entregado en ${request}, sin diferencias.` }
     case 'receipt.difference':
       return admin
-        ? { title: 'Diferencia en la recepción', body: `${center} informó que recibió menos de lo entregado en ${number ? `la solicitud ${number}` : 'una solicitud'}. Revisala para reenviar o cerrar el faltante.` }
-        : { title: 'Diferencia en la recepción', body: `Se informó que llegó menos de lo entregado en ${request}. La administración la va a revisar.` }
+        ? { title: 'Diferencia en la recepción', body: `${center} informó diferencias en la recepción (faltantes o productos equivocados) de ${number ? `la solicitud ${number}` : 'una solicitud'}. Revisala para reenviar o cerrar lo no recibido.` }
+        : { title: 'Diferencia en la recepción', body: `Se informaron diferencias en la recepción de ${request}. La administración la va a revisar.` }
     case 'receipt.resolved':
       return { title: 'Diferencia resuelta', body: `Se resolvió la diferencia de recepción de ${request}.` }
     default:

@@ -23,7 +23,8 @@ export default async function Home() {
   const session = await requireSession()
   if (session.role === 'admin') return <AdminPanel />
 
-  const newRequest = <Link href="/solicitudes/nueva" className={buttonVariants()}><Plus />Nueva solicitud</Link>
+  // data-tour: pasos del recorrido de la pantalla (src/lib/tours.ts).
+  const newRequest = <Link data-tour="home-new-request" href="/solicitudes/nueva" className={buttonVariants()}><Plus />Nueva solicitud</Link>
   return (
     <>
       <PageHeader
@@ -69,12 +70,12 @@ async function DashboardContent() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-3">
-      <div className="grid gap-4 md:grid-cols-3 xl:col-span-3">
+      <div data-tour="home-metrics" className="grid gap-4 md:grid-cols-3 xl:col-span-3">
         <MetricCard icon={Clock} value={pendingCount.count ?? 0} label="Pendientes" tone="warning" href="/solicitudes?estado=pending" />
         <MetricCard icon={Truck} value={partialCount.count ?? 0} label="Entregas parciales" tone="info" href="/solicitudes?estado=partial" />
         <MetricCard icon={PackageCheck} value={unconfirmedCount.count ?? 0} label="Por confirmar recepción" tone="success" href="/solicitudes?estado=por_confirmar" />
       </div>
-      <Card className="xl:col-span-2">
+      <Card data-tour="home-recent" className="xl:col-span-2">
         <CardHeader className="flex-row items-center justify-between gap-3">
           <CardTitle>Últimas solicitudes</CardTitle>
           {content.recent.length > 0 && <Link href="/solicitudes" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Ver todas<ArrowRight /></Link>}
@@ -86,7 +87,7 @@ async function DashboardContent() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card data-tour="home-pending">
         <CardHeader>
           <CardTitle>Productos pendientes de recibir</CardTitle>
           <CardDescription>Productos con cantidades todavía pendientes.</CardDescription>

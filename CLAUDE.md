@@ -36,8 +36,8 @@ Environment: copy `.env.example` to `.env.local` (`NEXT_PUBLIC_SUPABASE_URL`, `N
 **Authorization is enforced twice**: in the app via guards, and in the database via RLS + `security definer` RPCs. The database is the authority; app checks mirror it.
 - `src/lib/session.ts`: `getSession()` (React `cache`d per request; profile + center + areas in one embedded query), `requireSession()`, `requireRole('admin')`, `requireArea(area)`. Call the guard in **every page and server action**, not just the layout (layouts don't re-render on navigation). DB equivalents: `current_app_role()`, `current_health_center_id()`, `has_area()`.
 - Roles (`app_role`): `admin` (single global admin, no center, sees all areas) and `requester` (tied to one health center, has areas in `profile_areas`). Areas are data (`public.areas`), not a hardcoded list; product types are per-area (`public.product_types`, composite FK `(area, product_type)`).
-- `src/middleware.ts` only refreshes the Supabase session cookie and redirects unauthenticated users to `/login`.
-- Supabase clients: `src/lib/supabase/server.ts` (session client, used for all app data) and `src/lib/supabase/admin.ts` (secret key, bypasses RLS — only for the Supabase Auth admin API inside actions already guarded by `requireRole('admin')`).
+- `src/middleware.ts` only refreshes the Supabase session cookie and redirects unauthenticated users to `/login` (except `/api/cron/*`, Vercel Cron routes that check `CRON_SECRET` themselves).
+- Supabase clients: `src/lib/supabase/server.ts` (session client, used for all app data) and `src/lib/supabase/admin.ts` (secret key, bypasses RLS — only for the Supabase Auth admin API inside actions already guarded by `requireRole('admin')`, plus the `/api/cron/keepalive` Vercel Cron route guarded by `CRON_SECRET`).
 
 **Routing** (`src/app`): `(app)/` is the authenticated shell; `(app)/(admin)/` holds admin-only sections (`catalogos`, `usuarios`, `entregas`, `auditoria`). Server actions live in top-level files `src/app/*-actions.ts` (`request-`, `request-management-`, `product-`, `user-`, `profile-`).
 

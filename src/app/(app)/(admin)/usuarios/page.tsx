@@ -123,7 +123,7 @@ async function UsersList({ filters }: { filters: Filters }) {
         <MobileList>
           {rows.map((row) => (
             <MobileListItem key={row.id} className="py-0 first:pt-0 last:pb-0">
-              <Link href={`/usuarios/${row.id}`} aria-label={`Ver ${row.fullName}`} className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
+              <Link href={`/usuarios/${row.id}`} aria-label={`Ver ${row.fullName}`} className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <span className="text-sm leading-5 font-semibold break-words text-foreground">{row.fullName}{row.id === userId && ' (vos)'}</span>

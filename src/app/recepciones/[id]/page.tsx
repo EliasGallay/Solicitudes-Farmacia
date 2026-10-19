@@ -21,6 +21,7 @@ function lineStatus(item: Item) {
   if (receipt.received >= item.quantity) return { text: 'Conforme', tone: 'text-success' }
   const missing = item.quantity - receipt.received
   const resolution = receipt.resolution === 'reenviar' ? 'se reenvía' : receipt.resolution === 'cerrar' ? 'faltante cerrado' : 'en revisión'
+  if (receipt.wrongProduct) return { text: `Producto equivocado (${resolution})`, tone: 'text-danger' }
   return { text: `Faltó ${missing} (${resolution})`, tone: 'text-warning' }
 }
 

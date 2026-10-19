@@ -31,7 +31,7 @@ export function RequestFilters({ inbox = false, areas, centers, rubro, centro, b
       </FilterField>
       <FilterField id="filtro-estado" label="Estado">
         <Select value={estado ?? (inbox ? INBOX : ALL)} onValueChange={(value) => setFilters({ estado: value === (inbox ? INBOX : ALL) ? undefined : value === ALL ? 'todos' : value })}>
-          <SelectTrigger id="filtro-estado"><SelectValue /></SelectTrigger>
+          <SelectTrigger id="filtro-estado" data-tour="requests-status-filter"><SelectValue /></SelectTrigger>
           <SelectContent>
             {inbox && <SelectItem value={INBOX}>{statusViewLabels.por_atender}</SelectItem>}
             <SelectItem value={inbox ? 'todos' : ALL}>Todos los estados</SelectItem>

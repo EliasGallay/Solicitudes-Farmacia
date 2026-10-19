@@ -35,7 +35,7 @@ export function RequestsTable({ rows }: { rows: RequestRow[] }) {
           const number = formatRequestNumber(row.number)
           return (
             <MobileListItem key={row.id} className="py-0 first:pt-0 last:pb-0">
-              <Link href={`/solicitudes/${row.id}`} aria-label={`Ver solicitud ${number}`} className={cn('-mx-2 flex items-center gap-3 rounded-md px-2 py-3 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500', row.center && ['pl-4', centerRowTones[row.center.tone]])}>
+              <Link href={`/solicitudes/${row.id}`} aria-label={`Ver solicitud ${number}`} className={cn('-mx-2 flex items-center gap-3 rounded-md px-2 py-3 hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500', row.center && ['pl-4', centerRowTones[row.center.tone]])}>
                 <div className="min-w-0 flex-1">
                   {row.center && <CenterBadge name={row.center.name} tone={row.center.tone} className="mb-1.5" />}
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

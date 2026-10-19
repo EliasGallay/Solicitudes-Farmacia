@@ -85,7 +85,7 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
     supabase.from('deliveries').select('id, delivery_number, created_at, created_by, note, voided_at, voided_by, void_reason, delivery_items(id, current_quantity, request_item:request_items(product:products(name)))').eq('request_id', id).order('created_at'),
     supabase.from('request_item_closures').select('quantity, reason, detail, created_at, created_by, request_item:request_items(product:products(name))').eq('request_id', id).order('created_at'),
     // Recepciones del centro, línea por línea (supabase/migrations/202610040001_delivery_receipts.sql).
-    supabase.from('delivery_item_receipts').select('id, delivery_item_id, delivered_quantity, received_quantity, comment, created_by, created_at, resolution, resolution_note, resolved_by, resolved_at').eq('request_id', id).order('created_at'),
+    supabase.from('delivery_item_receipts').select('id, delivery_item_id, delivered_quantity, received_quantity, comment, wrong_product, created_by, created_at, resolution, resolution_note, resolved_by, resolved_at').eq('request_id', id).order('created_at'),
     // Nombres de todos los que actuaron sobre la solicitud. Por RLS de profiles el solicitante solo lee
     // su propio perfil; esta RPC le devuelve solo el nombre de sus compañeros y del admin
     // (supabase/migrations/202610030001_request_actor_names.sql).
@@ -113,7 +113,7 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
 
   type ProductName = { name: string } | { name: string }[] | null
   type LineRow = { id: string; current_quantity: number; request_item: { product: ProductName } | { product: ProductName }[] | null }
-  const receiptsList = (receiptRows ?? []) as { id: string; delivery_item_id: string; delivered_quantity: number; received_quantity: number; comment: string | null; created_by: string; created_at: string; resolution: ReceiptResolution | null; resolution_note: string | null; resolved_by: string | null; resolved_at: string | null }[]
+  const receiptsList = (receiptRows ?? []) as { id: string; delivery_item_id: string; delivered_quantity: number; received_quantity: number; comment: string | null; wrong_product: boolean; created_by: string; created_at: string; resolution: ReceiptResolution | null; resolution_note: string | null; resolved_by: string | null; resolved_at: string | null }[]
   const confirmedLines = new Set(receiptsList.map((receipt) => receipt.delivery_item_id))
 
   // Líneas entregadas, con su producto y remito, para describir recepciones y diferencias.
@@ -150,13 +150,13 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
     const name = info?.name ?? 'Producto no disponible'
     const key = `${receipt.created_at}|${receipt.created_by}`
     const event = receiptEvents.get(key) ?? { at: receipt.created_at, by: actorName(receipt.created_by), lines: [] }
-    event.lines.push({ name, delivered: receipt.delivered_quantity, received: receipt.received_quantity, comment: receipt.comment })
+    event.lines.push({ name, delivered: receipt.delivered_quantity, received: receipt.received_quantity, comment: receipt.comment, wrongProduct: receipt.wrong_product })
     receiptEvents.set(key, event)
 
     if (receipt.resolution && receipt.resolved_at) {
-      resolutions.push({ at: receipt.resolved_at, by: actorName(receipt.resolved_by), resolution: receipt.resolution, note: receipt.resolution_note, name, missing: receipt.delivered_quantity - receipt.received_quantity })
+      resolutions.push({ at: receipt.resolved_at, by: actorName(receipt.resolved_by), resolution: receipt.resolution, note: receipt.resolution_note, name, missing: receipt.delivered_quantity - receipt.received_quantity, wrongProduct: receipt.wrong_product })
     } else if (receipt.received_quantity < receipt.delivered_quantity && info?.active) {
-      openDifferences.push({ receiptId: receipt.id, name, deliveryNumber: info.deliveryNumber, delivered: receipt.delivered_quantity, received: receipt.received_quantity, comment: receipt.comment, by: actorName(receipt.created_by), at: receipt.created_at })
+      openDifferences.push({ receiptId: receipt.id, name, deliveryNumber: info.deliveryNumber, delivered: receipt.delivered_quantity, received: receipt.received_quantity, comment: receipt.comment, wrongProduct: receipt.wrong_product, by: actorName(receipt.created_by), at: receipt.created_at })
     }
   }
 
@@ -186,10 +186,10 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
       </div>
     )
     : canConfirm
-      ? <Link href={`/solicitudes/${id}/recibir`} className={buttonVariants()}><PackageCheck />Confirmar recepción</Link>
+      ? <Link data-tour="detail-actions" href={`/solicitudes/${id}/recibir`} className={buttonVariants()}><PackageCheck />Confirmar recepción</Link>
       : canCancel
         ? (
-          <form action={cancelRequest}>
+          <form data-tour="detail-actions" action={cancelRequest}>
             <input type="hidden" name="request_id" value={id} />
             <ConfirmSubmit variant="secondary" className="w-full sm:w-auto" tone="destructive" title="Cancelar la solicitud" description="No se va a entregar ningún producto y no se puede deshacer. Si necesitás algo, vas a tener que hacer una solicitud nueva." confirmLabel="Cancelar solicitud">
               <Ban />Cancelar solicitud
@@ -201,7 +201,7 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
   return (
     <>
       <PageHeader
-        title={<span className="flex flex-wrap items-center gap-3">Solicitud {formatRequestNumber(data.request_number as number)}<StatusBadge status={status} />{center && <CenterBadge name={center.name} tone={center.tone} className="text-sm" />}</span>}
+        title={<span className="flex flex-wrap items-center gap-3">Solicitud {formatRequestNumber(data.request_number as number)}<span data-tour="detail-status" className="flex"><StatusBadge status={status} /></span>{center && <CenterBadge name={center.name} tone={center.tone} className="text-sm" />}</span>}
         description={
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span>Fecha de solicitud: {formatDateTime(createdAt)}</span>
@@ -257,7 +257,8 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
       )}
       {isAdmin && <ReceiptDifferences requestId={id} differences={openDifferences} />}
 
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+      {/* data-tour: pasos del recorrido de la pantalla (src/lib/tours.ts). */}
+      <div data-tour="detail-metrics" className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <MetricCard icon={Package} value={summary.products} label="Productos solicitados" />
         <MetricCard icon={FileText} value={summary.requested} label="Unidades solicitadas" />
         <MetricCard icon={Truck} value={summary.delivered} label="Unidades entregadas" />
@@ -269,7 +270,7 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
         {summary.closed > 0 && <p className="mt-2 text-sm text-foreground-secondary">{summary.closed} {summary.closed === 1 ? 'unidad cerrada' : 'unidades cerradas'} sin entregar (ver historial).</p>}
       </div>
 
-      <Card>
+      <Card data-tour="detail-products">
         <CardHeader className="flex-row flex-wrap items-center justify-between gap-3 sm:gap-4">
           <CardTitle>Productos</CardTitle>
           <RequestProductFilters buscar={filters.buscar} pendiente={filters.pendiente} />

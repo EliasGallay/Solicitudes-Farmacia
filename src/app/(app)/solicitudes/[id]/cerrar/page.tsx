@@ -58,7 +58,7 @@ export default async function ClosePendingPage({ params, searchParams }: { param
               <ul className="divide-y divide-border rounded-lg border border-border">
                 {items.map((item) => (
                   <li key={item.id}>
-                    <label className="flex cursor-pointer items-center gap-3 p-3 hover:bg-primary-50">
+                    <label className="flex cursor-pointer items-center gap-3 p-3 hover:bg-surface-hover">
                       <input type="checkbox" name="item" value={item.id} defaultChecked className="size-4 shrink-0 accent-primary-600" />
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-semibold break-words">{item.product?.name ?? 'Producto no disponible'}</span>

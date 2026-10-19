@@ -7,7 +7,7 @@ import { Bell, BellOff, CheckCheck } from 'lucide-react'
 import { markAllNotificationsReadInPanel } from '@/app/notification-actions'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { NotificationItem } from '@/lib/notification-items'
-import { formatRelativeTime } from '@/lib/notifications'
+import { formatRelativeTime, formatUnreadCount } from '@/lib/notifications'
 import { cn } from '@/lib/utils'
 import { NotificationEntry } from './notification-entry'
 import { UnreadBadge, useNotificationState } from './notification-count'
@@ -16,7 +16,7 @@ const bellTones = {
   // Barra mobile, sobre el color del sidebar.
   sidebar: 'text-sidebar-foreground hover:bg-sidebar-hover',
   // Barra superior de desktop, sobre el fondo de la página.
-  page: 'text-foreground-secondary hover:bg-surface-muted hover:text-foreground',
+  page: 'text-foreground-secondary hover:bg-surface-hover hover:text-foreground',
 }
 const openTones = { sidebar: 'bg-sidebar-hover', page: 'bg-surface-muted text-foreground' }
 
@@ -141,9 +141,13 @@ export function NotificationBell({ tone, className }: { tone: keyof typeof bellT
           className={cn('z-50 flex max-h-[min(34rem,calc(100dvh-6rem))] flex-col overflow-hidden rounded-lg border border-border bg-surface text-foreground shadow-elevated motion-safe:animate-enter-from-below', panelPositions[tone])}
         >
           <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-            <p className="text-base font-semibold">Notificaciones</p>
+            {/* Mismo valor que el contador de la campana (un solo estado); como texto, sin repetir el badge. */}
+            <p className="text-base font-semibold">
+              Notificaciones
+              {count > 0 && <span className="ml-1.5 text-sm font-normal text-foreground-secondary">· {formatUnreadCount(count)} sin leer</span>}
+            </p>
             {count > 0 && (
-              <button type="button" onClick={markAll} disabled={marking} className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-semibold text-primary-600 transition-colors hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 disabled:opacity-50">
+              <button type="button" onClick={markAll} disabled={marking} className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-semibold text-primary-600 transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 disabled:opacity-50">
                 <CheckCheck className="size-4" aria-hidden />
                 {marking ? 'Marcando...' : 'Marcar todas como leídas'}
               </button>
@@ -178,7 +182,7 @@ export function NotificationBell({ tone, className }: { tone: keyof typeof bellT
           </div>
 
           <div className="border-t border-border p-1.5">
-            <Link href="/notificaciones" onClick={() => setOpen(false)} className="flex h-10 w-full items-center justify-center rounded-md text-sm font-semibold text-primary-600 transition-colors hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400">
+            <Link href="/notificaciones" onClick={() => setOpen(false)} className="flex h-10 w-full items-center justify-center rounded-md text-sm font-semibold text-primary-600 transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400">
               Ver todas
             </Link>
           </div>

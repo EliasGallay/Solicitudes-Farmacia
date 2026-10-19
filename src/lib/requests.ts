@@ -1,3 +1,7 @@
+import type { createSupabaseServerClient } from './supabase/server'
+
+type SupabaseClient = Awaited<ReturnType<typeof createSupabaseServerClient>>
+
 // Cantidades calculadas por la base (columnas computadas de request_items,
 // supabase/migrations/202609240001_request_item_quantities.sql).
 export type ItemQuantitiesRow = { requested_quantity: number; delivered_quantity: number; pending_quantity: number; closed_quantity?: number }
@@ -83,4 +87,11 @@ export function summarizeItems(items: ItemQuantitiesRow[]) {
     summary.pending += item.pending_quantity
   }
   return summary
+}
+
+// Solicitudes visibles con alguna línea entregada sin confirmar (RLS limita al centro y rubros de quien
+// consulta). Ante un error, 0: el indicador del sidebar no bloquea el shell.
+export async function countPendingReceipts(supabase: SupabaseClient) {
+  const { count, error } = await supabase.from('requests').select('id', { count: 'exact', head: true }).gt('receipt_unconfirmed_count', 0)
+  return error ? 0 : (count ?? 0)
 }

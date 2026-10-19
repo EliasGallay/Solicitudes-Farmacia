@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { MobileList, MobileListFields, MobileListHeader, MobileListItem } from '@/components/ui/mobile-list'
+import { MobileList, MobileListHeader, MobileListItem } from '@/components/ui/mobile-list'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
@@ -27,6 +27,11 @@ type TypeOption = { key: string; label: string }
 type Center = { id: string; name: string }
 
 const ALL_TYPES = 'todos'
+
+// Anchos de columna compartidos por la selección y la revisión (tabla con layout fijo).
+const TYPE_COLUMN = 'w-40'
+const PRESENTATION_COLUMN = 'w-56'
+const QUANTITY_COLUMN = 'w-48'
 
 function parseQuantity(value: string) {
   return /^\d+$/.test(value) && Number(value) > 0 ? Number(value) : null
@@ -69,20 +74,21 @@ export function NewRequestWizard({ area, canChangeArea, types, products, total, 
     else setQuantity(product, String(next))
   }
 
-  // Stepper de cantidad o "Agregar"; `block`: ocupa todo el ancho (listado mobile).
-  function quantityControl(product: Product, block = false) {
+  // Stepper de cantidad o "Agregar". `block`: ocupa todo el ancho (listado mobile). `keepOne`: en la
+  // revisión, restar no quita el producto (para eso está el botón Quitar).
+  function quantityControl(product: Product, { block = false, keepOne = false } = {}) {
     const value = selection[product.id]?.quantity
     const invalid = value !== undefined && parseQuantity(value) === null
     return (
       <>
         {value !== undefined ? (
           <div className={cn('items-center gap-1', block ? 'flex' : 'inline-flex')}>
-            <Button variant="secondary" size={block ? 'icon' : 'icon-sm'} aria-label={`Restar una unidad de ${product.name}`} onClick={() => changeBy(product, -1)}><Minus /></Button>
-            <Input type="number" inputMode="numeric" min={1} step={1} aria-label={`Cantidad de ${product.name}`} aria-invalid={invalid || undefined} className={cn('text-center tabular-nums', block ? 'h-10 flex-1' : 'h-9 w-20')} value={value} onChange={(event) => setQuantity(product, event.target.value)} />
-            <Button variant="secondary" size={block ? 'icon' : 'icon-sm'} aria-label={`Sumar una unidad de ${product.name}`} onClick={() => changeBy(product, 1)}><Plus /></Button>
+            <Button variant="secondary" size={block ? 'icon' : 'icon-sm'} aria-label={`Restar una unidad de ${product.name}`} disabled={pending || (keepOne && (parseQuantity(value) ?? 0) <= 1)} onClick={() => changeBy(product, -1)}><Minus /></Button>
+            <Input type="number" inputMode="numeric" min={1} step={1} aria-label={`Cantidad de ${product.name}`} aria-invalid={invalid || undefined} className={cn('text-center tabular-nums', block ? 'h-10 flex-1' : 'h-9 w-20')} disabled={pending} value={value} onChange={(event) => setQuantity(product, event.target.value)} />
+            <Button variant="secondary" size={block ? 'icon' : 'icon-sm'} aria-label={`Sumar una unidad de ${product.name}`} disabled={pending} onClick={() => changeBy(product, 1)}><Plus /></Button>
           </div>
         ) : <Button variant="secondary" size={block ? 'default' : 'sm'} className={block ? 'w-full' : 'w-36'} onClick={() => setQuantity(product, '1')}>Agregar</Button>}
-        {invalid && <p className="mt-1 text-xs text-danger">Ingresá una cantidad entera mayor a 0.</p>}
+        {invalid && <p className={cn('mt-1 text-xs text-danger', !block && 'text-right')}>Ingresá una cantidad entera mayor a 0.</p>}
       </>
     )
   }
@@ -107,7 +113,7 @@ export function NewRequestWizard({ area, canChangeArea, types, products, total, 
         <Card data-workflow="review" className="motion-safe:animate-enter-from-below">
           <CardHeader>
             <CardTitle>Revisar solicitud</CardTitle>
-            <CardDescription>Verificá los productos y las cantidades antes de enviar la solicitud.{canChangeArea && <> Rubro: <span className="font-semibold text-foreground">{area.name}</span>.</>}</CardDescription>
+            <CardDescription>Verificá los productos y ajustá las cantidades antes de enviar la solicitud.{canChangeArea && <> Rubro: <span className="font-semibold text-foreground">{area.name}</span>.</>}</CardDescription>
           </CardHeader>
           <CardContent>
             {centers && (
@@ -122,30 +128,30 @@ export function NewRequestWizard({ area, canChangeArea, types, products, total, 
             {selected.length > 0 ? (
               <>
                 <MobileList>
-                  {selected.map(({ product, quantity }) => (
+                  {selected.map(({ product }) => (
                     <MobileListItem key={product.id}>
                       <MobileListHeader title={product.name} subtitle={productSubtitle(product)} aside={<Button variant="ghost" size="icon" className="-mt-2 -mr-2 text-danger hover:bg-danger-muted" aria-label={`Quitar ${product.name}`} disabled={pending} onClick={() => remove(product.id)}><Trash2 /></Button>} />
-                      <MobileListFields fields={[{ label: 'Cantidad', value: quantity }]} className="grid-cols-1" />
+                      <div>{quantityControl(product, { block: true, keepOne: true })}</div>
                     </MobileListItem>
                   ))}
                 </MobileList>
-                <Table containerClassName="hidden md:block">
+                <Table containerClassName="hidden md:block" className="table-fixed">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Producto</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Presentación</TableHead>
-                      <TableHead className="text-right">Cantidad</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
+                      <TableHead className={TYPE_COLUMN}>Tipo</TableHead>
+                      <TableHead className={PRESENTATION_COLUMN}>Presentación</TableHead>
+                      <TableHead className={cn(QUANTITY_COLUMN, 'text-right')}>Cantidad</TableHead>
+                      <TableHead className="w-24 text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {selected.map(({ product, quantity }) => (
+                    {selected.map(({ product }) => (
                       <TableRow key={product.id}>
-                        <TableCell className="font-semibold">{product.name}</TableCell>
-                        <TableCell>{product.typeLabel}</TableCell>
-                        <TableCell className="text-foreground-secondary">{product.presentation}</TableCell>
-                        <TableCell className="text-right tabular-nums">{quantity}</TableCell>
+                        <TableCell className="font-semibold break-words">{product.name}</TableCell>
+                        <TableCell className="break-words">{product.typeLabel}</TableCell>
+                        <TableCell className="break-words text-foreground-secondary">{product.presentation}</TableCell>
+                        <TableCell className="text-right">{quantityControl(product, { keepOne: true })}</TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="icon-sm" className="text-danger hover:bg-danger-muted" aria-label={`Quitar ${product.name}`} disabled={pending} onClick={() => remove(product.id)}><Trash2 /></Button>
                         </TableCell>
@@ -205,25 +211,26 @@ export function NewRequestWizard({ area, canChangeArea, types, products, total, 
                 {products.map((product) => (
                   <MobileListItem key={product.id}>
                     <MobileListHeader title={product.name} subtitle={productSubtitle(product)} />
-                    <div>{quantityControl(product, true)}</div>
+                    <div>{quantityControl(product, { block: true })}</div>
                   </MobileListItem>
                 ))}
               </MobileList>
-              <Table aria-busy={filtering} containerClassName="hidden md:block" className={cn('transition-opacity', filtering && 'opacity-60')}>
+              {/* Anchos fijos: al filtrar o paginar, las columnas no se mueven según el contenido. */}
+              <Table aria-busy={filtering} containerClassName="hidden md:block" className={cn('table-fixed transition-opacity', filtering && 'opacity-60')}>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Producto</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Presentación</TableHead>
-                    <TableHead className="w-48 text-right">Cantidad</TableHead>
+                    <TableHead className={TYPE_COLUMN}>Tipo</TableHead>
+                    <TableHead className={PRESENTATION_COLUMN}>Presentación</TableHead>
+                    <TableHead className={cn(QUANTITY_COLUMN, 'text-right')}>Cantidad</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {products.map((product) => (
                     <TableRow key={product.id}>
-                      <TableCell className="font-semibold">{product.name}</TableCell>
-                      <TableCell>{product.typeLabel}</TableCell>
-                      <TableCell className="text-foreground-secondary">{product.presentation}</TableCell>
+                      <TableCell className="font-semibold break-words">{product.name}</TableCell>
+                      <TableCell className="break-words">{product.typeLabel}</TableCell>
+                      <TableCell className="break-words text-foreground-secondary">{product.presentation}</TableCell>
                       <TableCell className="text-right">{quantityControl(product)}</TableCell>
                     </TableRow>
                   ))}
@@ -238,10 +245,10 @@ export function NewRequestWizard({ area, canChangeArea, types, products, total, 
         {products.length > 0 && <CardFooter divided><ListFooter page={page} pageSize={pageSize} shown={products.length} total={matching} noun="productos" hrefFor={pageHref} /></CardFooter>}
       </Card>
       {/* Acción del paso: flotante en el borde inferior derecho para que siempre esté visible.
-          El espaciador evita que tape la paginación al final del listado. */}
+          El espaciador evita que tape la paginación al final del listado. Sin contador: "N productos"
+          se confundía con unidades; las cantidades se ven y se ajustan en la revisión. */}
       <div aria-hidden className="h-20" />
-      <div className="fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-20 flex items-center gap-3 rounded-lg border border-border bg-surface py-2 pr-2 pl-4 shadow-elevated motion-safe:animate-enter-from-below sm:right-6 sm:bottom-6 lg:right-8 lg:bottom-8">
-        <p className="text-sm font-semibold whitespace-nowrap text-primary-600" aria-live="polite">{selected.length} <span className="max-sm:hidden">{selected.length === 1 ? 'producto agregado' : 'productos agregados'}</span><span className="sm:hidden">{selected.length === 1 ? 'agregado' : 'agregados'}</span></p>
+      <div className="fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-20 rounded-lg shadow-elevated motion-safe:animate-enter-from-below sm:right-6 sm:bottom-6 lg:right-8 lg:bottom-8">
         <Button data-workflow="next" disabled={!allValid} onClick={() => setStep(2)}>Siguiente<ArrowRight /></Button>
       </div>
     </>

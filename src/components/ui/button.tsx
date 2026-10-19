@@ -6,8 +6,8 @@ const buttonVariants = cva('inline-flex items-center justify-center gap-2 whites
   variants: {
     variant: {
       default: 'bg-action text-white hover:bg-action-hover',
-      secondary: 'border border-border bg-surface text-primary-600 hover:border-primary-100 hover:bg-primary-50',
-      ghost: 'text-primary-600 hover:bg-primary-50',
+      secondary: 'border border-border bg-surface text-primary-600 hover:border-border-hover hover:bg-surface-hover',
+      ghost: 'text-primary-600 hover:bg-surface-hover',
       destructive: 'bg-action-danger text-white hover:bg-action-danger-hover',
     },
     size: {
