@@ -43,7 +43,20 @@ function InstitutionalPanel() {
         </ul>
       </div>
 
-      <p className="relative z-10 hidden border-t border-sidebar-muted/15 pt-5 text-xs leading-4 text-sidebar-muted lg:block">Gobierno de la Ciudad de Funes · Desde 1875</p>
+      <div className="relative z-10 hidden flex-col gap-2 border-t border-sidebar-muted/15 pt-5 text-xs leading-4 text-sidebar-muted lg:flex">
+        <p>Gobierno de la Ciudad de Funes · Desde 1875</p>
+        <p>
+          Desarrollada por{' '}
+          <a
+            href="https://github.com/EliasGallay"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-sidebar-foreground underline-offset-4 hover:underline focus-visible:underline"
+          >
+            Elias Gallay
+          </a>
+        </p>
+      </div>
 
       {/* Institutional decoration: concentric rings echoing the seal, plus a faint watermark */}
       <div aria-hidden className="pointer-events-none absolute -right-32 -bottom-40 hidden size-136 lg:block">
@@ -63,8 +76,6 @@ export function AuthShell({ children }: { children: ReactNode }) {
       <section className="relative flex flex-1 items-center justify-center overflow-hidden px-4 py-10 sm:px-8">
         <div aria-hidden className="pointer-events-none absolute inset-0">
           <div className="absolute -top-40 -right-32 size-120 rounded-full bg-surface-hover motion-safe:animate-drift" />
-          <div className="absolute -bottom-32 -left-24 size-96 rounded-full border border-primary-100" />
-          <div className="absolute -bottom-12 -left-4 size-56 rounded-full border border-primary-100" />
         </div>
         {children}
       </section>
