@@ -147,7 +147,7 @@ export default async function ProductTypesPage({ searchParams }: { searchParams:
                     <TableRow>
                       <TableHead>Tipo</TableHead>
                       {multipleAreas && <TableHead>Rubro</TableHead>}
-                      <TableHead>Productos</TableHead>
+                      <TableHead className="text-right">Productos</TableHead>
                       <TableHead>Estado</TableHead>
                       <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
@@ -161,7 +161,7 @@ export default async function ProductTypesPage({ searchParams }: { searchParams:
                       <TableRow key={`${row.area}.${row.key}`}>
                         <TableCell className="font-semibold">{row.label}</TableCell>
                         {multipleAreas && <TableCell>{row.areaName}</TableCell>}
-                        <TableCell><ProductCount row={row} multipleAreas={multipleAreas} /></TableCell>
+                        <TableCell className="text-right tabular-nums"><ProductCount row={row} multipleAreas={multipleAreas} /></TableCell>
                         <TableCell><ProductStatusBadge active={row.active} /></TableCell>
                         <TableCell><div className="flex justify-end gap-1"><RowActions row={row} editHref={pageHref(filters, filters.page, { editar: `${row.area}.${row.key}` })} /></div></TableCell>
                       </TableRow>

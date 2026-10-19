@@ -125,7 +125,7 @@ async function DeliveriesList({ filters, areas, centers }: { filters: Filters; a
         <MobileList>
           {rows.map((row) => (
             <MobileListItem key={row.id} className="py-0 first:pt-0 last:pb-0">
-              <Link href={`/entregas/${row.id}`} aria-label={`Ver entrega ${formatDeliveryNumber(row.number)}`} className={cn('-mx-2 flex items-center gap-3 rounded-md py-3 pr-2 pl-4 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500', centerRowTones[row.center.tone])}>
+              <Link href={`/entregas/${row.id}`} aria-label={`Ver entrega ${formatDeliveryNumber(row.number)}`} className={cn('-mx-2 flex items-center gap-3 rounded-md py-3 pr-2 pl-4 hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500', centerRowTones[row.center.tone])}>
                 <div className="min-w-0 flex-1">
                   <CenterBadge name={row.center.name} tone={row.center.tone} className="mb-1.5" />
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

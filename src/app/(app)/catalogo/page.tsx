@@ -86,7 +86,7 @@ async function ProductList({ filters, areas }: { filters: Filters; areas?: Area[
         <MobileList>
           {products.map((product) => (
             <MobileListItem key={product.id} className="py-0 first:pt-0 last:pb-0">
-              <Link href={`/catalogo/${product.id}`} aria-label={`Ver ${product.name}`} className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
+              <Link href={`/catalogo/${product.id}`} aria-label={`Ver ${product.name}`} className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm leading-5 font-semibold break-words text-foreground">{product.name}</p>
                   <p className="mt-0.5 text-xs leading-4 break-words text-foreground-secondary">{[product.area, product.typeLabel, product.presentation].filter(Boolean).join(' · ')}</p>
@@ -96,14 +96,14 @@ async function ProductList({ filters, areas }: { filters: Filters; areas?: Area[
             </MobileListItem>
           ))}
         </MobileList>
-        <Table containerClassName="hidden md:block">
+        <Table containerClassName="hidden md:block" className="table-fixed">
           <TableHeader>
             <TableRow>
               <TableHead>Producto</TableHead>
-              {areas && <TableHead>Rubro</TableHead>}
-              <TableHead>Tipo</TableHead>
-              <TableHead>Presentación</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
+              {areas && <TableHead className="w-36">Rubro</TableHead>}
+              <TableHead className="w-40">Tipo</TableHead>
+              <TableHead className="w-56">Presentación</TableHead>
+              <TableHead className="w-28 text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

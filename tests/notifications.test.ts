@@ -10,7 +10,7 @@ describe('textos de notificaciones', () => {
   it('al centro le pide confirmar la recepción', () => expect(notificationText({ ...base, kind: 'delivery.registered', recipientRole: 'requester', deliveryNumber: 7 }).body).toBe('Se registró la entrega #REM-7 de la solicitud #SOL-12 de tu centro. Confirmá la recepción cuando llegue.'))
   it('distingue la recepción conforme de la diferencia', () => {
     expect(notificationText({ ...base, kind: 'delivery.received' }).title).toBe('Recepción confirmada')
-    expect(notificationText({ ...base, kind: 'receipt.difference', recipientRole: 'requester' }).body).toBe('Se informó que llegó menos de lo entregado en la solicitud #SOL-12 de tu centro. La administración la va a revisar.')
+    expect(notificationText({ ...base, kind: 'receipt.difference', recipientRole: 'requester' }).body).toBe('Se informaron diferencias en la recepción de la solicitud #SOL-12 de tu centro. La administración la va a revisar.')
   })
   it('usa un texto genérico si la solicitud ya no es visible', () => expect(notificationText({ ...base, kind: 'items.closed', requestNumber: null, centerName: null, areaName: null }).body).toBe('Se cerraron cantidades pendientes de una solicitud: no se van a entregar.'))
   it('tiene texto para cada tipo', () => {

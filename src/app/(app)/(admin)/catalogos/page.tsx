@@ -108,7 +108,7 @@ async function ProductsList({ filters, areas }: { filters: Filters; areas?: Area
         <MobileList>
           {rows.map((row) => (
             <MobileListItem key={row.id} className="py-0 first:pt-0 last:pb-0">
-              <Link href={`/catalogos/${row.id}`} aria-label={`Editar ${row.name}`} className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
+              <Link href={`/catalogos/${row.id}`} aria-label={`Editar ${row.name}`} className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <span className="text-sm leading-5 font-semibold break-words text-foreground">{row.name}</span>
@@ -121,15 +121,15 @@ async function ProductsList({ filters, areas }: { filters: Filters; areas?: Area
             </MobileListItem>
           ))}
         </MobileList>
-        <Table containerClassName="hidden md:block">
+        <Table containerClassName="hidden md:block" className="table-fixed">
           <TableHeader>
             <TableRow>
               <TableHead>Producto</TableHead>
-              {areas && <TableHead>Rubro</TableHead>}
-              <TableHead>Tipo</TableHead>
-              <TableHead>Presentación</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
+              {areas && <TableHead className="w-36">Rubro</TableHead>}
+              <TableHead className="w-40">Tipo</TableHead>
+              <TableHead className="w-56">Presentación</TableHead>
+              <TableHead className="w-28">Estado</TableHead>
+              <TableHead className="w-28 text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

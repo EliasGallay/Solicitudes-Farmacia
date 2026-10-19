@@ -91,7 +91,7 @@ function AreaPicker({ areas }: { areas: Area[] }) {
           <ul className="flex flex-col gap-2">
             {areas.map((area) => (
               <li key={area.key}>
-                <Link href={`/solicitudes/nueva?rubro=${area.key}`} className="flex items-center justify-between gap-3 rounded-md border border-border px-4 py-3 text-sm font-semibold text-foreground hover:border-primary-500 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
+                <Link href={`/solicitudes/nueva?rubro=${area.key}`} className="flex items-center justify-between gap-3 rounded-md border border-border px-4 py-3 text-sm font-semibold text-foreground hover:border-primary-500 hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
                   {area.name}
                   <ChevronRight className="size-5 shrink-0 text-foreground-muted" aria-hidden />
                 </Link>

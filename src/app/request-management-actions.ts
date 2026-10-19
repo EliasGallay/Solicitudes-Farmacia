@@ -95,10 +95,12 @@ const receiptLinesSchema = z.array(z.object({
   delivery_item_id: z.string().uuid(),
   received_quantity: z.number().int().min(0),
   comment: noteSchema.optional(),
+  // Producto equivocado: llegó otra cosa; va con recibido 0 y detalle (supabase/migrations/202610190001_wrong_product_receipts.sql).
+  wrong_product: z.boolean().optional(),
 })).min(1)
 
 // Formulario cliente de /solicitudes/[id]/recibir: el solicitante confirma lo que llegó, línea por línea.
-export async function confirmReceipt(requestId: string, lines: { delivery_item_id: string; received_quantity: number; comment?: string }[]): Promise<{ error: string }> {
+export async function confirmReceipt(requestId: string, lines: { delivery_item_id: string; received_quantity: number; comment?: string; wrong_product?: boolean }[]): Promise<{ error: string }> {
   const id = idSchema.safeParse(requestId)
   const parsed = receiptLinesSchema.safeParse(lines)
   if (!id.success) return { error: feedbackMessage('gestion-datos-invalidos')! }
@@ -150,5 +152,6 @@ export async function cancelRequest(formData: FormData) {
   if (error) redirect(withFeedback(page, 'error', managementErrorCode(error, 'gestion-error')))
 
   revalidateRequest(requestId.data)
-  redirect(withFeedback(page, 'success', 'solicitud-cancelada'))
+  // La solicitud cancelada ya no tiene acciones: se vuelve al listado.
+  redirect(withFeedback('/solicitudes', 'success', 'solicitud-cancelada'))
 }
