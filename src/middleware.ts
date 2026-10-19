@@ -2,6 +2,9 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient, type SetAllCookies } from '@supabase/ssr'
 
 export async function middleware(request: NextRequest) {
+  // Tareas programadas (vercel.json): sin sesión de usuario; cada ruta valida CRON_SECRET.
+  if (request.nextUrl.pathname.startsWith('/api/cron/')) return NextResponse.next()
+
   let response = NextResponse.next({ request })
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
