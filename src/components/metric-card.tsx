@@ -26,7 +26,7 @@ export function MetricCard({ icon: Icon, value, label, tone = 'default', href }:
   if (!href) return <Card className="@container flex p-4 sm:p-5">{content}</Card>
   return (
     <Link href={href} className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2">
-      <Card className="@container flex p-4 transition-colors sm:p-5 hover:border-primary-100 hover:bg-primary-50">{content}</Card>
+      <Card className="@container flex p-4 transition-colors sm:p-5 hover:border-border-hover hover:bg-surface-hover">{content}</Card>
     </Link>
   )
 }

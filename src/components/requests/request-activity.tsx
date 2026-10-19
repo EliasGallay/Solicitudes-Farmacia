@@ -1,8 +1,9 @@
 import Link from 'next/link'
-import { Ban, CircleCheck, FilePlus2, PackageCheck, Printer, RotateCcw, TriangleAlert, Truck, Undo2, type LucideIcon } from 'lucide-react'
+import { Ban, CircleCheck, FilePlus2, PackageCheck, PackageX, Printer, RotateCcw, TriangleAlert, Truck, Undo2, type LucideIcon } from 'lucide-react'
 import { resolveReceiptDifference, voidDelivery } from '@/app/request-management-actions'
 import { ConfirmSubmit } from '@/components/confirm-submit'
 import { DeliveryStatusBadge } from '@/components/deliveries/delivery-status-badge'
+import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -18,9 +19,10 @@ export const UNKNOWN_ACTOR = 'usuario no disponible'
 export type DeliverySummary = { id: string; number: number; createdAt: string; createdBy: string; units: number; products: number; note: string | null; voidedAt: string | null; voidedBy: string | null; voidReason: string | null; confirmed: boolean }
 export type ClosureEvent = { at: string; by: string; reason: ClosureReason; detail: string | null; products: { name: string; quantity: number }[] }
 // Una confirmación agrupa las líneas que alguien confirmó en la misma operación.
-export type ReceiptEvent = { at: string; by: string; lines: { name: string; delivered: number; received: number; comment: string | null }[] }
-export type ResolutionEvent = { at: string; by: string; resolution: ReceiptResolution; note: string | null; name: string; missing: number }
-export type OpenDifference = { receiptId: string; name: string; deliveryNumber: number; delivered: number; received: number; comment: string | null; by: string; at: string }
+// `wrongProduct`: el centro informó que llegó otro producto (recibido 0).
+export type ReceiptEvent = { at: string; by: string; lines: { name: string; delivered: number; received: number; comment: string | null; wrongProduct: boolean }[] }
+export type ResolutionEvent = { at: string; by: string; resolution: ReceiptResolution; note: string | null; name: string; missing: number; wrongProduct: boolean }
+export type OpenDifference = { receiptId: string; name: string; deliveryNumber: number; delivered: number; received: number; comment: string | null; wrongProduct: boolean; by: string; at: string }
 
 function DeliveryActions({ delivery, requestId }: { delivery: DeliverySummary; requestId: string }) {
   return (
@@ -66,7 +68,7 @@ export function ReceiptDifferences({ requestId, differences }: { requestId: stri
     <Card className="mb-6 border-warning">
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><TriangleAlert className="size-5 text-warning" aria-hidden />Diferencias en la recepción</CardTitle>
-        <CardDescription>El centro informó una cantidad recibida menor a la entregada. Mientras no se resuelvan, la solicitud no se da por recibida.</CardDescription>
+        <CardDescription>El centro informó una cantidad recibida menor a la entregada o un producto equivocado. Mientras no se resuelvan, la solicitud no se da por recibida.</CardDescription>
       </CardHeader>
       <CardContent>
         <ul className="divide-y divide-border rounded-lg border border-border">
@@ -75,9 +77,14 @@ export function ReceiptDifferences({ requestId, differences }: { requestId: stri
             return (
               <li key={difference.receiptId} className="flex flex-col gap-3 p-4">
                 <div>
-                  <p className="text-sm font-semibold">{difference.name}</p>
+                  <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+                    {difference.name}
+                    {difference.wrongProduct && <Badge variant="danger"><PackageX aria-hidden />Producto equivocado</Badge>}
+                  </p>
                   <p className="text-sm text-foreground-secondary">
-                    Remito {formatDeliveryNumber(difference.deliveryNumber)}: entregado <span className="font-semibold text-foreground tabular-nums">{difference.delivered}</span>, recibido <span className="font-semibold text-foreground tabular-nums">{difference.received}</span> · <span className="font-semibold text-warning">faltante: {missing}</span>
+                    {difference.wrongProduct
+                      ? <>Remito {formatDeliveryNumber(difference.deliveryNumber)}: entregado <span className="font-semibold text-foreground tabular-nums">{difference.delivered}</span>; llegó otro producto · <span className="font-semibold text-danger">no recibido: {missing}</span></>
+                      : <>Remito {formatDeliveryNumber(difference.deliveryNumber)}: entregado <span className="font-semibold text-foreground tabular-nums">{difference.delivered}</span>, recibido <span className="font-semibold text-foreground tabular-nums">{difference.received}</span> · <span className="font-semibold text-warning">faltante: {missing}</span></>}
                   </p>
                   <p className="mt-1 text-sm">«{difference.comment}» <span className="text-foreground-secondary">— {difference.by}, {formatDateTime(difference.at)}</span></p>
                 </div>
@@ -86,10 +93,10 @@ export function ReceiptDifferences({ requestId, differences }: { requestId: stri
                   <input type="hidden" name="receipt_id" value={difference.receiptId} />
                   <Input name="note" maxLength={NOTE_MAX_LENGTH} aria-label={`Nota sobre la diferencia de ${difference.name}`} placeholder="Nota (opcional)" className="min-w-0 flex-1" />
                   <div className="grid grid-cols-2 gap-2 lg:flex">
-                    <ConfirmSubmit name="resolution" value="reenviar" variant="secondary" size="sm" tone="default" title="Volver a pendiente" description={`Las ${missing} unidades que faltaron de ${difference.name} vuelven a quedar pendientes para registrar una nueva entrega.`}>
+                    <ConfirmSubmit name="resolution" value="reenviar" variant="secondary" size="sm" tone="default" title="Volver a pendiente" description={difference.wrongProduct ? `Las ${missing} unidades de ${difference.name} vuelven a quedar pendientes para enviar el producto correcto en una nueva entrega.` : `Las ${missing} unidades que faltaron de ${difference.name} vuelven a quedar pendientes para registrar una nueva entrega.`}>
                       <RotateCcw />Volver a pendiente
                     </ConfirmSubmit>
-                    <ConfirmSubmit name="resolution" value="cerrar" variant="destructive" size="sm" title="Cerrar faltante" description={`Las ${missing} unidades que faltaron de ${difference.name} se cierran y no se van a reenviar.`}>
+                    <ConfirmSubmit name="resolution" value="cerrar" variant="destructive" size="sm" title="Cerrar faltante" description={difference.wrongProduct ? `Las ${missing} unidades de ${difference.name} se cierran y el producto correcto no se va a enviar.` : `Las ${missing} unidades que faltaron de ${difference.name} se cierran y no se van a reenviar.`}>
                       Cerrar faltante
                     </ConfirmSubmit>
                   </div>
@@ -109,7 +116,9 @@ type HistoryEvent = { at: string; icon: LucideIcon; tone: string; title: string;
 function receiptDetail(event: ReceiptEvent) {
   return event.lines.map((line) => line.received === line.delivered
     ? `${line.name} (${line.received})`
-    : `${line.name}: recibido ${line.received} de ${line.delivered}${line.comment ? ` («${line.comment}»)` : ''}`).join(' · ')
+    : line.wrongProduct
+      ? `${line.name}: producto equivocado${line.comment ? ` («${line.comment}»)` : ''}`
+      : `${line.name}: recibido ${line.received} de ${line.delivered}${line.comment ? ` («${line.comment}»)` : ''}`).join(' · ')
 }
 
 // Historial único de la solicitud: creación, entregas, anulaciones, recepciones y cierres, armado
@@ -124,11 +133,12 @@ export function RequestHistory({ requestId, isAdmin, createdAt, createdBy, deliv
     ]),
     ...receipts.map((receipt): HistoryEvent => {
       const withDifference = receipt.lines.some((line) => line.received < line.delivered)
+      const wrongProduct = receipt.lines.some((line) => line.wrongProduct)
       return {
         at: receipt.at,
-        icon: withDifference ? TriangleAlert : PackageCheck,
-        tone: withDifference ? 'bg-warning-muted text-warning' : 'bg-success-muted text-success',
-        title: `${withDifference ? 'Recepción con diferencia' : 'Recepción confirmada'} por ${receipt.by}`,
+        icon: wrongProduct ? PackageX : withDifference ? TriangleAlert : PackageCheck,
+        tone: wrongProduct ? 'bg-danger-muted text-danger' : withDifference ? 'bg-warning-muted text-warning' : 'bg-success-muted text-success',
+        title: `${wrongProduct ? 'Recepción con producto equivocado' : withDifference ? 'Recepción con diferencia' : 'Recepción confirmada'} por ${receipt.by}`,
         detail: receiptDetail(receipt),
       }
     }),
@@ -137,7 +147,7 @@ export function RequestHistory({ requestId, isAdmin, createdAt, createdBy, deliv
       icon: resolution.resolution === 'reenviar' ? RotateCcw : CircleCheck,
       tone: 'bg-surface-muted text-foreground-secondary',
       title: `Diferencia resuelta por ${resolution.by}: ${receiptResolutionLabels[resolution.resolution]}`,
-      detail: [`${resolution.name} (${resolution.missing})`, resolution.note].filter(Boolean).join(' · '),
+      detail: [`${resolution.name} (${resolution.missing}${resolution.wrongProduct ? ', producto equivocado' : ''})`, resolution.note].filter(Boolean).join(' · '),
     })),
     ...closures.map((closure): HistoryEvent => ({
       at: closure.at,
@@ -149,7 +159,7 @@ export function RequestHistory({ requestId, isAdmin, createdAt, createdBy, deliv
   ].sort((a, b) => a.at.localeCompare(b.at))
 
   return (
-    <Card className="mt-6">
+    <Card data-tour="detail-history" className="mt-6">
       <CardHeader><CardTitle>Historial</CardTitle></CardHeader>
       <CardContent>
         <ol className="relative flex flex-col gap-5">

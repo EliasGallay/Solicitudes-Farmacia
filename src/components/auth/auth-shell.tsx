@@ -62,7 +62,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
 
       <section className="relative flex flex-1 items-center justify-center overflow-hidden px-4 py-10 sm:px-8">
         <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="absolute -top-40 -right-32 size-120 rounded-full bg-primary-50 motion-safe:animate-drift" />
+          <div className="absolute -top-40 -right-32 size-120 rounded-full bg-surface-hover motion-safe:animate-drift" />
           <div className="absolute -bottom-32 -left-24 size-96 rounded-full border border-primary-100" />
           <div className="absolute -bottom-12 -left-4 size-56 rounded-full border border-primary-100" />
         </div>

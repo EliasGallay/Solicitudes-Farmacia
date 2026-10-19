@@ -66,10 +66,13 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
         title="Solicitudes"
         description={isAdmin ? 'Visualizá las solicitudes de insumos de todos los centros de salud.' : 'Visualizá todas tus solicitudes de insumos.'}
         // "Nueva solicitud" está oculta para el admin por ahora.
-        actions={isAdmin ? undefined : <Link href="/solicitudes/nueva" className={buttonVariants()}><Plus />Nueva solicitud</Link>}
+        actions={isAdmin ? undefined : <Link data-tour="requests-new" href="/solicitudes/nueva" className={buttonVariants()}><Plus />Nueva solicitud</Link>}
       />
-      <RequestFilters inbox={isAdmin} areas={multipleAreas ? areas : undefined} centers={centers?.map((center) => ({ id: center.id, name: center.name, tone: centerTone(centers, center.id) }))} rubro={filters.rubro} centro={filters.centro} buscar={filters.buscar} desde={filters.desde} hasta={filters.hasta} estado={filters.estado} />
-      <Card>
+      {/* data-tour: pasos del recorrido de la pantalla (src/lib/tours.ts). */}
+      <div data-tour="requests-filters">
+        <RequestFilters inbox={isAdmin} areas={multipleAreas ? areas : undefined} centers={centers?.map((center) => ({ id: center.id, name: center.name, tone: centerTone(centers, center.id) }))} rubro={filters.rubro} centro={filters.centro} buscar={filters.buscar} desde={filters.desde} hasta={filters.hasta} estado={filters.estado} />
+      </div>
+      <Card data-tour="requests-list">
         <Suspense key={pageHref(filters, filters.page)} fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
           <RequestsList filters={filters} view={statusView(filters, isAdmin)} areas={multipleAreas ? areas : undefined} centers={centers ?? undefined} />
         </Suspense>

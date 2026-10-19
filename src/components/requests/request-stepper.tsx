@@ -34,7 +34,7 @@ export function RequestStepper({ current }: { current: 1 | 2 | 3 }) {
                   className={cn(
                     'relative flex size-9 items-center justify-center rounded-full border-2 text-sm font-semibold transition-colors',
                     reached ? 'border-primary-600 bg-primary-600 text-white' : 'border-border-strong bg-surface text-foreground-secondary',
-                    active && 'ring-4 ring-primary-100 motion-safe:animate-step-pop-delayed',
+                    active && 'ring-4 ring-primary-400/30 motion-safe:animate-step-pop-delayed',
                   )}
                 >
                   {done ? <Check className={cn('size-4', justCompleted && 'motion-safe:animate-step-pop')} aria-hidden /> : step}

@@ -104,6 +104,7 @@ Los componentes nunca deben depender directamente del valor hexadecimal del colo
   --color-surface: #ffffff;
   --color-surface-muted: #f1f6f3;
   --color-surface-accent: #e3f2e9;
+  --color-surface-hover: #e2efe6;
 
   /* Text */
   --color-foreground: #202b26;
@@ -113,6 +114,7 @@ Los componentes nunca deben depender directamente del valor hexadecimal del colo
   /* Borders */
   --color-border: #dce8e0;
   --color-border-strong: #c4d6ca;
+  --color-border-hover: #a3cbb2;
 
   /* Success */
   --color-success: #15803d;
@@ -172,7 +174,13 @@ page            → fondo general de la aplicación
 surface         → cards, formularios y contenedores
 surface-muted   → headers de tablas y fondos secundarios
 surface-accent  → secciones institucionales suaves
+surface-hover   → hover/foco de botones, filas y opciones interactivas
+border-hover    → borde en hover de botones secundarios y toggles
 ```
+
+`surface-hover` y `border-hover` existen porque `primary-50`/`primary-100` casi no se distinguen del
+blanco en modo claro: el hover se veía en oscuro pero no en claro. En oscuro conservan los valores de
+`primary-50`/`primary-100`.
 
 ## Content
 
@@ -538,8 +546,8 @@ border: border-border
 Hover:
 
 ```text
-bg-primary-50
-border-primary-100
+bg-surface-hover
+border-border-hover
 ```
 
 Uso:
@@ -558,7 +566,7 @@ text: text-primary-600
 Hover:
 
 ```text
-bg-primary-50
+bg-surface-hover
 ```
 
 Uso:
@@ -713,7 +721,7 @@ border-bottom: border-border
 Hover:
 
 ```text
-bg-primary-50
+bg-surface-hover
 ```
 
 solo cuando la fila completa sea interactiva.

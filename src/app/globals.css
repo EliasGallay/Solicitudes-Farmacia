@@ -22,6 +22,8 @@
   --color-surface: #ffffff;
   --color-surface-muted: #f1f6f3;
   --color-surface-accent: #e3f2e9;
+  /* Hover/foco de elementos interactivos sobre surface: en claro necesita más contraste que primary-50. */
+  --color-surface-hover: #e2efe6;
 
   /* Text */
   --color-foreground: #202b26;
@@ -31,6 +33,7 @@
   /* Borders */
   --color-border: #dce8e0;
   --color-border-strong: #c4d6ca;
+  --color-border-hover: #a3cbb2;
 
   /* Semantic */
   --color-success: #15803d;
@@ -176,6 +179,8 @@
   --color-foreground-muted: #8fa296;
   --color-border: #304238;
   --color-border-strong: #496052;
+  --color-surface-hover: #1c3227;
+  --color-border-hover: #244535;
   --color-primary-50: #1c3227;
   --color-primary-100: #244535;
   --color-primary-400: #82d5a5;
@@ -240,6 +245,50 @@ html.dark {
   --toast-warning-color: var(--color-warning);
   --toast-info-color: var(--color-primary-400);
 }
+
+/* Carteles de los recorridos (driver.js): colores del Design System en ambos temas. La librería fija
+   fondo blanco y texto gris oscuro; la flecha es un borde del color del fondo en el lado que apunta. */
+html .driver-popover {
+  background-color: var(--color-surface);
+  color: var(--color-foreground);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-elevated);
+  max-width: 340px;
+}
+.driver-popover .driver-popover-title { font-size: 17px; color: var(--color-foreground); }
+.driver-popover .driver-popover-description { color: var(--color-foreground-secondary); }
+.driver-popover .driver-popover-description b { color: var(--color-foreground); font-weight: 600; }
+.driver-popover .driver-popover-progress-text { color: var(--color-foreground-muted); }
+.driver-popover .driver-popover-close-btn { color: var(--color-foreground-muted); }
+.driver-popover .driver-popover-close-btn:hover { color: var(--color-foreground); }
+.driver-popover .driver-popover-footer button {
+  background-color: var(--color-surface);
+  color: var(--color-primary-600);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  text-shadow: none;
+  font-weight: 600;
+}
+.driver-popover .driver-popover-footer button:hover { background-color: var(--color-surface-hover); }
+.driver-popover .driver-popover-footer .driver-popover-next-btn { background-color: var(--color-action); border-color: var(--color-action); color: #fff; }
+.driver-popover .driver-popover-footer .driver-popover-next-btn:hover { background-color: var(--color-action-hover); }
+.driver-popover .driver-popover-arrow-side-left { border-left-color: var(--color-surface); }
+.driver-popover .driver-popover-arrow-side-right { border-right-color: var(--color-surface); }
+.driver-popover .driver-popover-arrow-side-top { border-top-color: var(--color-surface); }
+.driver-popover .driver-popover-arrow-side-bottom { border-bottom-color: var(--color-surface); }
+.driver-popover .tour-list { margin: 6px 0 0; padding-left: 18px; list-style: disc; display: flex; flex-direction: column; gap: 2px; }
+.driver-popover .tour-opt-out {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  color: var(--color-foreground-muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.driver-popover .tour-opt-out:hover { color: var(--color-foreground); }
 
 .theme-switch-thumb {
   transform: translateX(0);

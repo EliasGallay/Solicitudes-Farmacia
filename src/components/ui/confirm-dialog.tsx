@@ -73,7 +73,7 @@ export function ConfirmDialog({ open, onCancel, onConfirm, title, description, c
           {description && <div id={descriptionId} className="mt-1 text-sm leading-5 text-foreground-secondary">{description}</div>}
           {children && <div className="mt-4">{children}</div>}
         </div>
-        <button type="button" aria-label="Cerrar" disabled={pending} onClick={cancel} className="absolute top-3 right-3 flex size-9 items-center justify-center rounded-md text-foreground-secondary hover:bg-primary-50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-50">
+        <button type="button" aria-label="Cerrar" disabled={pending} onClick={cancel} className="absolute top-3 right-3 flex size-9 items-center justify-center rounded-md text-foreground-secondary hover:bg-surface-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-50">
           <X className="size-5" aria-hidden />
         </button>
       </div>

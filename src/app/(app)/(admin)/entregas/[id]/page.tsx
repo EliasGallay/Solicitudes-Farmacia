@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { PackageX, Printer } from 'lucide-react'
+import { CircleCheck, PackageX, Printer, TriangleAlert } from 'lucide-react'
 import { z } from 'zod'
 import { BackButton } from '@/components/back-button'
 import { CenterBadge } from '@/components/center-badge'
@@ -135,11 +135,19 @@ export default async function DeliveryDetailPage({ params, searchParams }: { par
 // Recepción de una línea: sin confirmar, recibida completa o con diferencia (y cómo se resolvió).
 function LineReceiptText({ quantity, receipt }: { quantity: number; receipt: LineReceipt | null }) {
   if (!receipt) return <span className="text-foreground-secondary">Sin confirmar</span>
-  if (receipt.received === quantity) return <span className="font-semibold text-success">Recibido conforme</span>
+  if (receipt.received === quantity) return <span className="inline-flex items-center gap-1 font-semibold text-success"><CircleCheck className="size-4 shrink-0" aria-hidden />Recibido conforme</span>
   const resolution = receipt.resolution === 'reenviar' ? ' · faltante vuelto a pendiente' : receipt.resolution === 'cerrar' ? ' · faltante cerrado' : ' · sin resolver'
+  if (receipt.wrongProduct) {
+    return (
+      <span className={receipt.resolution ? 'text-foreground-secondary' : 'font-semibold text-danger'}>
+        <span className="inline-flex items-center gap-1"><PackageX className="size-4 shrink-0" aria-hidden />Producto equivocado{resolution}</span>
+        {receipt.comment && <span className="block font-normal text-foreground-secondary">«{receipt.comment}»</span>}
+      </span>
+    )
+  }
   return (
-    <span className={receipt.resolution ? 'text-foreground-secondary' : 'font-semibold text-danger'}>
-      Recibido: {receipt.received} de {quantity}{resolution}
+    <span className={receipt.resolution ? 'text-foreground-secondary' : 'font-semibold text-warning'}>
+      <span className="inline-flex items-center gap-1"><TriangleAlert className="size-4 shrink-0" aria-hidden />Recibido: {receipt.received} de {quantity}{resolution}</span>
       {receipt.comment && <span className="block font-normal text-foreground-secondary">«{receipt.comment}»</span>}
     </span>
   )

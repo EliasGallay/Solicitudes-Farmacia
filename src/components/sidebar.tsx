@@ -2,20 +2,24 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { ChevronDown, CircleUser, ClipboardList, CirclePlus, FileText, House, Landmark, LogOut, Menu, Package, Settings2, Truck, Users, X, type LucideIcon } from 'lucide-react'
+import { usePathname, useSearchParams } from 'next/navigation'
+import { ChevronDown, CircleUser, ClipboardList, CirclePlus, FileText, House, Landmark, LogOut, Menu, Package, PackageCheck, Settings2, Truck, Users, X, type LucideIcon } from 'lucide-react'
 import { logout } from '@/app/login/actions'
 import type { AppRole } from '@/lib/session'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { ProductTour, WorkflowTour } from '@/components/product-tour'
+import { ProductTour, ScreenHelpButton, WorkflowTour } from '@/components/product-tour'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 
-type NavItem = { label: string; icon: LucideIcon; href: string }
+// `estado`: el ítem apunta al listado de solicitudes filtrado (?estado=); `count`: indicador a la derecha.
+// `tour`: data-tour del ítem, para los recorridos por pantalla (src/lib/tours.ts).
+type NavItem = { label: string; icon: LucideIcon; href: string; estado?: string; count?: number; tour?: string }
 
 const requesterNavigation: NavItem[] = [
   { href: '/', label: 'Inicio', icon: House },
   { href: '/solicitudes', label: 'Solicitudes', icon: FileText },
+  // Acceso directo a lo que el centro tiene que confirmar, sin pasar por filtros ni notificaciones.
+  { href: '/solicitudes?estado=por_confirmar', estado: 'por_confirmar', label: 'Por confirmar', icon: PackageCheck, tour: 'nav-pending-receipts' },
   { href: '/solicitudes/nueva', label: 'Nueva solicitud', icon: CirclePlus },
   { href: '/catalogo', label: 'Catálogo', icon: Package },
 ]
@@ -31,12 +35,22 @@ const adminNavigation: NavItem[] = [
   { href: '/auditoria', label: 'Auditoría', icon: ClipboardList },
 ]
 
+// Ítems del desplegable "Sistema y tutoriales": más compactos que la navegación, todos del mismo alto.
+const menuItemClasses = 'h-10 px-3 text-sm [&_svg]:size-4'
+const menuGroupClasses = 'px-3 pt-1.5 pb-1 text-xs font-semibold tracking-wide text-sidebar-muted/80 uppercase'
+const menuSeparatorClasses = 'mx-1.5 my-1.5 h-px bg-sidebar-muted/20'
+
 const itemClasses = 'flex h-11 shrink-0 items-center gap-3 rounded-md px-4 text-base transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 [&_svg]:size-5 [&_svg]:shrink-0'
 
-type SidebarProps = { role: AppRole | null; userName: string; centerName: string | null }
+// `pendingReceipts`: solicitudes del centro con entregas sin confirmar (solo solicitante).
+type SidebarProps = { role: AppRole | null; userName: string; centerName: string | null; pendingReceipts?: number }
 
-function activeHref(items: NavItem[], pathname: string) {
+// El ítem con ?estado= queda activo solo con ese filtro; si no, gana la ruta más específica.
+function activeHref(items: NavItem[], pathname: string, estado: string | null) {
+  const filtered = items.find((item) => item.estado && item.estado === estado && item.href.startsWith(`${pathname}?`))
+  if (filtered) return filtered.href
   return items
+    .filter((item) => !item.estado)
     .map((item) => item.href)
     .filter((href) => pathname === href || (href !== '/' && pathname.startsWith(`${href}/`)))
     .sort((a, b) => b.length - a.length)[0]
@@ -45,17 +59,19 @@ function activeHref(items: NavItem[], pathname: string) {
 export function SidebarItem({ item, active }: { item: NavItem; active: boolean }) {
   const Icon = item.icon
   return (
-    <Link href={item.href} aria-current={active ? 'page' : undefined} className={cn(itemClasses, active ? 'bg-sidebar-active font-semibold text-white' : 'text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-foreground')}>
+    <Link data-tour={item.tour} href={item.href} aria-current={active ? 'page' : undefined} className={cn(itemClasses, active ? 'bg-sidebar-active font-semibold text-white' : 'text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-foreground')}>
       <Icon />
-      {item.label}
+      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+      {item.count ? <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-warning-muted px-1.5 text-xs font-bold text-warning tabular-nums">{item.count > 99 ? '99+' : item.count}<span className="sr-only"> {item.count === 1 ? 'solicitud' : 'solicitudes'}</span></span> : null}
     </Link>
   )
 }
 
-function Navigation({ role, className }: { role: AppRole | null; className?: string }) {
+function Navigation({ role, pendingReceipts, className }: { role: AppRole | null; pendingReceipts?: number; className?: string }) {
   const pathname = usePathname()
-  const items = role === 'admin' ? adminNavigation : requesterNavigation
-  const current = activeHref(items, pathname)
+  const estado = useSearchParams().get('estado')
+  const items = role === 'admin' ? adminNavigation : requesterNavigation.map((item) => item.estado === 'por_confirmar' ? { ...item, count: pendingReceipts } : item)
+  const current = activeHref(items, pathname, estado)
   return (
     <nav data-tour="navigation" aria-label="Navegación principal" className={className}>
       {items.map((item) => <SidebarItem key={item.label} item={item} active={item.href === current} />)}
@@ -87,12 +103,12 @@ function Brand({ className }: { className?: string }) {
 }
 
 // Contenido compartido entre el sidebar de desktop y el drawer de pantallas chicas.
-function SidebarBody({ role, userName, centerName }: SidebarProps) {
+function SidebarBody({ role, userName, centerName, pendingReceipts }: SidebarProps) {
   const pathname = usePathname()
   const onProfile = pathname === '/perfil'
   return (
     <>
-      <Navigation role={role} className="flex flex-col gap-1" />
+      <Navigation role={role} pendingReceipts={pendingReceipts} className="flex flex-col gap-1" />
       <div data-tour="profile" className="mt-auto flex flex-col gap-1 border-t border-sidebar-muted/25 pt-4">
         <Link href="/perfil" title="Mi perfil" aria-current={onProfile ? 'page' : undefined} className={cn('flex items-center gap-3 rounded-md px-4 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400', onProfile ? 'bg-sidebar-active text-white' : 'hover:bg-sidebar-hover')}>
           <CircleUser className={cn('size-8 shrink-0', onProfile ? 'text-white' : 'text-sidebar-muted')} aria-hidden />
@@ -110,11 +126,16 @@ function SidebarBody({ role, userName, centerName }: SidebarProps) {
             </span>
             <ChevronDown className="size-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden />
           </summary>
-          <div className="absolute right-0 bottom-full left-0 z-50 mb-2 flex flex-col gap-1 rounded-lg border border-sidebar-muted/30 bg-sidebar p-2 shadow-elevated">
-            <ThemeToggle />
-            <ProductTour role={role} />
-            <WorkflowTour role={role} />
-            <LogoutButton />
+          {/* Grupos con título y separador; cerrar sesión va último y aparte para no tocarlo por error. */}
+          <div className="absolute right-0 bottom-full left-0 z-50 mb-2 flex flex-col rounded-lg border border-sidebar-muted/30 bg-sidebar p-1.5 shadow-elevated">
+            <p className={menuGroupClasses}>Apariencia</p>
+            <ThemeToggle className="h-10 px-3 text-sm" />
+            <div role="separator" className={menuSeparatorClasses} />
+            <p className={menuGroupClasses}>Ayuda</p>
+            <ProductTour role={role} className={menuItemClasses} />
+            <WorkflowTour role={role} className={menuItemClasses} />
+            <div role="separator" className={menuSeparatorClasses} />
+            <LogoutButton className={menuItemClasses} />
           </div>
         </details>
       </div>
@@ -154,6 +175,7 @@ export function MobileNavigation(props: SidebarProps) {
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 bg-sidebar px-2 text-sidebar-foreground sm:px-4 lg:hidden">
       <Brand className="px-2 py-1 [&>svg]:size-7" />
       <div className="flex shrink-0 items-center gap-1">
+        <ScreenHelpButton role={props.role} className="text-sidebar-foreground hover:bg-sidebar-hover" />
         {props.role && <NotificationBell tone="sidebar" />}
         <button data-tour="navigation" type="button" aria-label="Abrir menú" aria-haspopup="dialog" aria-expanded={open} aria-controls="menu-principal" onClick={openMenu} className="flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-sidebar-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400">
           <Menu className="size-6" aria-hidden />
