@@ -178,7 +178,7 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
   // Cualquier solicitante del centro confirma lo que llegó (la base lo vuelve a validar).
   const canConfirm = role === 'requester' && unconfirmedLines > 0
 
-  const actions = isAdmin && summary.pending > 0
+  const actionButtons = isAdmin && summary.pending > 0
     ? (
       <div className="flex flex-col gap-2 sm:flex-row">
         <Link href={`/solicitudes/${id}/cerrar`} className={buttonVariants({ variant: 'secondary' })}><PackageX />Cerrar pendiente</Link>
@@ -197,6 +197,13 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
           </form>
         )
         : undefined
+  // Hoja de pedido imprimible (/hojas-de-pedido/[id]), para todos los que ven la solicitud.
+  const actions = (
+    <div className="flex flex-col gap-2 sm:flex-row">
+      <Link href={`/hojas-de-pedido/${id}`} target="_blank" className={buttonVariants({ variant: 'secondary' })}><Printer />Imprimir</Link>
+      {actionButtons}
+    </div>
+  )
 
   return (
     <>
