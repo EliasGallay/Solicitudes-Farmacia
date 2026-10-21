@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Building2, Clock, FileText, Inbox, Package, PackageCheck, Plus, TriangleAlert, Truck } from 'lucide-react'
+import { ArrowRight, Building2, Clock, FileText, Inbox, Package, PackageCheck, Plus, ShoppingCart, TriangleAlert, Truck } from 'lucide-react'
 import { AdminMetricsSection } from '@/components/dashboard/admin-metrics-section'
 import { PeriodSelect } from '@/components/dashboard/period-select'
 import { EmptyState } from '@/components/empty-state'
@@ -52,15 +52,16 @@ async function DashboardContent() {
   const areas = await getAreas() ?? []
   // Filtrado, orden y límite se resuelven en la base.
   const countByStatus = (status: RequestStatus) => supabase.from('requests').select('id', { count: 'exact', head: true }).eq('request_status', status)
-  const [recentResult, pendingResult, pendingCount, partialCount, unconfirmedCount] = await Promise.all([
+  const [recentResult, pendingResult, pendingCount, purchaseCount, partialCount, unconfirmedCount] = await Promise.all([
     supabase.from('requests').select('id, area, request_number, created_at, request_status, receipt_unconfirmed_count, receipt_discrepancy_count, request_items(count)').order('created_at', { ascending: false }).limit(RECENT_LIMIT),
     supabase.from('request_items').select('id, pending_quantity, product:products(name), request:requests(id, request_number, created_at)').gt('pending_quantity', 0).order('request(created_at)', { ascending: false }).limit(PENDING_LIMIT),
     countByStatus('pending'),
+    countByStatus('purchase'),
     countByStatus('partial'),
     // Solicitudes con entregas que el centro todavía no confirmó.
     supabase.from('requests').select('id', { count: 'exact', head: true }).gt('receipt_unconfirmed_count', 0),
   ])
-  if ([recentResult, pendingResult, pendingCount, partialCount, unconfirmedCount].some((result) => result.error)) return <Card><ErrorState /></Card>
+  if ([recentResult, pendingResult, pendingCount, purchaseCount, partialCount, unconfirmedCount].some((result) => result.error)) return <Card><ErrorState /></Card>
 
   const content = {
     recent: (recentResult.data ?? []).map((request) => ({ id: request.id as string, number: request.request_number as number, createdAt: request.created_at as string, productCount: (request.request_items as { count: number }[] | null)?.[0]?.count ?? 0, status: request.request_status as RequestStatus, area: areas.length > 1 ? areaName(areas, request.area as string) : undefined, unconfirmed: (request.receipt_unconfirmed_count as number) > 0, discrepancy: (request.receipt_discrepancy_count as number) > 0 })),
@@ -73,8 +74,9 @@ async function DashboardContent() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-3">
-      <div data-tour="home-metrics" className="grid gap-4 md:grid-cols-3 xl:col-span-3">
+      <div data-tour="home-metrics" className="grid gap-4 sm:grid-cols-2 xl:col-span-3 xl:grid-cols-4">
         <MetricCard icon={Clock} value={pendingCount.count ?? 0} label="Pendientes" tone="warning" href="/solicitudes?estado=pending" />
+        <MetricCard icon={ShoppingCart} value={purchaseCount.count ?? 0} label="En compras" tone="warning" href="/solicitudes?estado=purchase" />
         <MetricCard icon={Truck} value={partialCount.count ?? 0} label="Entregas parciales" tone="info" href="/solicitudes?estado=partial" />
         <MetricCard icon={PackageCheck} value={unconfirmedCount.count ?? 0} label="Por confirmar recepción" tone="success" href="/solicitudes?estado=por_confirmar" />
       </div>

@@ -27,7 +27,7 @@ export function RequestFilters({ inbox = false, areas, centers, rubro, centro, b
     // La key remonta las fechas (no controladas) cuando cambian por URL, p. ej. al limpiar.
     <FilterBar key={`${desde}-${hasta}`}>
       <FilterField id="filtro-buscar" label="Buscar" wide>
-        <FilterSearch id="filtro-buscar" placeholder="N° de solicitud o producto..." value={search.value} onChange={search.setValue} />
+        <FilterSearch id="filtro-buscar" placeholder="N° de solicitud, requerimiento o producto..." value={search.value} onChange={search.setValue} />
       </FilterField>
       <FilterField id="filtro-estado" label="Estado">
         <Select value={estado ?? (inbox ? INBOX : ALL)} onValueChange={(value) => setFilters({ estado: value === (inbox ? INBOX : ALL) ? undefined : value === ALL ? 'todos' : value })}>
