@@ -15,7 +15,8 @@ import { cn } from '@/lib/utils'
 // `center`: centro de salud con su color (centerTone), solo para el admin.
 // `waitDays`: días de espera de una solicitud abierta, solo en la bandeja del admin.
 // `unconfirmed` / `discrepancy`: hay entregas sin confirmar o recepciones con diferencia sin resolver.
-export type RequestRow = { id: string; number: number; createdAt: string; productCount: number; status: RequestStatus; area?: string; center?: { name: string; tone: number }; waitDays?: number; unconfirmed?: boolean; discrepancy?: boolean }
+// `purchase`: tiene requerimiento de compra (con entrega parcial se ve también "En compras").
+export type RequestRow = { id: string; number: number; createdAt: string; productCount: number; status: RequestStatus; purchase?: boolean; area?: string; center?: { name: string; tone: number }; waitDays?: number; unconfirmed?: boolean; discrepancy?: boolean }
 
 function WaitLabel({ days }: { days: number }) {
   const late = days >= WAIT_WARNING_DAYS
@@ -40,7 +41,7 @@ export function RequestsTable({ rows }: { rows: RequestRow[] }) {
                   {row.center && <CenterBadge name={row.center.name} tone={row.center.tone} className="mb-1.5" />}
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <span className="text-sm leading-5 font-semibold text-foreground">{number}</span>
-                    <StatusBadge status={row.status} />
+                    <StatusBadge status={row.status} purchase={row.purchase} />
                     <ReceiptBadges unconfirmed={row.unconfirmed} discrepancy={row.discrepancy} />
                     {row.area && <Badge>{row.area}</Badge>}
                   </div>
@@ -76,7 +77,7 @@ export function RequestsTable({ rows }: { rows: RequestRow[] }) {
                 <TableCell className="whitespace-nowrap">{formatDateTime(row.createdAt)}</TableCell>
                 {showWait && <TableCell>{row.waitDays !== undefined ? <WaitLabel days={row.waitDays} /> : <span className="text-foreground-muted">—</span>}</TableCell>}
                 <TableCell className="text-right tabular-nums">{row.productCount}</TableCell>
-                <TableCell><div className="flex flex-wrap gap-1"><StatusBadge status={row.status} /><ReceiptBadges unconfirmed={row.unconfirmed} discrepancy={row.discrepancy} /></div></TableCell>
+                <TableCell><div className="flex flex-wrap gap-1"><StatusBadge status={row.status} purchase={row.purchase} /><ReceiptBadges unconfirmed={row.unconfirmed} discrepancy={row.discrepancy} /></div></TableCell>
                 <TableCell className="text-right">
                   <Link href={`/solicitudes/${row.id}`} aria-label={`Ver solicitud ${number}`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Ver<ArrowRight /></Link>
                 </TableCell>

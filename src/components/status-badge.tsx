@@ -20,8 +20,12 @@ const statusClasses: Partial<Record<RequestStatus, string>> = {
   purchase: 'border border-warning',
 }
 
-export function StatusBadge({ status }: { status: RequestStatus }) {
-  return <Badge variant={statusVariants[status]} className={statusClasses[status]}>{status === 'purchase' && <ShoppingCart aria-hidden />}{requestStatusLabels[status]}</Badge>
+// `purchase`: tiene requerimiento de compra. Con entregas parciales el estado sigue siendo "Entrega
+// parcial" y se suma "En compras" al lado: llegó una parte y el resto se pidió a compras.
+export function StatusBadge({ status, purchase }: { status: RequestStatus; purchase?: boolean }) {
+  const badge = <Badge variant={statusVariants[status]} className={statusClasses[status]}>{status === 'purchase' && <ShoppingCart aria-hidden />}{requestStatusLabels[status]}</Badge>
+  if (!(purchase && status === 'partial')) return badge
+  return <>{badge}<Badge variant={statusVariants.purchase} className={statusClasses.purchase}><ShoppingCart aria-hidden />{requestStatusLabels.purchase}</Badge></>
 }
 
 // Señales de recepción que acompañan al estado en los listados.

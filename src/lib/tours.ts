@@ -20,7 +20,7 @@ const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 // Significado de cada estado, compartido por los recorridos que lo explican.
 const statusItems = [
   '<b>Pendiente</b>: todavía no se entregó nada.',
-  '<b>En compras</b>: la administración lo pidió a compras; todavía no se entregó nada.',
+  '<b>En compras</b>: la administración pidió a compras lo que falta. Si ya llegó una parte, se ve junto a «Entrega parcial».',
   '<b>Entrega parcial</b>: llegó una parte; el resto sigue pendiente.',
   '<b>Entregada</b>: se entregó todo; falta que confirmes la recepción.',
   '<b>Recibida</b>: confirmaste todo y no quedan diferencias abiertas.',
@@ -39,7 +39,7 @@ export const screenTours: ScreenTour[] = [
         target: 'home-metrics',
         title: 'Resumen de tus solicitudes',
         description: 'Cuántas solicitudes tenés en cada situación. Tocá cualquiera para ver ese listado.',
-        items: ['<b>Pendientes</b>: todavía no se entregó nada.', '<b>En compras</b>: la administración lo pidió a compras y todavía no se entregó nada.', '<b>Entregas parciales</b>: llegó una parte.', '<b>Por confirmar recepción</b>: hay entregas que tenés que revisar y confirmar.'],
+        items: ['<b>Pendientes</b>: todavía no se entregó nada.', '<b>En compras</b>: la administración pidió a compras lo que falta (puede haber llegado una parte).', '<b>Entregas parciales</b>: llegó una parte.', '<b>Por confirmar recepción</b>: hay entregas que tenés que revisar y confirmar.'],
       },
       { target: 'home-recent', title: 'Últimas solicitudes', description: 'Las cinco más recientes con su estado. Tocá una para ver el detalle, las entregas y el historial.' },
       { target: 'home-pending', title: 'Productos pendientes de recibir', description: 'Lo que todavía falta que te entreguen, producto por producto, con la solicitud a la que pertenece.' },

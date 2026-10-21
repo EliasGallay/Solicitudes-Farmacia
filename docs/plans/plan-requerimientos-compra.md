@@ -10,6 +10,12 @@ el otro sistema y la solicitud pasa a un estado previo a la entrega. Por ahora s
   `request_status` devuelve `purchase` cuando hay pendiente, no se entregó nada y hay requerimiento
   registrado. Con la primera entrega pasa a «Entrega parcial» o «Entregada» como siempre; el número
   queda registrado en la solicitud.
+- [x] **«En compras» junto a «Entrega parcial»** (2026-10-21). Caso real: se entrega lo que hay en
+  la oficina (ej. Platsul) y el resto se pide a compras; las dos informaciones sirven. El estado
+  calculado no cambia (sigue `partial`, sin migración): `StatusBadge` recibe `purchase` y suma el
+  badge «En compras» en listados, detalle y confirmación de recepción. El filtro «En compras» y la
+  tarjeta del inicio usan `PURCHASE_FILTER` (`purchase` o `partial` con requerimiento), así que esas
+  solicitudes cuentan en «En compras» y en «Entregas parciales».
 - [x] **Número de requerimiento como texto libre, 1 a 30 caracteres, no único.** Varias solicitudes
   pueden ir en el mismo requerimiento (se pasan juntas a compras).
 - [x] **Uno por solicitud, corregible.** Se registra o corrige mientras la solicitud tenga

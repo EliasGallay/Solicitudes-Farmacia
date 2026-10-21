@@ -37,5 +37,9 @@ export const statusViewLabels: Record<Exclude<(typeof statusViews)[number], 'tod
   con_diferencia: 'Con diferencia en la recepción',
 }
 
+// Filtro PostgREST (`or`) de "En compras": sin entregas ('purchase') o con entregas parciales y
+// requerimiento de compra registrado (se muestran los dos badges).
+export const PURCHASE_FILTER = 'request_status.eq.purchase,and(request_status.eq.partial,purchase_requirement_number.not.is.null)'
+
 // Filtro PostgREST (`or`) de la bandeja del admin.
 export const INBOX_FILTER = 'request_status.in.(pending,purchase,partial),receipt_discrepancy_count.gt.0'

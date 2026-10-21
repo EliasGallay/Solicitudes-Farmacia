@@ -13,7 +13,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { areaName, getAreas, selectedArea, type Area } from '@/lib/areas'
 import { centerTone, getCenters, type Center } from '@/lib/centers'
-import { INBOX_FILTER, openStatuses, statusViewParamSchema, type RequestStatus, type StatusView } from '@/lib/request-status'
+import { INBOX_FILTER, openStatuses, PURCHASE_FILTER, statusViewParamSchema, type RequestStatus, type StatusView } from '@/lib/request-status'
 import { keyParamSchema, likeContains, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
 import { parseRequestNumber, waitDays } from '@/lib/requests'
 import { requireSession } from '@/lib/session'
@@ -91,7 +91,7 @@ async function RequestsList({ filters, view, areas, centers }: { filters: Filter
   // - cualquier otro texto busca cada palabra en el número y los productos, sin distinguir acentos.
   const number = filters.buscar ? parseRequestNumber(filters.buscar) : null
 
-  let query = supabase.from('requests').select('id, area, health_center_id, request_number, created_at, request_status, receipt_unconfirmed_count, receipt_discrepancy_count, request_items(count)', { count: 'exact' })
+  let query = supabase.from('requests').select('id, area, health_center_id, request_number, created_at, request_status, purchase_requirement_number, receipt_unconfirmed_count, receipt_discrepancy_count, request_items(count)', { count: 'exact' })
   if (filters.rubro) query = query.eq('area', filters.rubro)
   if (filters.centro) query = query.eq('health_center_id', filters.centro)
   if (number !== null && /^\d+$/.test(filters.buscar!.trim())) query = query.or(`request_number_text.ilike.${likeContains(String(number))},purchase_requirement_number.ilike.${likeContains(filters.buscar!.trim())}`)
@@ -102,6 +102,8 @@ async function RequestsList({ filters, view, areas, centers }: { filters: Filter
   if (inbox) query = query.or(INBOX_FILTER)
   else if (view === 'por_confirmar') query = query.gt('receipt_unconfirmed_count', 0)
   else if (view === 'con_diferencia') query = query.gt('receipt_discrepancy_count', 0)
+  // En compras: también las entregas parciales con requerimiento de compra.
+  else if (view === 'purchase') query = query.or(PURCHASE_FILTER)
   else if (view !== 'todos') query = query.eq('request_status', view)
   if (filters.hasta) query = query.lt('created_at', `${nextDay(filters.hasta)}T00:00:00${DAY_OFFSET}`)
   // Por atender: de la más antigua a la más nueva (se atienden por orden de llegada).
@@ -122,6 +124,7 @@ async function RequestsList({ filters, view, areas, centers }: { filters: Filter
       createdAt: request.created_at as string,
       productCount: (request.request_items as { count: number }[] | null)?.[0]?.count ?? 0,
       status,
+      purchase: request.purchase_requirement_number !== null,
       area: areas ? areaName(areas, request.area as string) : undefined,
       center: centers ? { name: center?.name ?? 'Centro no disponible', tone: centerTone(centers, centerId) } : undefined,
       // Espera: solo para el admin y solo mientras la solicitud tenga algo pendiente.
