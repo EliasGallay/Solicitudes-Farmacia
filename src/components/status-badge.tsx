@@ -1,10 +1,11 @@
-import { Clock, TriangleAlert } from 'lucide-react'
+import { Clock, ShoppingCart, TriangleAlert } from 'lucide-react'
 import { Badge, type BadgeProps } from '@/components/ui/badge'
 import { requestStatusLabels, type RequestStatus } from '@/lib/request-status'
 
 // Única traducción entre estado funcional y representación visual.
 const statusVariants: Record<RequestStatus, NonNullable<BadgeProps['variant']>> = {
   pending: 'warning',
+  purchase: 'warning',
   partial: 'info',
   completed: 'primary',
   received: 'success',
@@ -12,13 +13,15 @@ const statusVariants: Record<RequestStatus, NonNullable<BadgeProps['variant']>> 
 }
 
 // "Cerrada" es neutral, pero el fondo gris solo casi no se distingue de la superficie: lleva borde y
-// texto con contraste pleno.
+// texto con contraste pleno. "En compras" sigue esperando como "Pendiente": mismo tono, con borde e
+// ícono para distinguirlos.
 const statusClasses: Partial<Record<RequestStatus, string>> = {
   closed: 'border border-border-strong text-foreground',
+  purchase: 'border border-warning',
 }
 
 export function StatusBadge({ status }: { status: RequestStatus }) {
-  return <Badge variant={statusVariants[status]} className={statusClasses[status]}>{requestStatusLabels[status]}</Badge>
+  return <Badge variant={statusVariants[status]} className={statusClasses[status]}>{status === 'purchase' && <ShoppingCart aria-hidden />}{requestStatusLabels[status]}</Badge>
 }
 
 // Señales de recepción que acompañan al estado en los listados.

@@ -1,13 +1,15 @@
 import { z } from 'zod'
 
 // Estados calculados en la base (supabase/migrations/202609240002_request_status.sql y
-// 202610040001_delivery_receipts.sql). 'completed': todo entregado, falta que el centro confirme la
-// recepción; 'received': entregado y confirmado sin diferencias abiertas.
-export const requestStatuses = ['pending', 'partial', 'completed', 'received', 'closed'] as const
+// 202610040001_delivery_receipts.sql y 202610210001_purchase_requirements.sql). 'purchase': sin
+// entregas y con requerimiento de compra registrado; 'completed': todo entregado, falta que el centro
+// confirme la recepción; 'received': entregado y confirmado sin diferencias abiertas.
+export const requestStatuses = ['pending', 'purchase', 'partial', 'completed', 'received', 'closed'] as const
 export type RequestStatus = (typeof requestStatuses)[number]
 
 export const requestStatusLabels: Record<RequestStatus, string> = {
   pending: 'Pendiente',
+  purchase: 'En compras',
   partial: 'Entrega parcial',
   completed: 'Entregada',
   received: 'Recibida',
@@ -18,7 +20,7 @@ export const requestStatusSchema = z.enum(requestStatuses)
 export const statusParamSchema = requestStatusSchema.optional().catch(undefined)
 
 // Solicitudes que todavía hay que entregar (tienen pendiente).
-export const openStatuses: RequestStatus[] = ['pending', 'partial']
+export const openStatuses: RequestStatus[] = ['pending', 'purchase', 'partial']
 
 // Vistas del filtro de estado en el listado, además de cada estado:
 // - por_atender: lo que el admin tiene que resolver (pendiente o con diferencia de recepción);
@@ -36,4 +38,4 @@ export const statusViewLabels: Record<Exclude<(typeof statusViews)[number], 'tod
 }
 
 // Filtro PostgREST (`or`) de la bandeja del admin.
-export const INBOX_FILTER = 'request_status.in.(pending,partial),receipt_discrepancy_count.gt.0'
+export const INBOX_FILTER = 'request_status.in.(pending,purchase,partial),receipt_discrepancy_count.gt.0'

@@ -23,7 +23,7 @@ export default async function RequestSheetPage({ params }: { params: Promise<{ i
   const isAdmin = role === 'admin'
   const id = z.string().uuid().safeParse((await params).id)
   const { data } = id.success
-    ? await supabase.from('requests').select('id, area, health_center_id, request_number, created_at, created_by, request_status, observations, request_items(id, requested_quantity, delivered_quantity, closed_quantity, pending_quantity, product:products(name, presentation, type:product_types(label)))').eq('id', id.data).maybeSingle()
+    ? await supabase.from('requests').select('id, area, health_center_id, request_number, created_at, created_by, request_status, observations, purchase_requirement_number, request_items(id, requested_quantity, delivered_quantity, closed_quantity, pending_quantity, product:products(name, presentation, type:product_types(label)))').eq('id', id.data).maybeSingle()
     : { data: null }
 
   if (!data) {
@@ -91,6 +91,7 @@ export default async function RequestSheetPage({ params }: { params: Promise<{ i
           <div><dt className="text-foreground-secondary">Estado</dt><dd className="font-semibold">{requestStatusLabels[data.request_status as RequestStatus]}</dd></div>
           {areas.length > 1 && <div><dt className="text-foreground-secondary">Rubro</dt><dd className="font-semibold">{areaName(areas, data.area as string)}</dd></div>}
           <div><dt className="text-foreground-secondary">Solicitado por</dt><dd className="font-semibold">{names.get(data.created_by as string) ?? '—'}</dd></div>
+          {data.purchase_requirement_number && <div><dt className="text-foreground-secondary">Requerimiento de compra</dt><dd className="font-semibold tabular-nums">{data.purchase_requirement_number as string}</dd></div>}
         </dl>
 
         <table className="mt-6 w-full border-collapse text-sm">

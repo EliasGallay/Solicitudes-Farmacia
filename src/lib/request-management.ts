@@ -27,6 +27,8 @@ export const receiptResolutionLabels: Record<ReceiptResolution, string> = {
 
 // Debe coincidir con los checks de longitud de notas y motivos en la base.
 export const NOTE_MAX_LENGTH = 500
+// Número de requerimiento de compra (check de requests.purchase_requirement_number).
+export const PURCHASE_REQUIREMENT_MAX_LENGTH = 30
 
 // Errores que las RPCs de gestión lanzan con un código corto como mensaje. Cualquier otro error se
 // informa con `fallback` (no se muestran mensajes técnicos).
@@ -49,6 +51,8 @@ const rpcErrorCodes: Record<string, FeedbackCode> = {
   'ya-resuelta': 'diferencia-ya-resuelta',
   'sin-diferencia': 'gestion-datos-invalidos',
   'con-recepcion': 'gestion-con-recepcion',
+  'requerimiento-invalido': 'requerimiento-invalido',
+  'requerimiento-sin-pendiente': 'requerimiento-sin-pendiente',
 }
 
 export function managementErrorCode(error: { message?: string } | null, fallback: FeedbackCode): FeedbackCode {

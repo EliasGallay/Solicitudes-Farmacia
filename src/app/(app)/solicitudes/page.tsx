@@ -87,13 +87,15 @@ async function RequestsList({ filters, view, areas, centers }: { filters: Filter
   // Búsqueda (en la base, columnas de supabase/migrations/202609240006_search.sql):
   // - un número ("2", "#2", "SOL-2") busca por número parcial y ordena ascendente, por lo que la
   //   coincidencia exacta queda primera (todo número que contiene esos dígitos es mayor o igual);
+  //   solo dígitos ("94020") busca además por número de requerimiento de compra;
   // - cualquier otro texto busca cada palabra en el número y los productos, sin distinguir acentos.
   const number = filters.buscar ? parseRequestNumber(filters.buscar) : null
 
   let query = supabase.from('requests').select('id, area, health_center_id, request_number, created_at, request_status, receipt_unconfirmed_count, receipt_discrepancy_count, request_items(count)', { count: 'exact' })
   if (filters.rubro) query = query.eq('area', filters.rubro)
   if (filters.centro) query = query.eq('health_center_id', filters.centro)
-  if (number !== null) query = query.ilike('request_number_text', likeContains(String(number)))
+  if (number !== null && /^\d+$/.test(filters.buscar!.trim())) query = query.or(`request_number_text.ilike.${likeContains(String(number))},purchase_requirement_number.ilike.${likeContains(filters.buscar!.trim())}`)
+  else if (number !== null) query = query.ilike('request_number_text', likeContains(String(number)))
   else for (const token of searchTokens(filters.buscar ?? '')) query = query.ilike('request_search_text', likeContains(token))
   if (filters.desde) query = query.gte('created_at', `${filters.desde}T00:00:00${DAY_OFFSET}`)
   // Por atender: con pendiente de entrega o con una diferencia de recepción sin resolver.

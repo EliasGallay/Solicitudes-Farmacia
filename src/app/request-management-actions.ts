@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { feedbackMessage, withFeedback } from '../lib/feedback'
-import { closureReasons, managementErrorCode, NOTE_MAX_LENGTH, receiptResolutions } from '../lib/request-management'
+import { closureReasons, managementErrorCode, NOTE_MAX_LENGTH, PURCHASE_REQUIREMENT_MAX_LENGTH, receiptResolutions } from '../lib/request-management'
 import { requireRole, requireSession } from '../lib/session'
 
 // Gestión de solicitudes (docs/plans/plan-gestion-solicitudes.md). Cada acción llama a una RPC de
@@ -138,6 +138,24 @@ export async function resolveReceiptDifference(formData: FormData) {
 
   revalidateRequest(requestId.data)
   redirect(withFeedback(page, 'success', 'diferencia-resuelta'))
+}
+
+// Requerimiento de compra desde el detalle (solo admin): registra o corrige el número que dio el
+// sistema de compras; sin entregas, la solicitud pasa a "En compras".
+export async function setPurchaseRequirement(formData: FormData) {
+  const requestId = idSchema.safeParse(formData.get('request_id'))
+  if (!requestId.success) redirect(withFeedback('/solicitudes', 'error', 'gestion-datos-invalidos'))
+  const page = `/solicitudes/${requestId.data}`
+
+  const number = z.string().trim().min(1).max(PURCHASE_REQUIREMENT_MAX_LENGTH).safeParse(formData.get('requirement_number') ?? '')
+  if (!number.success) redirect(withFeedback(page, 'error', 'requerimiento-invalido'))
+
+  const { supabase } = await requireRole('admin')
+  const { error } = await supabase.rpc('set_purchase_requirement', { target_request_id: requestId.data, requirement_number: number.data })
+  if (error) redirect(withFeedback(page, 'error', managementErrorCode(error, 'gestion-error')))
+
+  revalidateRequest(requestId.data)
+  redirect(withFeedback(page, 'success', 'requerimiento-guardado'))
 }
 
 // Cancelación por el solicitante mientras no haya entregas activas (la base lo valida).
