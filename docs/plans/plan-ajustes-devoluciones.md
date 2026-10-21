@@ -63,7 +63,12 @@ Estado al 2026-10-19, rama `develop`. Lista de devoluciones de las pruebas con u
 - [x] **11. Acceso a confirmaciones desde el sidebar.**
   - Decisión: ítem «Por confirmar» para el solicitante, con la cantidad de solicitudes con entregas
     sin confirmar, que abre `/solicitudes?estado=por_confirmar`.
-- [ ] **12. Organización del sidebar.** Ubicación de notificaciones sin acordar.
+- [x] **12. Organización del sidebar.**
+  - Decisión: en desktop la campana pasa al sidebar, encima del perfil, como fila «Notificaciones»
+    con el contador a la derecha (mismo `NotificationBell`, tono `nav`; el panel se abre a la derecha
+    del sidebar). El botón «Cómo funciona esta pantalla» va en la misma fila. Se eliminó la barra
+    superior del contenido: cada página empieza con su encabezado. En mobile no cambia (campana y
+    ayuda en la barra superior).
   - Hecho: desplegable «Sistema y tutoriales» reorganizado en grupos con título (Apariencia, Ayuda),
     separadores, ítems compactos del mismo alto, íconos en lugar de «?»/«→» y «Cerrar sesión» al final
     y aparte. El interruptor de tema tiene etiqueta fija («Modo oscuro»); el estado lo indica el switch.
@@ -118,4 +123,3 @@ Objetivo: que cada pantalla explique qué hace cada cosa (qué es, para qué sir
 ## Preguntas abiertas
 
 - 1: pasos para reproducir la entrega duplicada.
-- 12: ubicación definitiva de notificaciones en el sidebar.
