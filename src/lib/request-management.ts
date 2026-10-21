@@ -5,6 +5,11 @@ import type { FeedbackCode } from './feedback'
 export const closureReasons = ['sin_stock', 'discontinuado', 'rechazado', 'duplicado', 'otro'] as const
 export type ClosureReason = (typeof closureReasons)[number] | 'cancelada' | 'no_recibido'
 
+// Solo los cierres del admin se anulan (void_closures, supabase/migrations/202610210003_void_closures.sql).
+export function isVoidableClosure(reason: ClosureReason) {
+  return (closureReasons as readonly string[]).includes(reason)
+}
+
 export const closureReasonLabels: Record<ClosureReason, string> = {
   sin_stock: 'Sin stock',
   discontinuado: 'Discontinuado',
@@ -53,6 +58,9 @@ const rpcErrorCodes: Record<string, FeedbackCode> = {
   'con-recepcion': 'gestion-con-recepcion',
   'requerimiento-invalido': 'requerimiento-invalido',
   'requerimiento-sin-pendiente': 'requerimiento-sin-pendiente',
+  'cierre-invalido': 'gestion-datos-invalidos',
+  'cierre-ya-anulado': 'cierre-ya-anulado',
+  'cierre-no-anulable': 'cierre-no-anulable',
 }
 
 export function managementErrorCode(error: { message?: string } | null, fallback: FeedbackCode): FeedbackCode {

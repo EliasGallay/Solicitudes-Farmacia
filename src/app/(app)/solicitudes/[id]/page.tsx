@@ -84,7 +84,7 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
     isAdmin ? getCenters().then((result) => result ?? []) : null,
     supabase.from('requests').select('id, area, health_center_id, request_number, created_at, created_by, request_status, observations, purchase_requirement_number, purchase_requirement_at, purchase_requirement_by, request_items(requested_quantity, delivered_quantity, pending_quantity, closed_quantity)').eq('id', id).maybeSingle(),
     supabase.from('deliveries').select('id, delivery_number, created_at, created_by, note, voided_at, voided_by, void_reason, delivery_items(id, current_quantity, request_item:request_items(product:products(name)))').eq('request_id', id).order('created_at'),
-    supabase.from('request_item_closures').select('quantity, reason, detail, created_at, created_by, request_item:request_items(product:products(name))').eq('request_id', id).order('created_at'),
+    supabase.from('request_item_closures').select('id, quantity, reason, detail, created_at, created_by, voided_at, voided_by, void_reason, request_item:request_items(product:products(name))').eq('request_id', id).order('created_at'),
     // Recepciones del centro, línea por línea (supabase/migrations/202610040001_delivery_receipts.sql).
     supabase.from('delivery_item_receipts').select('id, delivery_item_id, delivered_quantity, received_quantity, comment, wrong_product, created_by, created_at, resolution, resolution_note, resolved_by, resolved_at').eq('request_id', id).order('created_at'),
     // Nombres de todos los que actuaron sobre la solicitud. Por RLS de profiles el solicitante solo lee
@@ -165,13 +165,15 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
   }
 
   // Una operación de cierre inserta una fila por producto con la misma fecha y motivo: se agrupan.
+  // Se anula entera (void_closures), así que la anulación se toma de cualquiera de sus filas.
   // Los cierres 'no_recibido' ya se muestran como resolución de la diferencia.
   const closures = new Map<string, ClosureEvent>()
   for (const row of closureRows ?? []) {
     if (row.reason === 'no_recibido') continue
     const key = `${row.created_at}|${row.reason}|${row.created_by}`
     const productName = relationOne(relationOne(row.request_item as { product: { name: string } | { name: string }[] | null } | { product: { name: string } | { name: string }[] | null }[] | null)?.product ?? null)?.name ?? 'Producto no disponible'
-    const event = closures.get(key) ?? { at: row.created_at as string, by: actorName(row.created_by as string), reason: row.reason as ClosureReason, detail: row.detail as string | null, products: [] }
+    const event = closures.get(key) ?? { ids: [], at: row.created_at as string, by: actorName(row.created_by as string), reason: row.reason as ClosureReason, detail: row.detail as string | null, products: [], voidedAt: row.voided_at as string | null, voidedBy: row.voided_at ? actorName(row.voided_by as string | null) : null, voidReason: row.void_reason as string | null }
+    event.ids.push(row.id as string)
     event.products.push({ name: productName, quantity: row.quantity as number })
     closures.set(key, event)
   }
