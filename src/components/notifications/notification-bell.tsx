@@ -15,23 +15,22 @@ import { UnreadBadge, useNotificationState } from './notification-count'
 const bellTones = {
   // Barra mobile, sobre el color del sidebar.
   sidebar: 'text-sidebar-foreground hover:bg-sidebar-hover',
-  // Barra superior de desktop, sobre el fondo de la página.
-  page: 'text-foreground-secondary hover:bg-surface-hover hover:text-foreground',
+  // Fila del sidebar de desktop, con el estilo de los ítems de navegación.
+  nav: 'text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-foreground',
 }
-const openTones = { sidebar: 'bg-sidebar-hover', page: 'bg-surface-muted text-foreground' }
+const openTones = { sidebar: 'bg-sidebar-hover', nav: 'bg-sidebar-hover text-sidebar-foreground' }
 
-// Borde del contador del color del fondo, para separarlo del ícono.
-const badgeRings = { sidebar: 'ring-sidebar', page: 'ring-page' }
-
-// En desktop el panel cuelga de la campana; en mobile ocupa el ancho de la pantalla debajo de la barra.
+// En mobile ocupa el ancho de la pantalla debajo de la barra; en desktop se abre a la derecha del
+// sidebar, alineado abajo (fixed: el sidebar recorta lo que se sale con su overflow).
 const panelPositions = {
   sidebar: 'fixed inset-x-2 top-16',
-  page: 'absolute top-full right-0 mt-2 w-96',
+  nav: 'fixed bottom-3 left-64 w-96',
 }
 
 type PanelState = { status: 'loading' } | { status: 'error' } | { status: 'ready'; items: NotificationItem[] }
 
-// Campana de la parte superior derecha. Mientras haya sin leer, el contador late; cuando llega una
+// Campana: en la barra mobile (`sidebar`, solo ícono) y en el sidebar de desktop, encima del perfil
+// (`nav`, fila con texto y contador). Mientras haya sin leer, el contador late; cuando llega una
 // nueva, la campana se sacude y el contador aparece con un rebote (todo con `motion-safe:`).
 // Al tocarla despliega las últimas notificaciones, con "Ver todas" al pie.
 export function NotificationBell({ tone, className }: { tone: keyof typeof bellTones; className?: string }) {
@@ -45,6 +44,7 @@ export function NotificationBell({ tone, className }: { tone: keyof typeof bellT
   const pathname = usePathname()
   const panelId = useId()
   const label = count > 0 ? `Notificaciones: ${count} sin leer` : 'Notificaciones'
+  const row = tone === 'nav'
 
   const load = useCallback(async () => {
     try {
@@ -117,16 +117,24 @@ export function NotificationBell({ tone, className }: { tone: keyof typeof bellT
         aria-expanded={open}
         aria-controls={panelId}
         onClick={toggle}
-        className={cn('relative flex size-11 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400', bellTones[tone], open && openTones[tone])}
+        className={cn(
+          'relative flex shrink-0 items-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400',
+          row ? 'h-11 w-full gap-3 rounded-md px-4 text-base' : 'size-11 justify-center rounded-full',
+          bellTones[tone],
+          open && openTones[tone],
+        )}
       >
         {/* `key` reinicia la animación en cada llegada. */}
         <span key={arrivals} className={cn('flex origin-top', arrivals > 0 && 'motion-safe:animate-bell-ring')}>
-          <Bell className="size-6" aria-hidden />
+          <Bell className={row ? 'size-5' : 'size-6'} aria-hidden />
         </span>
+        {row && <span className="min-w-0 flex-1 truncate text-left">Notificaciones</span>}
         {count > 0 && (
-          <span className="absolute top-0.5 right-0 flex">
+          // Fila: contador a la derecha, como los ítems de navegación. Ícono: encima, con borde del
+          // color de la barra para separarlo.
+          <span className={cn('flex', row ? 'relative ml-auto' : 'absolute top-0.5 right-0')}>
             <span aria-hidden className="absolute inset-0 rounded-full bg-danger motion-safe:animate-badge-ping" />
-            <UnreadBadge key={count} count={count} className={cn('relative min-w-5 ring-2 motion-safe:animate-step-pop', badgeRings[tone])} />
+            <UnreadBadge key={count} count={count} className={cn('relative min-w-5 motion-safe:animate-step-pop', !row && 'ring-2 ring-sidebar')} />
           </span>
         )}
       </button>

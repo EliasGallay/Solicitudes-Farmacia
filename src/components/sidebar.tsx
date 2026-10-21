@@ -103,13 +103,22 @@ function Brand({ className }: { className?: string }) {
 }
 
 // Contenido compartido entre el sidebar de desktop y el drawer de pantallas chicas.
-function SidebarBody({ role, userName, centerName, pendingReceipts }: SidebarProps) {
+// `notifications`: campana y ayuda de la pantalla encima del perfil (solo desktop; en mobile van en
+// la barra superior).
+function SidebarBody({ role, userName, centerName, pendingReceipts, notifications }: SidebarProps & { notifications?: boolean }) {
   const pathname = usePathname()
   const onProfile = pathname === '/perfil'
+  const showNotifications = Boolean(notifications && role)
   return (
     <>
       <Navigation role={role} pendingReceipts={pendingReceipts} className="flex flex-col gap-1" />
-      <div data-tour="profile" className="mt-auto flex flex-col gap-1 border-t border-sidebar-muted/25 pt-4">
+      {showNotifications && (
+        <div className="mt-auto flex items-center gap-1 pb-1">
+          <NotificationBell tone="nav" className="min-w-0 flex-1" />
+          <ScreenHelpButton role={role} className="text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-foreground" />
+        </div>
+      )}
+      <div data-tour="profile" className={cn('flex flex-col gap-1 border-t border-sidebar-muted/25 pt-4', !showNotifications && 'mt-auto')}>
         <Link href="/perfil" title="Mi perfil" aria-current={onProfile ? 'page' : undefined} className={cn('flex items-center gap-3 rounded-md px-4 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400', onProfile ? 'bg-sidebar-active text-white' : 'hover:bg-sidebar-hover')}>
           <CircleUser className={cn('size-8 shrink-0', onProfile ? 'text-white' : 'text-sidebar-muted')} aria-hidden />
           <span className="flex min-w-0 flex-col">
@@ -147,7 +156,7 @@ export function Sidebar(props: SidebarProps) {
   return (
     <aside className="fixed inset-y-0 left-0 z-20 hidden w-62.5 flex-col overflow-y-auto bg-sidebar p-3 text-sidebar-foreground lg:flex">
       <Brand className="mb-6 px-3 py-3" />
-      <SidebarBody {...props} />
+      <SidebarBody {...props} notifications />
     </aside>
   )
 }
