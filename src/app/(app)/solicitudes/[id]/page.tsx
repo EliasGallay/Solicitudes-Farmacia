@@ -214,7 +214,7 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
   return (
     <>
       <PageHeader
-        title={<span className="flex flex-wrap items-center gap-3">Solicitud {formatRequestNumber(data.request_number as number)}<span data-tour="detail-status" className="flex"><StatusBadge status={status} /></span>{center && <CenterBadge name={center.name} tone={center.tone} className="text-sm" />}</span>}
+        title={<span className="flex flex-wrap items-center gap-3">Solicitud {formatRequestNumber(data.request_number as number)}<span data-tour="detail-status" className="flex flex-wrap gap-1"><StatusBadge status={status} purchase={Boolean(purchaseRequirement)} /></span>{center && <CenterBadge name={center.name} tone={center.tone} className="text-sm" />}</span>}
         description={
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span>Fecha de solicitud: {formatDateTime(createdAt)}</span>

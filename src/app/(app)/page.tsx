@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { metricPeriodParamSchema, type MetricPeriod } from '@/lib/admin-metrics'
 import { areaName, getAreas } from '@/lib/areas'
 import { listHref } from '@/lib/filters'
-import { INBOX_FILTER, openStatuses, type RequestStatus } from '@/lib/request-status'
+import { INBOX_FILTER, openStatuses, PURCHASE_FILTER, type RequestStatus } from '@/lib/request-status'
 import { argentinaDate, formatDate, formatRequestNumber, relationOne, shiftDate, WAIT_WARNING_DAYS } from '@/lib/requests'
 import { greeting } from '@/lib/greeting'
 import { requireSession } from '@/lib/session'
@@ -53,10 +53,11 @@ async function DashboardContent() {
   // Filtrado, orden y límite se resuelven en la base.
   const countByStatus = (status: RequestStatus) => supabase.from('requests').select('id', { count: 'exact', head: true }).eq('request_status', status)
   const [recentResult, pendingResult, pendingCount, purchaseCount, partialCount, unconfirmedCount] = await Promise.all([
-    supabase.from('requests').select('id, area, request_number, created_at, request_status, receipt_unconfirmed_count, receipt_discrepancy_count, request_items(count)').order('created_at', { ascending: false }).limit(RECENT_LIMIT),
+    supabase.from('requests').select('id, area, request_number, created_at, request_status, purchase_requirement_number, receipt_unconfirmed_count, receipt_discrepancy_count, request_items(count)').order('created_at', { ascending: false }).limit(RECENT_LIMIT),
     supabase.from('request_items').select('id, pending_quantity, product:products(name), request:requests(id, request_number, created_at)').gt('pending_quantity', 0).order('request(created_at)', { ascending: false }).limit(PENDING_LIMIT),
     countByStatus('pending'),
-    countByStatus('purchase'),
+    // En compras: también las entregas parciales con requerimiento (cuentan además en parciales).
+    supabase.from('requests').select('id', { count: 'exact', head: true }).or(PURCHASE_FILTER),
     countByStatus('partial'),
     // Solicitudes con entregas que el centro todavía no confirmó.
     supabase.from('requests').select('id', { count: 'exact', head: true }).gt('receipt_unconfirmed_count', 0),
@@ -64,7 +65,7 @@ async function DashboardContent() {
   if ([recentResult, pendingResult, pendingCount, purchaseCount, partialCount, unconfirmedCount].some((result) => result.error)) return <Card><ErrorState /></Card>
 
   const content = {
-    recent: (recentResult.data ?? []).map((request) => ({ id: request.id as string, number: request.request_number as number, createdAt: request.created_at as string, productCount: (request.request_items as { count: number }[] | null)?.[0]?.count ?? 0, status: request.request_status as RequestStatus, area: areas.length > 1 ? areaName(areas, request.area as string) : undefined, unconfirmed: (request.receipt_unconfirmed_count as number) > 0, discrepancy: (request.receipt_discrepancy_count as number) > 0 })),
+    recent: (recentResult.data ?? []).map((request) => ({ id: request.id as string, number: request.request_number as number, createdAt: request.created_at as string, productCount: (request.request_items as { count: number }[] | null)?.[0]?.count ?? 0, status: request.request_status as RequestStatus, purchase: request.purchase_requirement_number !== null, area: areas.length > 1 ? areaName(areas, request.area as string) : undefined, unconfirmed: (request.receipt_unconfirmed_count as number) > 0, discrepancy: (request.receipt_discrepancy_count as number) > 0 })),
     pending: (pendingResult.data ?? []).flatMap((item) => {
       const request = relationOne(item.request as { id: string; request_number: number; created_at: string } | { id: string; request_number: number; created_at: string }[] | null)
       const product = relationOne(item.product as { name: string } | { name: string }[] | null)

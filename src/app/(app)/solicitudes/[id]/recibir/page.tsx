@@ -28,7 +28,7 @@ export default async function ConfirmReceiptPage({ params }: { params: Promise<{
   if (role !== 'requester') redirect(detailHref)
 
   const [{ data: request, error }, { data: deliveries, error: deliveriesError }] = await Promise.all([
-    supabase.from('requests').select('id, request_number, request_status').eq('id', id.data).maybeSingle(),
+    supabase.from('requests').select('id, request_number, request_status, purchase_requirement_number').eq('id', id.data).maybeSingle(),
     supabase.from('deliveries').select('id, delivery_number, created_at, delivery_items(id, current_quantity, status, receipt:delivery_item_receipts(id), request_item:request_items(product:products(name, presentation)))').eq('request_id', id.data).is('voided_at', null).order('created_at'),
   ])
   if (error || deliveriesError || !request) return <><BackButton fallback={detailHref} /><Card><ErrorState title="No pudimos cargar la solicitud" /></Card></>
@@ -56,7 +56,7 @@ export default async function ConfirmReceiptPage({ params }: { params: Promise<{
       <BackButton fallback={detailHref} />
       {/* Mismo encabezado que el detalle (número y estado), con la acción propia de esta pantalla. */}
       <PageHeader
-        title={<span className="flex flex-wrap items-center gap-3">Confirmar recepción<StatusBadge status={request.request_status as RequestStatus} /></span>}
+        title={<span className="flex flex-wrap items-center gap-3">Confirmar recepción<StatusBadge status={request.request_status as RequestStatus} purchase={request.purchase_requirement_number !== null} /></span>}
         description={<>Solicitud <Link href={detailHref} className="font-semibold text-primary-600 hover:underline">{formatRequestNumber(request.request_number as number)}</Link>. La solicitud queda recibida cuando todo lo entregado está confirmado.</>}
       />
       <Card>

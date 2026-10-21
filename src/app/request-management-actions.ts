@@ -162,7 +162,8 @@ export async function resolveReceiptDifference(formData: FormData) {
 }
 
 // Requerimiento de compra desde el detalle (solo admin): registra o corrige el número que dio el
-// sistema de compras; sin entregas, la solicitud pasa a "En compras".
+// sistema de compras; sin entregas, la solicitud pasa a "En compras" y con entregas parciales se
+// muestra "En compras" junto a "Entrega parcial".
 export async function setPurchaseRequirement(formData: FormData) {
   const requestId = idSchema.safeParse(formData.get('request_id'))
   if (!requestId.success) redirect(withFeedback('/solicitudes', 'error', 'gestion-datos-invalidos'))

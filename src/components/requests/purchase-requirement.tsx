@@ -22,7 +22,7 @@ export function PurchaseRequirementCard({ requestId, requirement }: { requestId:
           <p className="mt-1 text-foreground-secondary">
             {requirement
               ? `Registrado por ${requirement.by} el ${formatDateTime(requirement.at)}.`
-              : 'Si hay que pedirlo a compras, anotá el número de requerimiento: la solicitud queda «En compras» hasta la primera entrega.'}
+              : 'Si hay que pedirlo a compras, anotá el número de requerimiento: la solicitud queda «En compras» hasta que se entregue todo lo pendiente.'}
           </p>
         </div>
       </div>
