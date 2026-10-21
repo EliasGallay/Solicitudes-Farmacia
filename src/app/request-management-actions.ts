@@ -91,6 +91,27 @@ export async function voidDelivery(formData: FormData) {
   redirect(withFeedback(page, 'success', 'entrega-anulada'))
 }
 
+// Anulación de una operación de cierre desde el historial de la solicitud (solo admin): llegan los
+// ids de todas sus filas y el motivo.
+export async function voidClosure(formData: FormData) {
+  const requestId = idSchema.safeParse(formData.get('request_id'))
+  if (!requestId.success) redirect(withFeedback('/solicitudes', 'error', 'gestion-datos-invalidos'))
+  const page = `/solicitudes/${requestId.data}`
+
+  const closureIds = z.array(idSchema).min(1).safeParse(formData.getAll('closure_id'))
+  const reason = noteSchema.safeParse(formData.get('reason') ?? '')
+  if (!closureIds.success) redirect(withFeedback(page, 'error', 'gestion-datos-invalidos'))
+  if (!reason.success) redirect(withFeedback(page, 'error', 'gestion-nota-larga'))
+  if (!reason.data) redirect(withFeedback(page, 'error', 'gestion-motivo-requerido'))
+
+  const { supabase } = await requireRole('admin')
+  const { error } = await supabase.rpc('void_closures', { target_request_id: requestId.data, closure_ids: [...new Set(closureIds.data)], reason: reason.data })
+  if (error) redirect(withFeedback(page, 'error', managementErrorCode(error, 'gestion-error')))
+
+  revalidateRequest(requestId.data)
+  redirect(withFeedback(page, 'success', 'cierre-anulado'))
+}
+
 const receiptLinesSchema = z.array(z.object({
   delivery_item_id: z.string().uuid(),
   received_quantity: z.number().int().min(0),

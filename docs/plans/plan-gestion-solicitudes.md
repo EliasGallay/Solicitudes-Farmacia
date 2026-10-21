@@ -62,8 +62,12 @@ Notas:
 - `reason = 'otro'` exige detalle (lo valida la RPC).
 - Anular una entrega marca `voided` sus `delivery_items`: las cantidades vuelven a pendiente
   solas, porque `delivered_quantity` suma solo las activas.
-- Un cierre no se anula en esta etapa; si se cerró de más, se corrige con una solicitud nueva.
-  Revisar si hace falta al usar el sistema (se agregaría `request_item_closures.voided_*`).
+- Un cierre no se anulaba en esta etapa. Al usar el sistema hizo falta (un admin cerró por error):
+  `supabase/migrations/202610210003_void_closures.sql` agrega `request_item_closures.voided_*` y la
+  RPC `void_closures`, que anula la operación entera con motivo obligatorio, descuenta
+  `closed_quantity` (vuelve a pendiente) y audita `closure.voided`. Solo se anulan los cierres del
+  admin: la cancelación del centro y el faltante cerrado al resolver una diferencia, no. Se ofrece
+  en el historial de la solicitud, plegado como la anulación de entregas.
 
 ## 3. Fases
 
