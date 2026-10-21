@@ -30,7 +30,8 @@ el otro sistema y la solicitud pasa a un estado previo a la entrega. Por ahora s
 
 - [x] Migración `supabase/migrations/202610210001_purchase_requirements.sql`: columnas
   `purchase_requirement_number/_at/_by` en `requests`, `request_status` con `purchase`, búsqueda y
-  RPC con auditoría.
+  RPC con auditoría. `202610210002_purchase_requirement_actor.sql` suma a quien lo registró en
+  `request_actor_names` (el historial mostraba "usuario no disponible").
 - [x] Detalle de la solicitud: tarjeta para registrar/corregir (admin), número en el encabezado y
   evento en el historial.
 - [x] Estado en `src/lib/request-status.ts`, badge, filtro de estado, inicio del solicitante y
