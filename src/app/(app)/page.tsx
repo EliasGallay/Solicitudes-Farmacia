@@ -1,14 +1,17 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Building2, Clock, FileText, Inbox, Package, PackageCheck, Plus, TriangleAlert, Truck } from 'lucide-react'
+import { ArrowRight, Building2, Clock, FileText, Inbox, Package, PackageCheck, Plus, ShoppingCart, TriangleAlert, Truck } from 'lucide-react'
+import { AdminMetricsSection } from '@/components/dashboard/admin-metrics-section'
+import { PeriodSelect } from '@/components/dashboard/period-select'
 import { EmptyState } from '@/components/empty-state'
 import { MetricCard } from '@/components/metric-card'
 import { ErrorState } from '@/components/error-state'
-import { DashboardSkeleton } from '@/components/page-skeletons'
+import { DashboardSkeleton, MetricsSkeleton } from '@/components/page-skeletons'
 import { PageHeader } from '@/components/page-header'
 import { RequestsTable } from '@/components/requests/requests-table'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { metricPeriodParamSchema, type MetricPeriod } from '@/lib/admin-metrics'
 import { areaName, getAreas } from '@/lib/areas'
 import { listHref } from '@/lib/filters'
 import { INBOX_FILTER, openStatuses, type RequestStatus } from '@/lib/request-status'
@@ -19,9 +22,9 @@ import { requireSession } from '@/lib/session'
 const RECENT_LIMIT = 5
 const PENDING_LIMIT = 5
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const session = await requireSession()
-  if (session.role === 'admin') return <AdminPanel />
+  if (session.role === 'admin') return <AdminPanel period={metricPeriodParamSchema.parse((await searchParams).periodo)} />
 
   // data-tour: pasos del recorrido de la pantalla (src/lib/tours.ts).
   const newRequest = <Link data-tour="home-new-request" href="/solicitudes/nueva" className={buttonVariants()}><Plus />Nueva solicitud</Link>
@@ -49,15 +52,16 @@ async function DashboardContent() {
   const areas = await getAreas() ?? []
   // Filtrado, orden y límite se resuelven en la base.
   const countByStatus = (status: RequestStatus) => supabase.from('requests').select('id', { count: 'exact', head: true }).eq('request_status', status)
-  const [recentResult, pendingResult, pendingCount, partialCount, unconfirmedCount] = await Promise.all([
+  const [recentResult, pendingResult, pendingCount, purchaseCount, partialCount, unconfirmedCount] = await Promise.all([
     supabase.from('requests').select('id, area, request_number, created_at, request_status, receipt_unconfirmed_count, receipt_discrepancy_count, request_items(count)').order('created_at', { ascending: false }).limit(RECENT_LIMIT),
     supabase.from('request_items').select('id, pending_quantity, product:products(name), request:requests(id, request_number, created_at)').gt('pending_quantity', 0).order('request(created_at)', { ascending: false }).limit(PENDING_LIMIT),
     countByStatus('pending'),
+    countByStatus('purchase'),
     countByStatus('partial'),
     // Solicitudes con entregas que el centro todavía no confirmó.
     supabase.from('requests').select('id', { count: 'exact', head: true }).gt('receipt_unconfirmed_count', 0),
   ])
-  if ([recentResult, pendingResult, pendingCount, partialCount, unconfirmedCount].some((result) => result.error)) return <Card><ErrorState /></Card>
+  if ([recentResult, pendingResult, pendingCount, purchaseCount, partialCount, unconfirmedCount].some((result) => result.error)) return <Card><ErrorState /></Card>
 
   const content = {
     recent: (recentResult.data ?? []).map((request) => ({ id: request.id as string, number: request.request_number as number, createdAt: request.created_at as string, productCount: (request.request_items as { count: number }[] | null)?.[0]?.count ?? 0, status: request.request_status as RequestStatus, area: areas.length > 1 ? areaName(areas, request.area as string) : undefined, unconfirmed: (request.receipt_unconfirmed_count as number) > 0, discrepancy: (request.receipt_discrepancy_count as number) > 0 })),
@@ -70,8 +74,9 @@ async function DashboardContent() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-3">
-      <div data-tour="home-metrics" className="grid gap-4 md:grid-cols-3 xl:col-span-3">
+      <div data-tour="home-metrics" className="grid gap-4 sm:grid-cols-2 xl:col-span-3 xl:grid-cols-4">
         <MetricCard icon={Clock} value={pendingCount.count ?? 0} label="Pendientes" tone="warning" href="/solicitudes?estado=pending" />
+        <MetricCard icon={ShoppingCart} value={purchaseCount.count ?? 0} label="En compras" tone="warning" href="/solicitudes?estado=purchase" />
         <MetricCard icon={Truck} value={partialCount.count ?? 0} label="Entregas parciales" tone="info" href="/solicitudes?estado=partial" />
         <MetricCard icon={PackageCheck} value={unconfirmedCount.count ?? 0} label="Por confirmar recepción" tone="success" href="/solicitudes?estado=por_confirmar" />
       </div>
@@ -119,8 +124,9 @@ async function DashboardContent() {
 // Argentina no aplica horario de verano: los límites de día se expresan en -03:00.
 const DAY_OFFSET = '-03:00'
 
-// Indicadores de trabajo del admin; cada uno lleva al listado con el filtro equivalente.
-async function AdminPanel() {
+// Indicadores de trabajo del admin (cada uno lleva al listado con el filtro equivalente) y, debajo,
+// las métricas del período elegido.
+async function AdminPanel({ period }: { period: MetricPeriod }) {
   const { supabase, fullName } = await requireSession()
   const today = argentinaDate(Date.now())
   // "Esperando": abiertas creadas hasta ese día inclusive (WAIT_WARNING_DAYS días calendario o más).
@@ -142,6 +148,18 @@ async function AdminPanel() {
         <MetricCard icon={Clock} value={lateCount ?? 0} label={`Esperando ${WAIT_WARNING_DAYS} días o más`} tone="warning" href={listHref('/solicitudes', { hasta: lateUntil })} />
         <MetricCard icon={Truck} value={deliveriesToday ?? 0} label="Entregas de hoy" tone="success" href={listHref('/entregas', { desde: today, estado: 'activa' })} />
         <MetricCard icon={TriangleAlert} value={discrepancyCount ?? 0} label="Diferencias de recepción por resolver" tone="warning" href={listHref('/solicitudes', { estado: 'con_diferencia' })} />
+      </section>
+      <section aria-labelledby="metrics-title" className="mt-8 sm:mt-10">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 id="metrics-title" className="text-xl leading-7 font-bold text-foreground">Métricas</h2>
+            <p className="text-sm leading-5 text-foreground-secondary">Actividad de todos los centros y rubros, comparada con el período anterior.</p>
+          </div>
+          <PeriodSelect value={period} />
+        </div>
+        <Suspense key={period} fallback={<MetricsSkeleton />}>
+          <AdminMetricsSection period={period} />
+        </Suspense>
       </section>
     </>
   )

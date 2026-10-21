@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Ban, CircleCheck, FilePlus2, PackageCheck, PackageX, Printer, RotateCcw, TriangleAlert, Truck, Undo2, type LucideIcon } from 'lucide-react'
+import { Ban, CircleCheck, FilePlus2, PackageCheck, PackageX, Printer, RotateCcw, ShoppingCart, TriangleAlert, Truck, Undo2, type LucideIcon } from 'lucide-react'
 import { resolveReceiptDifference, voidDelivery } from '@/app/request-management-actions'
 import { ConfirmSubmit } from '@/components/confirm-submit'
 import { DeliveryStatusBadge } from '@/components/deliveries/delivery-status-badge'
@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import type { PurchaseRequirement } from '@/components/requests/purchase-requirement'
 import { closureReasonLabels, NOTE_MAX_LENGTH, receiptResolutionLabels, type ClosureReason, type ReceiptResolution } from '@/lib/request-management'
 import { formatDateTime, formatDeliveryNumber } from '@/lib/requests'
 import { cn } from '@/lib/utils'
@@ -121,12 +122,15 @@ function receiptDetail(event: ReceiptEvent) {
       : `${line.name}: recibido ${line.received} de ${line.delivered}${line.comment ? ` («${line.comment}»)` : ''}`).join(' · ')
 }
 
-// Historial único de la solicitud: creación, entregas, anulaciones, recepciones y cierres, armado
+// Historial único de la solicitud: creación, requerimiento de compra, entregas, anulaciones,
+// recepciones y cierres, armado
 // con los datos de negocio (visibles también para el solicitante). En cada entrega, el admin puede
 // ver el detalle, imprimir el remito y anular.
-export function RequestHistory({ requestId, isAdmin, createdAt, createdBy, deliveries, closures, receipts, resolutions }: { requestId: string; isAdmin: boolean; createdAt: string; createdBy: string; deliveries: DeliverySummary[]; closures: ClosureEvent[]; receipts: ReceiptEvent[]; resolutions: ResolutionEvent[] }) {
+export function RequestHistory({ requestId, isAdmin, createdAt, createdBy, deliveries, closures, receipts, resolutions, purchaseRequirement }: { requestId: string; isAdmin: boolean; createdAt: string; createdBy: string; deliveries: DeliverySummary[]; closures: ClosureEvent[]; receipts: ReceiptEvent[]; resolutions: ResolutionEvent[]; purchaseRequirement: PurchaseRequirement | null }) {
   const events: HistoryEvent[] = [
     { at: createdAt, icon: FilePlus2, tone: 'bg-primary-100 text-primary-600', title: `Solicitud creada por ${createdBy}` },
+    // Solo el número vigente; las correcciones quedan en la auditoría.
+    ...(purchaseRequirement ? [{ at: purchaseRequirement.at, icon: ShoppingCart, tone: 'bg-warning-muted text-warning', title: `Requerimiento de compra N° ${purchaseRequirement.number} registrado por ${purchaseRequirement.by}` }] : []),
     ...deliveries.flatMap((delivery): HistoryEvent[] => [
       { at: delivery.createdAt, icon: Truck, tone: 'bg-success-muted text-success', title: `Entrega ${formatDeliveryNumber(delivery.number)} registrada por ${delivery.createdBy}`, detail: [`${delivery.units} ${delivery.units === 1 ? 'unidad' : 'unidades'} en ${delivery.products} ${delivery.products === 1 ? 'producto' : 'productos'}`, delivery.note].filter(Boolean).join(' · '), delivery },
       ...(delivery.voidedAt ? [{ at: delivery.voidedAt, icon: Undo2, tone: 'bg-danger-muted text-danger', title: `Entrega ${formatDeliveryNumber(delivery.number)} anulada por ${delivery.voidedBy}`, detail: delivery.voidReason ?? undefined }] : []),

@@ -36,6 +36,23 @@ export function DashboardSkeleton() {
   )
 }
 
+// Métricas del panel del admin: indicadores y la grilla de gráficos.
+export function MetricsSkeleton() {
+  return (
+    <div className="grid gap-4 sm:gap-6 xl:grid-cols-3" aria-busy="true" aria-label="Cargando métricas">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:col-span-3 xl:grid-cols-4">
+        {Array.from({ length: 4 }, (_, index) => <Card key={index} className="flex flex-col gap-3 p-4 sm:p-5"><Skeleton className="h-7 w-full max-w-40" /><Skeleton className="h-9 w-20" /><Skeleton className="h-4 w-full max-w-48" /></Card>)}
+      </div>
+      {[2, 1, 2, 1].map((span, index) => (
+        <Card key={index} className={span === 2 ? 'xl:col-span-2' : undefined}>
+          <CardHeader><Skeleton className="h-7 w-full max-w-56" /><Skeleton className="h-5 w-full max-w-72" /></CardHeader>
+          <CardContent><Skeleton className="h-60 w-full" /></CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+}
+
 export function RequestListSkeleton({ rows }: { rows: number }) {
   return <CardContent className="pt-5"><RequestsTableSkeleton rows={rows} /></CardContent>
 }

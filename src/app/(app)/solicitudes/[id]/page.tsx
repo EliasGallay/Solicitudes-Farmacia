@@ -15,6 +15,7 @@ import { RequestDetailSkeleton } from '@/components/page-skeletons'
 import { PageHeader } from '@/components/page-header'
 import { StatusBadge } from '@/components/status-badge'
 import { DeliveryProgress } from '@/components/requests/delivery-progress'
+import { PurchaseRequirementCard, type PurchaseRequirement } from '@/components/requests/purchase-requirement'
 import { ReceiptDifferences, RequestHistory, UNKNOWN_ACTOR, type ClosureEvent, type DeliverySummary, type OpenDifference, type ReceiptEvent, type ResolutionEvent } from '@/components/requests/request-activity'
 import { RequestProductFilters } from '@/components/requests/request-product-filters'
 import { RequestProductsTable } from '@/components/requests/request-products-table'
@@ -81,7 +82,7 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
     getAreas().then((result) => result ?? []),
     // El centro solo se muestra al admin: el solicitante ve únicamente las de su centro.
     isAdmin ? getCenters().then((result) => result ?? []) : null,
-    supabase.from('requests').select('id, area, health_center_id, request_number, created_at, created_by, request_status, observations, request_items(requested_quantity, delivered_quantity, pending_quantity, closed_quantity)').eq('id', id).maybeSingle(),
+    supabase.from('requests').select('id, area, health_center_id, request_number, created_at, created_by, request_status, observations, purchase_requirement_number, purchase_requirement_at, purchase_requirement_by, request_items(requested_quantity, delivered_quantity, pending_quantity, closed_quantity)').eq('id', id).maybeSingle(),
     supabase.from('deliveries').select('id, delivery_number, created_at, created_by, note, voided_at, voided_by, void_reason, delivery_items(id, current_quantity, request_item:request_items(product:products(name)))').eq('request_id', id).order('created_at'),
     supabase.from('request_item_closures').select('quantity, reason, detail, created_at, created_by, request_item:request_items(product:products(name))').eq('request_id', id).order('created_at'),
     // Recepciones del centro, línea por línea (supabase/migrations/202610040001_delivery_receipts.sql).
@@ -109,6 +110,9 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
   const createdBy = data.created_by as string
   const creatorName = names.get(createdBy)
   const centerId = data.health_center_id as string
+  const purchaseRequirement: PurchaseRequirement | null = data.purchase_requirement_number
+    ? { number: data.purchase_requirement_number as string, at: data.purchase_requirement_at as string, by: actorName(data.purchase_requirement_by as string | null) }
+    : null
   const center = centers && { name: centers.find((option) => option.id === centerId)?.name ?? 'Centro no disponible', tone: centerTone(centers, centerId) }
 
   type ProductName = { name: string } | { name: string }[] | null
@@ -178,7 +182,7 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
   // Cualquier solicitante del centro confirma lo que llegó (la base lo vuelve a validar).
   const canConfirm = role === 'requester' && unconfirmedLines > 0
 
-  const actions = isAdmin && summary.pending > 0
+  const actionButtons = isAdmin && summary.pending > 0
     ? (
       <div className="flex flex-col gap-2 sm:flex-row">
         <Link href={`/solicitudes/${id}/cerrar`} className={buttonVariants({ variant: 'secondary' })}><PackageX />Cerrar pendiente</Link>
@@ -197,6 +201,13 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
           </form>
         )
         : undefined
+  // Hoja de pedido imprimible (/hojas-de-pedido/[id]), para todos los que ven la solicitud.
+  const actions = (
+    <div className="flex flex-col gap-2 sm:flex-row">
+      <Link href={`/hojas-de-pedido/${id}`} target="_blank" className={buttonVariants({ variant: 'secondary' })}><Printer />Imprimir</Link>
+      {actionButtons}
+    </div>
+  )
 
   return (
     <>
@@ -220,6 +231,7 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
             )}
             {/* El rubro solo se muestra cuando el usuario ve más de uno. */}
             {areas.length > 1 && <><span aria-hidden>·</span><span>Rubro: {areaName(areas, data.area as string)}</span></>}
+            {purchaseRequirement && <><span aria-hidden>·</span><span>Requerimiento de compra: <span className="font-semibold text-foreground tabular-nums">{purchaseRequirement.number}</span></span></>}
           </span>
         }
         actions={actions}
@@ -256,6 +268,8 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
         </Card>
       )}
       {isAdmin && <ReceiptDifferences requestId={id} differences={openDifferences} />}
+      {/* Mientras haya pendiente el admin registra o corrige el requerimiento de compra. */}
+      {isAdmin && summary.pending > 0 && <PurchaseRequirementCard requestId={id} requirement={purchaseRequirement} />}
 
       {/* data-tour: pasos del recorrido de la pantalla (src/lib/tours.ts). */}
       <div data-tour="detail-metrics" className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
@@ -280,7 +294,7 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
         </Suspense>
       </Card>
 
-      <RequestHistory requestId={id} isAdmin={isAdmin} createdAt={createdAt} createdBy={actorName(createdBy)} deliveries={deliveries} closures={[...closures.values()]} receipts={[...receiptEvents.values()]} resolutions={resolutions} />
+      <RequestHistory requestId={id} isAdmin={isAdmin} createdAt={createdAt} createdBy={actorName(createdBy)} deliveries={deliveries} closures={[...closures.values()]} receipts={[...receiptEvents.values()]} resolutions={resolutions} purchaseRequirement={purchaseRequirement} />
 
       <Card className="mt-6">
         <CardHeader><CardTitle>Observaciones</CardTitle></CardHeader>

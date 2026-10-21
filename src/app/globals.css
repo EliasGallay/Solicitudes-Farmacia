@@ -64,6 +64,14 @@
   --color-center-8: #4338ca;
   --color-center-8-muted: #e0e7ff;
 
+  /* Gráficos (panel del admin): orden categórico fijo, validado para daltonismo contra surface.
+     Las marcas usan estos tonos; textos y valores siempre van en tokens de texto. */
+  --color-chart-1: #1d8a52;
+  --color-chart-2: #2a78d6;
+  --color-chart-3: #eb6834;
+  --color-chart-4: #6250d6;
+  --color-chart-grid: #e6eee9;
+
   /* Radius */
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -217,6 +225,12 @@
   --color-center-7-muted: #4f1d54;
   --color-center-8: #a5b4fc;
   --color-center-8-muted: #2e2a67;
+
+  --color-chart-1: #3a9f68;
+  --color-chart-2: #3987e5;
+  --color-chart-3: #d95926;
+  --color-chart-4: #9085e9;
+  --color-chart-grid: #26362d;
 
   --shadow-card: 0 1px 3px rgb(0 0 0 / 0.24);
   --shadow-elevated: 0 4px 12px rgb(0 0 0 / 0.32);
