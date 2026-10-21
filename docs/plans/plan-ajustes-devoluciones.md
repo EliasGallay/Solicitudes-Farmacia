@@ -87,6 +87,14 @@ Estado al 2026-10-19, rama `develop`. Lista de devoluciones de las pruebas con u
   - Decisión: cubierto con el ítem «Por confirmar» del sidebar (11), además de los indicadores de
     Inicio y del aviso «Falta confirmar la recepción» en el detalle.
 
+- [x] **17. Entregar más de lo pedido.** (ej. pidieron 50 de diazepam y se mandan 100)
+  - Decisión: la entrega ya no se limita al pendiente; el formulario no tiene máximo y avisa en ámbar
+    cuántas unidades van por encima. Los cierres siguen limitados al pendiente (`sobreentrega`).
+  - Migración: `supabase/migrations/202610210004_over_delivery.sql`. `pending_quantity` nunca baja
+    de 0 (con sobreentrega el ítem queda completo); `resolve_request_items` suma `allow_excess`
+    (solo `register_delivery` lo usa); `resolve_receipt_difference` con 'cerrar' cierra como mucho
+    lo que volvió a pendiente, así `closed_quantity` no supera lo solicitado.
+
 ## 7. Tutoriales por pantalla y por tarea
 
 Objetivo: que cada pantalla explique qué hace cada cosa (qué es, para qué sirve, qué pasa al usarlo).

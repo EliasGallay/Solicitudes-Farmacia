@@ -17,7 +17,8 @@ import { NOTE_MAX_LENGTH } from '@/lib/request-management'
 export type DeliveryFormItem = { id: string; name: string; presentation: string; requested: number; delivered: number; pending: number }
 
 // Cantidades precargadas con el pendiente de cada producto: lo habitual es entregar todo.
-// Se puede bajar cualquier cantidad o dejarla en 0 para no entregar ese producto ahora.
+// Se puede bajar cualquier cantidad, dejarla en 0 para no entregar ese producto ahora o subirla
+// por encima de lo pendiente (sobreentrega: el producto queda completo).
 export function DeliveryForm({ requestId, items, cancelHref }: { requestId: string; items: DeliveryFormItem[]; cancelHref: string }) {
   const [quantities, setQuantities] = useState<Record<string, string>>(() => Object.fromEntries(items.map((item) => [item.id, String(item.pending)])))
   const [note, setNote] = useState('')
@@ -28,12 +29,18 @@ export function DeliveryForm({ requestId, items, cancelHref }: { requestId: stri
   const parsed = items.map((item) => {
     const raw = quantities[item.id] ?? ''
     const value = Number(raw)
-    const valid = raw !== '' && Number.isInteger(value) && value >= 0 && value <= item.pending
+    const valid = raw !== '' && Number.isInteger(value) && value >= 0
     return { item, value: valid ? value : 0, valid }
   })
   const invalid = parsed.some((line) => !line.valid)
   const selected = parsed.filter((line) => line.value > 0)
   const units = selected.reduce((total, line) => total + line.value, 0)
+
+  // Unidades por encima del pendiente: se permite, solo se avisa.
+  function excess(item: DeliveryFormItem) {
+    const line = parsed.find((current) => current.item.id === item.id)
+    return line?.valid ? Math.max(line.value - item.pending, 0) : 0
+  }
 
   function setAll(fill: boolean) {
     setQuantities(Object.fromEntries(items.map((item) => [item.id, fill ? String(item.pending) : '0'])))
@@ -62,7 +69,6 @@ export function DeliveryForm({ requestId, items, cancelHref }: { requestId: stri
         type="number"
         inputMode="numeric"
         min={0}
-        max={item.pending}
         step={1}
         aria-label={`Cantidad a entregar de ${item.name}`}
         aria-invalid={!valid}
@@ -96,7 +102,8 @@ export function DeliveryForm({ requestId, items, cancelHref }: { requestId: stri
               <Label>A entregar</Label>
               {quantityInput(item, valid)}
             </div>
-            {!valid && <p className="text-xs text-danger">Ingresá un número entre 0 y {item.pending}.</p>}
+            {!valid && <p className="text-xs text-danger">Ingresá un número entero desde 0.</p>}
+            {excess(item) > 0 && <p className="text-xs text-warning">{excess(item)} más de lo pendiente.</p>}
           </MobileListItem>
         ))}
       </MobileList>
@@ -123,7 +130,8 @@ export function DeliveryForm({ requestId, items, cancelHref }: { requestId: stri
               <TableCell>
                 <div className="flex flex-col items-end gap-1">
                   {quantityInput(item, valid)}
-                  {!valid && <span className="text-xs text-danger">Entre 0 y {item.pending}</span>}
+                  {!valid && <span className="text-xs text-danger">Entero desde 0</span>}
+                  {excess(item) > 0 && <span className="text-xs text-warning">+{excess(item)} sobre lo pendiente</span>}
                 </div>
               </TableCell>
             </TableRow>
