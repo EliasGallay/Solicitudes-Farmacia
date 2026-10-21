@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Ban, CircleCheck, FilePlus2, PackageCheck, PackageX, Printer, RotateCcw, ShoppingCart, TriangleAlert, Truck, Undo2, type LucideIcon } from 'lucide-react'
-import { resolveReceiptDifference, voidDelivery } from '@/app/request-management-actions'
+import { resolveReceiptDifference, voidClosure, voidDelivery } from '@/app/request-management-actions'
 import { ConfirmSubmit } from '@/components/confirm-submit'
 import { DeliveryStatusBadge } from '@/components/deliveries/delivery-status-badge'
 import { Badge } from '@/components/ui/badge'
@@ -8,7 +8,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import type { PurchaseRequirement } from '@/components/requests/purchase-requirement'
-import { closureReasonLabels, NOTE_MAX_LENGTH, receiptResolutionLabels, type ClosureReason, type ReceiptResolution } from '@/lib/request-management'
+import { closureReasonLabels, isVoidableClosure, NOTE_MAX_LENGTH, receiptResolutionLabels, type ClosureReason, type ReceiptResolution } from '@/lib/request-management'
 import { formatDateTime, formatDeliveryNumber } from '@/lib/requests'
 import { cn } from '@/lib/utils'
 
@@ -18,7 +18,8 @@ export const UNKNOWN_ACTOR = 'usuario no disponible'
 
 // `confirmed`: el centro ya confirmó alguna línea; la entrega no se puede anular.
 export type DeliverySummary = { id: string; number: number; createdAt: string; createdBy: string; units: number; products: number; note: string | null; voidedAt: string | null; voidedBy: string | null; voidReason: string | null; confirmed: boolean }
-export type ClosureEvent = { at: string; by: string; reason: ClosureReason; detail: string | null; products: { name: string; quantity: number }[] }
+// `ids`: las filas de la operación (una por producto), para anularla entera.
+export type ClosureEvent = { ids: string[]; at: string; by: string; reason: ClosureReason; detail: string | null; products: { name: string; quantity: number }[]; voidedAt: string | null; voidedBy: string | null; voidReason: string | null }
 // Una confirmación agrupa las líneas que alguien confirmó en la misma operación.
 // `wrongProduct`: el centro informó que llegó otro producto (recibido 0).
 export type ReceiptEvent = { at: string; by: string; lines: { name: string; delivered: number; received: number; comment: string | null; wrongProduct: boolean }[] }
@@ -111,8 +112,28 @@ export function ReceiptDifferences({ requestId, differences }: { requestId: stri
   )
 }
 
+// Anulación de un cierre hecho por error: sus cantidades vuelven a pendiente. Plegada como la de
+// entregas.
+function VoidClosureForm({ closure, requestId }: { closure: ClosureEvent; requestId: string }) {
+  const units = closure.products.reduce((total, product) => total + product.quantity, 0)
+  return (
+    <details className="group mt-2">
+      <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-sm text-sm font-medium text-danger hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 [&::-webkit-details-marker]:hidden">
+        <Undo2 className="size-4" aria-hidden />Anular este cierre
+      </summary>
+      <form action={voidClosure} className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <input type="hidden" name="request_id" value={requestId} />
+        {closure.ids.map((id) => <input key={id} type="hidden" name="closure_id" value={id} />)}
+        <Input name="reason" required maxLength={NOTE_MAX_LENGTH} aria-label="Motivo de la anulación del cierre" placeholder="Motivo (obligatorio), ej.: cerrado por error" className="min-w-0 flex-1" />
+        <ConfirmSubmit variant="destructive" size="sm" title="Anular el cierre" description={`${units === 1 ? 'La unidad cerrada vuelve' : `Las ${units} unidades cerradas vuelven`} a quedar pendientes en la solicitud. El cierre queda en el historial como anulado.`} confirmLabel="Anular cierre">Anular</ConfirmSubmit>
+      </form>
+    </details>
+  )
+}
+
 // `delivery`: en el evento de registro de una entrega, para mostrar su estado y sus acciones.
-type HistoryEvent = { at: string; icon: LucideIcon; tone: string; title: string; detail?: string; delivery?: DeliverySummary }
+// `closure`: en el evento de un cierre, para mostrar si se anuló y ofrecer anularlo.
+type HistoryEvent = { at: string; icon: LucideIcon; tone: string; title: string; detail?: string; delivery?: DeliverySummary; closure?: ClosureEvent }
 
 function receiptDetail(event: ReceiptEvent) {
   return event.lines.map((line) => line.received === line.delivered
@@ -153,13 +174,17 @@ export function RequestHistory({ requestId, isAdmin, createdAt, createdBy, deliv
       title: `Diferencia resuelta por ${resolution.by}: ${receiptResolutionLabels[resolution.resolution]}`,
       detail: [`${resolution.name} (${resolution.missing}${resolution.wrongProduct ? ', producto equivocado' : ''})`, resolution.note].filter(Boolean).join(' · '),
     })),
-    ...closures.map((closure): HistoryEvent => ({
-      at: closure.at,
-      icon: closure.reason === 'cancelada' ? Ban : CircleCheck,
-      tone: 'bg-surface-muted text-foreground-secondary',
-      title: closure.reason === 'cancelada' ? `Solicitud cancelada por ${closure.by}` : `Pendiente cerrado por ${closure.by}: ${closureReasonLabels[closure.reason]}`,
-      detail: [closure.detail, closure.products.map((product) => `${product.name} (${product.quantity})`).join(', ')].filter(Boolean).join(' · '),
-    })),
+    ...closures.flatMap((closure): HistoryEvent[] => [
+      {
+        at: closure.at,
+        icon: closure.reason === 'cancelada' ? Ban : CircleCheck,
+        tone: 'bg-surface-muted text-foreground-secondary',
+        title: closure.reason === 'cancelada' ? `Solicitud cancelada por ${closure.by}` : `Pendiente cerrado por ${closure.by}: ${closureReasonLabels[closure.reason]}`,
+        detail: [closure.detail, closure.products.map((product) => `${product.name} (${product.quantity})`).join(', ')].filter(Boolean).join(' · '),
+        closure,
+      },
+      ...(closure.voidedAt ? [{ at: closure.voidedAt, icon: Undo2, tone: 'bg-danger-muted text-danger', title: `Cierre anulado por ${closure.voidedBy}`, detail: closure.voidReason ?? undefined }] : []),
+    ]),
   ].sort((a, b) => a.at.localeCompare(b.at))
 
   return (
@@ -175,10 +200,12 @@ export function RequestHistory({ requestId, isAdmin, createdAt, createdBy, deliv
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <p className="text-sm leading-5 font-semibold text-foreground">{event.title}</p>
                   {event.delivery?.voidedAt && <DeliveryStatusBadge voided />}
+                  {event.closure?.voidedAt && <Badge variant="danger">Anulado</Badge>}
                 </div>
                 <p className="text-xs leading-4 text-foreground-secondary">{formatDateTime(event.at)}</p>
                 {event.detail && <p className="mt-1 text-sm break-words whitespace-pre-wrap text-foreground-secondary">{event.detail}</p>}
                 {isAdmin && event.delivery && <DeliveryActions delivery={event.delivery} requestId={requestId} />}
+                {isAdmin && event.closure && !event.closure.voidedAt && isVoidableClosure(event.closure.reason) && <VoidClosureForm closure={event.closure} requestId={requestId} />}
                 {/* El centro imprime la constancia de lo que confirmó haber recibido. */}
                 {!isAdmin && event.delivery?.confirmed && <div className="mt-2"><ReceiptNoteLink deliveryId={event.delivery.id} /></div>}
               </div>
