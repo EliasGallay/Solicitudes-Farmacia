@@ -11,7 +11,7 @@ import { RequestStepper } from '@/components/requests/request-stepper'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getAreas, getProductTypes, selectedArea, type Area } from '@/lib/areas'
-import { keyParamSchema, likeContains, pageParamSchema, pageRange, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
+import { applySearch, keyParamSchema, pageParamSchema, pageRange, pageSizeParamSchema, searchParamSchema, searchTerms } from '@/lib/filters'
 import { productTypeLabel, type ProductTypeRelation } from '@/lib/product-types'
 import { formatDateTime, formatRequestNumber } from '@/lib/requests'
 import { requireSession } from '@/lib/session'
@@ -58,7 +58,7 @@ async function ProductSelection({ rubro, buscar, tipo, page, pageSize, isAdmin }
 
   let query = supabase.from('products').select('id, name, presentation, type:product_types(label)', { count: 'exact' }).eq('active', true).eq('area', area.key)
   if (tipo) query = query.eq('product_type', tipo)
-  for (const token of searchTokens(buscar ?? '')) query = query.ilike('product_search_text', likeContains(token))
+  query = applySearch(query, 'product_search_text', await searchTerms(supabase, 'productos', buscar ?? ''))
   const [productsResult, totalResult, centersResult] = await Promise.all([
     query.order('name').range(...pageRange(page, pageSize)),
     supabase.from('products').select('id', { count: 'exact', head: true }).eq('active', true).eq('area', area.key),

@@ -19,7 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { areaName, getAreas } from '@/lib/areas'
 import { centerTone } from '@/lib/centers'
 import { feedbackMessage } from '@/lib/feedback'
-import { likeContains, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
+import { applySearch, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTerms } from '@/lib/filters'
 import { formatDateTime, relationOne } from '@/lib/requests'
 import { requireRole, type AppRole } from '@/lib/session'
 import { roleLabels, userRoles } from '@/lib/users'
@@ -89,7 +89,7 @@ async function UsersList({ filters }: { filters: Filters }) {
   const { supabase, userId } = await requireRole('admin')
   // Email, último ingreso y búsqueda: columnas computadas de supabase/migrations/202609300001_user_admin.sql.
   let query = supabase.from('profiles').select('user_id, full_name, role, active, must_change_password, profile_email, profile_last_sign_in_at, health_center:health_centers(name), profile_areas(area)', { count: 'exact' })
-  for (const token of searchTokens(filters.buscar ?? '')) query = query.ilike('profile_search_text', likeContains(token))
+  query = applySearch(query, 'profile_search_text', await searchTerms(supabase, 'usuarios', filters.buscar ?? ''))
   if (filters.rol) query = query.eq('role', filters.rol)
   if (filters.centro) query = query.eq('health_center_id', filters.centro)
   if (filters.estado) query = query.eq('active', filters.estado === 'activo')

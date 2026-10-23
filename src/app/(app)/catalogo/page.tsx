@@ -13,7 +13,7 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { MobileList, MobileListItem } from '@/components/ui/mobile-list'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { areaName, getAreas, getProductTypes, selectedArea, type Area } from '@/lib/areas'
-import { keyParamSchema, likeContains, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
+import { applySearch, keyParamSchema, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTerms } from '@/lib/filters'
 import { productTypeLabel, type ProductTypeRelation } from '@/lib/product-types'
 import { requireSession } from '@/lib/session'
 
@@ -65,8 +65,9 @@ async function ProductList({ filters, areas }: { filters: Filters; areas?: Area[
   let query = supabase.from('products').select('id, area, name, presentation, type:product_types(label)', { count: 'exact' }).eq('active', true)
   if (filters.rubro) query = query.eq('area', filters.rubro)
   if (filters.tipo) query = query.eq('product_type', filters.tipo)
-  // Cada palabra debe aparecer en nombre o presentación, sin distinguir acentos (product_search_text).
-  for (const token of searchTokens(filters.buscar ?? '')) query = query.ilike('product_search_text', likeContains(token))
+  // Cada palabra (o una parecida, por errores de tipeo) debe aparecer en nombre o presentación, sin
+  // distinguir acentos (product_search_text).
+  query = applySearch(query, 'product_search_text', await searchTerms(supabase, 'productos', filters.buscar ?? ''))
   const { data, count, error } = await query.order('name').range(...pageRange(filters.page, filters.por_pagina))
 
   // PGRST103: la página pedida está fuera de rango; se trata como sin resultados.

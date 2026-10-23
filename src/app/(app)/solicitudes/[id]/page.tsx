@@ -22,7 +22,7 @@ import { RequestProductsTable } from '@/components/requests/request-products-tab
 import { RequestsTableSkeleton } from '@/components/requests/requests-table'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { likeContains, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
+import { applySearch, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTerms } from '@/lib/filters'
 import { areaName, getAreas } from '@/lib/areas'
 import { centerTone, getCenters } from '@/lib/centers'
 import { feedbackMessage } from '@/lib/feedback'
@@ -322,7 +322,7 @@ async function RequestProducts({ requestId, filters }: { requestId: string; filt
   const { supabase } = await requireSession()
   let query = supabase.from('request_items').select(`id, requested_quantity, delivered_quantity, closed_quantity, pending_quantity, item_status, product:products(name, presentation, type:product_types(label))`, { count: 'exact' }).eq('request_id', requestId)
   // Búsqueda sobre item_search_text (producto normalizado): todas las palabras deben coincidir.
-  for (const token of searchTokens(filters.buscar ?? '')) query = query.ilike('item_search_text', likeContains(token))
+  query = applySearch(query, 'item_search_text', await searchTerms(supabase, 'productos', filters.buscar ?? ''))
   if (filters.pendiente === 'con') query = query.gt('pending_quantity', 0)
   if (filters.pendiente === 'sin') query = query.eq('pending_quantity', 0)
   const { data, count, error } = await query.order('id').range(...pageRange(filters.page, filters.por_pagina))
