@@ -66,10 +66,11 @@ export default async function ReceiptNotePage({ params }: { params: Promise<{ id
   const deliveredBy = names.get(delivery.createdById) ?? delivery.createdBy
 
   // Una confirmación agrupa las líneas que alguien confirmó en la misma operación.
-  const confirmations = new Map<string, { at: string; by: string }>()
+  // `signed`: la confirmó la administración con el remito firmado por el centro.
+  const confirmations = new Map<string, { at: string; by: string; signed: boolean }>()
   for (const item of confirmed) {
     const receipt = item.receipt!
-    confirmations.set(`${receipt.confirmedAt}|${receipt.confirmedBy}`, { at: receipt.confirmedAt, by: names.get(receipt.confirmedBy) ?? '—' })
+    confirmations.set(`${receipt.confirmedAt}|${receipt.confirmedBy}`, { at: receipt.confirmedAt, by: names.get(receipt.confirmedBy) ?? '—', signed: Boolean(receipt.signedNoteId) })
   }
   const confirmationList = [...confirmations.values()].sort((a, b) => a.at.localeCompare(b.at))
 
@@ -160,7 +161,7 @@ export default async function ReceiptNotePage({ params }: { params: Promise<{ id
         <section className="mt-6 text-sm break-inside-avoid">
           <p className="text-foreground-secondary">Recepción confirmada en el sistema</p>
           <ul className="mt-1">
-            {confirmationList.map((confirmation) => <li key={`${confirmation.at}|${confirmation.by}`}><span className="font-semibold">{confirmation.by}</span> · {formatDateTime(confirmation.at)}</li>)}
+            {confirmationList.map((confirmation) => <li key={`${confirmation.at}|${confirmation.by}`}><span className="font-semibold">{confirmation.by}</span>{confirmation.signed && ' (administración, con remito firmado)'} · {formatDateTime(confirmation.at)}</li>)}
           </ul>
         </section>
 

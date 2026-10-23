@@ -3,6 +3,7 @@ import { Ban, CircleCheck, FilePlus2, PackageCheck, PackageX, Pencil, Printer, R
 import { resolveReceiptDifference, voidClosure, voidDelivery } from '@/app/request-management-actions'
 import { ConfirmSubmit } from '@/components/confirm-submit'
 import { DeliveryStatusBadge } from '@/components/deliveries/delivery-status-badge'
+import { SignedNoteLinks } from '@/components/deliveries/signed-notes'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,19 +11,22 @@ import { Input } from '@/components/ui/input'
 import type { PurchaseRequirement } from '@/components/requests/purchase-requirement'
 import { closureReasonLabels, isVoidableClosure, NOTE_MAX_LENGTH, receiptResolutionLabels, type ClosureReason, type ReceiptResolution } from '@/lib/request-management'
 import { formatDateTime, formatDeliveryNumber } from '@/lib/requests'
+import type { SignedNote } from '@/lib/signed-notes'
 import { cn } from '@/lib/utils'
 
 // Los nombres llegan de la RPC request_actor_names; esto solo aparece si no se pudo resolver
 // (p. ej. la migración 202610030001 todavía no está aplicada).
 export const UNKNOWN_ACTOR = 'usuario no disponible'
 
-// `confirmed`: el centro ya confirmó alguna línea; la entrega no se puede anular.
-export type DeliverySummary = { id: string; number: number; createdAt: string; createdBy: string; units: number; products: number; note: string | null; voidedAt: string | null; voidedBy: string | null; voidReason: string | null; confirmed: boolean }
+// `confirmed`: el centro ya confirmó alguna línea; la entrega no se puede anular. `unconfirmed`: le quedan
+// líneas sin confirmar. `signedNotes`: remitos firmados que adjuntó el admin.
+export type DeliverySummary = { id: string; number: number; createdAt: string; createdBy: string; units: number; products: number; note: string | null; voidedAt: string | null; voidedBy: string | null; voidReason: string | null; confirmed: boolean; unconfirmed: boolean; signedNotes: SignedNote[] }
 // `ids`: las filas de la operación (una por producto), para anularla entera.
 export type ClosureEvent = { ids: string[]; at: string; by: string; reason: ClosureReason; detail: string | null; products: { name: string; quantity: number }[]; voidedAt: string | null; voidedBy: string | null; voidReason: string | null }
 // Una confirmación agrupa las líneas que alguien confirmó en la misma operación.
-// `wrongProduct`: el centro informó que llegó otro producto (recibido 0).
-export type ReceiptEvent = { at: string; by: string; lines: { name: string; delivered: number; received: number; comment: string | null; wrongProduct: boolean }[] }
+// `wrongProduct`: el centro informó que llegó otro producto (recibido 0). `signed`: la confirmó el admin
+// con el remito firmado.
+export type ReceiptEvent = { at: string; by: string; signed: boolean; lines: { name: string; delivered: number; received: number; comment: string | null; wrongProduct: boolean }[] }
 export type ResolutionEvent = { at: string; by: string; resolution: ReceiptResolution; note: string | null; name: string; missing: number; wrongProduct: boolean }
 // Una corrección del admin agrupa los productos que cambió en la misma operación.
 // `previous` null: producto agregado.
@@ -36,6 +40,8 @@ function DeliveryActions({ delivery, requestId }: { delivery: DeliverySummary; r
         <Link href={`/entregas/${delivery.id}`} className={buttonVariants({ variant: 'secondary', size: 'sm' })}>Ver entrega</Link>
         {!delivery.voidedAt && <Link href={`/remitos/${delivery.id}`} target="_blank" className={buttonVariants({ variant: 'secondary', size: 'sm' })}><Printer />Remito</Link>}
         {delivery.confirmed && <ReceiptNoteLink deliveryId={delivery.id} />}
+        <SignedNoteLinks notes={delivery.signedNotes} />
+        {!delivery.voidedAt && delivery.unconfirmed && <Link href={`/entregas/${delivery.id}/recibir`} className={buttonVariants({ variant: 'secondary', size: 'sm' })}><PackageCheck />Confirmar con remito firmado</Link>}
       </div>
       {/* Con la recepción confirmada por el centro, la entrega ya no se anula. */}
       {!delivery.voidedAt && !delivery.confirmed && <VoidDeliveryForm deliveryId={delivery.id} requestId={requestId} number={delivery.number} from="solicitud" />}
@@ -173,7 +179,7 @@ export function RequestHistory({ requestId, isAdmin, createdAt, createdBy, deliv
         at: receipt.at,
         icon: wrongProduct ? PackageX : withDifference ? TriangleAlert : PackageCheck,
         tone: wrongProduct ? 'bg-danger-muted text-danger' : withDifference ? 'bg-warning-muted text-warning' : 'bg-success-muted text-success',
-        title: `${wrongProduct ? 'Recepción con producto equivocado' : withDifference ? 'Recepción con diferencia' : 'Recepción confirmada'} por ${receipt.by}`,
+        title: `${wrongProduct ? 'Recepción con producto equivocado' : withDifference ? 'Recepción con diferencia' : 'Recepción confirmada'} por ${receipt.by}${receipt.signed ? ' con remito firmado' : ''}`,
         detail: receiptDetail(receipt),
       }
     }),
@@ -217,7 +223,12 @@ export function RequestHistory({ requestId, isAdmin, createdAt, createdBy, deliv
                 {isAdmin && event.delivery && <DeliveryActions delivery={event.delivery} requestId={requestId} />}
                 {isAdmin && event.closure && !event.closure.voidedAt && isVoidableClosure(event.closure.reason) && <VoidClosureForm closure={event.closure} requestId={requestId} />}
                 {/* El centro imprime la constancia de lo que confirmó haber recibido. */}
-                {!isAdmin && event.delivery?.confirmed && <div className="mt-2"><ReceiptNoteLink deliveryId={event.delivery.id} /></div>}
+                {!isAdmin && event.delivery && (event.delivery.confirmed || event.delivery.signedNotes.length > 0) && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {event.delivery.confirmed && <ReceiptNoteLink deliveryId={event.delivery.id} />}
+                    <SignedNoteLinks notes={event.delivery.signedNotes} />
+                  </div>
+                )}
               </div>
             </li>
           ))}

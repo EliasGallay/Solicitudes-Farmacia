@@ -1,9 +1,10 @@
 import Link from 'next/link'
-import { CircleCheck, PackageX, Printer, TriangleAlert } from 'lucide-react'
+import { CircleCheck, PackageCheck, PackageX, Paperclip, Printer, TriangleAlert } from 'lucide-react'
 import { z } from 'zod'
 import { BackButton } from '@/components/back-button'
 import { CenterBadge } from '@/components/center-badge'
 import { DeliveryStatusBadge, ReceiptStateBadge } from '@/components/deliveries/delivery-status-badge'
+import { SignedNoteThumbnails } from '@/components/deliveries/signed-notes'
 import { EmptyState } from '@/components/empty-state'
 import { ErrorState } from '@/components/error-state'
 import { FormError } from '@/components/form-feedback'
@@ -19,6 +20,7 @@ import { getDelivery, receiptState, type LineReceipt } from '@/lib/deliveries'
 import { feedbackMessage } from '@/lib/feedback'
 import { formatDateTime, formatDeliveryNumber, formatRequestNumber } from '@/lib/requests'
 import { requireRole } from '@/lib/session'
+import { getSignedNotes } from '@/lib/signed-notes'
 
 export default async function DeliveryDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string; success?: string }> }) {
   const { supabase } = await requireRole('admin')
@@ -26,10 +28,11 @@ export default async function DeliveryDetailPage({ params, searchParams }: { par
   const feedback = await searchParams
   if (!id.success) return <><BackButton fallback="/entregas" /><NotFound /></>
 
-  const [delivery, centers, areas] = await Promise.all([
+  const [delivery, centers, areas, notes] = await Promise.all([
     getDelivery(supabase, id.data).catch(() => undefined),
     getCenters().then((result) => result ?? []),
     getAreas(true).then((result) => result ?? []),
+    getSignedNotes(supabase, { deliveryId: id.data }),
   ])
   if (delivery === undefined) return <><BackButton fallback="/entregas" /><Card><ErrorState title="No pudimos cargar la entrega" /></Card></>
   if (!delivery) return <><BackButton fallback="/entregas" /><NotFound /></>
@@ -38,6 +41,8 @@ export default async function DeliveryDetailPage({ params, searchParams }: { par
   const receipt = receiptState(delivery.items)
   // Con alguna línea confirmada por el centro, la entrega ya no se anula (la base también lo rechaza).
   const canVoid = !voided && receipt === 'sin_confirmar'
+  // Líneas que el centro no confirmó: el admin las confirma con el remito firmado.
+  const unconfirmed = delivery.items.filter((item) => !item.receipt).length
   const centerId = delivery.request.healthCenterId
   const centerName = centers.find((center) => center.id === centerId)?.name ?? 'Centro no disponible'
   const units = delivery.items.reduce((total, item) => total + item.quantity, 0)
@@ -58,7 +63,12 @@ export default async function DeliveryDetailPage({ params, searchParams }: { par
             {areas.length > 1 && <><span aria-hidden>·</span><span>Rubro: {areaName(areas, delivery.request.area)}</span></>}
           </span>
         }
-        actions={!voided && <Link href={`/remitos/${delivery.id}`} target="_blank" className={buttonVariants()}><Printer />Imprimir remito</Link>}
+        actions={!voided && (
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Link href={`/remitos/${delivery.id}`} target="_blank" className={buttonVariants({ variant: unconfirmed > 0 ? 'secondary' : 'default' })}><Printer />Imprimir remito</Link>
+            {unconfirmed > 0 && <Link href={`/entregas/${delivery.id}/recibir`} className={buttonVariants()}><PackageCheck />Confirmar recepción</Link>}
+          </div>
+        )}
       />
       {feedbackMessage(feedback.error) && <div className="-mt-4 mb-6"><FormError>{feedbackMessage(feedback.error)}</FormError></div>}
 
@@ -110,6 +120,25 @@ export default async function DeliveryDetailPage({ params, searchParams }: { par
         </CardContent>
       </Card>
 
+      {!voided && (
+        <Card className="mt-6">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex flex-col gap-1">
+              <CardTitle>Remito firmado</CardTitle>
+              <CardDescription>
+                {notes.length > 0
+                  ? 'Constancia firmada por el centro. La ve también el centro en su solicitud.'
+                  : unconfirmed > 0
+                    ? 'Si el centro firmó el remito pero no confirmó en el sistema, subí la foto y confirmá la recepción vos.'
+                    : 'Todavía no se adjuntó el remito firmado.'}
+              </CardDescription>
+            </div>
+            <Link href={`/entregas/${delivery.id}/recibir`} className={buttonVariants({ variant: 'secondary', size: 'sm', className: 'shrink-0' })}><Paperclip />{notes.length > 0 ? 'Agregar otro archivo' : 'Adjuntar remito firmado'}</Link>
+          </CardHeader>
+          {notes.length > 0 && <CardContent><SignedNoteThumbnails notes={notes} /></CardContent>}
+        </Card>
+      )}
+
       <Card className="mt-6">
         <CardHeader><CardTitle>Nota</CardTitle></CardHeader>
         <CardContent>
@@ -132,9 +161,19 @@ export default async function DeliveryDetailPage({ params, searchParams }: { par
   )
 }
 
-// Recepción de una línea: sin confirmar, recibida completa o con diferencia (y cómo se resolvió).
+// Recepción de una línea: sin confirmar, recibida completa o con diferencia (y cómo se resolvió). Si la
+// confirmó el admin con el remito firmado, se aclara debajo.
 function LineReceiptText({ quantity, receipt }: { quantity: number; receipt: LineReceipt | null }) {
   if (!receipt) return <span className="text-foreground-secondary">Sin confirmar</span>
+  return (
+    <>
+      <LineReceiptState quantity={quantity} receipt={receipt} />
+      {receipt.signedNoteId && <span className="block text-xs font-normal text-foreground-secondary">Confirmado por la administración con remito firmado</span>}
+    </>
+  )
+}
+
+function LineReceiptState({ quantity, receipt }: { quantity: number; receipt: LineReceipt }) {
   if (receipt.received === quantity) return <span className="inline-flex items-center gap-1 font-semibold text-success"><CircleCheck className="size-4 shrink-0" aria-hidden />Recibido conforme</span>
   const resolution = receipt.resolution === 'reenviar' ? ' · faltante vuelto a pendiente' : receipt.resolution === 'cerrar' ? ' · faltante cerrado' : ' · sin resolver'
   if (receipt.wrongProduct) {

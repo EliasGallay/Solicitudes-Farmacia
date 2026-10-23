@@ -27,9 +27,10 @@ export type DeliveryDetail = {
 }
 
 // `confirmedBy`: id de quien confirmó (el nombre sale de request_actor_names). `wrongProduct`: llegó otro
-// producto (recibido 0, supabase/migrations/202610190001_wrong_product_receipts.sql).
-export type LineReceipt = { received: number; comment: string | null; wrongProduct: boolean; resolution: 'reenviar' | 'cerrar' | null; confirmedAt: string; confirmedBy: string }
-type ReceiptRow = { received_quantity: number; comment: string | null; wrong_product: boolean; resolution: 'reenviar' | 'cerrar' | null; created_at: string; created_by: string }
+// producto (recibido 0, supabase/migrations/202610190001_wrong_product_receipts.sql). `signedNoteId`: la
+// confirmó el admin con ese remito firmado (supabase/migrations/202610230002_signed_delivery_notes.sql).
+export type LineReceipt = { received: number; comment: string | null; wrongProduct: boolean; resolution: 'reenviar' | 'cerrar' | null; confirmedAt: string; confirmedBy: string; signedNoteId: string | null }
+type ReceiptRow = { received_quantity: number; comment: string | null; wrong_product: boolean; resolution: 'reenviar' | 'cerrar' | null; created_at: string; created_by: string; signed_note_id: string | null }
 type ReceiptRelation = ReceiptRow | ReceiptRow[] | null
 
 // Estado de recepción de una entrega según sus líneas (supabase/migrations/202610040001_delivery_receipts.sql).
@@ -50,7 +51,7 @@ export async function getDelivery(supabase: SupabaseClient, id: string): Promise
     .from('deliveries')
     // deliveries y requests tienen dos FK a profiles cada una (quien entrega y quien anula; quien
     // solicita y quien registra el requerimiento de compra): se nombran explícitamente.
-    .select('id, delivery_number, created_at, created_by, note, voided_at, void_reason, creator:profiles!deliveries_created_by_fkey(full_name), voider:profiles!deliveries_voided_by_fkey(full_name), request:requests(id, request_number, area, health_center_id, created_at, creator:profiles!requests_created_by_fkey(full_name),health_center:health_centers(name)), delivery_items(id, current_quantity, receipt:delivery_item_receipts(received_quantity, comment, wrong_product, resolution, created_at, created_by), request_item:request_items(requested_quantity, product:products(name, presentation)))')
+    .select('id, delivery_number, created_at, created_by, note, voided_at, void_reason, creator:profiles!deliveries_created_by_fkey(full_name), voider:profiles!deliveries_voided_by_fkey(full_name), request:requests(id, request_number, area, health_center_id, created_at, creator:profiles!requests_created_by_fkey(full_name),health_center:health_centers(name)), delivery_items(id, current_quantity, receipt:delivery_item_receipts(received_quantity, comment, wrong_product, resolution, created_at, created_by, signed_note_id), request_item:request_items(requested_quantity, product:products(name, presentation)))')
     .eq('id', id)
     .maybeSingle()
   if (error) throw error
@@ -68,7 +69,7 @@ export async function getDelivery(supabase: SupabaseClient, id: string): Promise
       presentation: product?.presentation ?? '—',
       requested: item?.requested_quantity ?? 0,
       quantity: line.current_quantity,
-      receipt: receipt ? { received: receipt.received_quantity, comment: receipt.comment, wrongProduct: receipt.wrong_product, resolution: receipt.resolution, confirmedAt: receipt.created_at, confirmedBy: receipt.created_by } : null,
+      receipt: receipt ? { received: receipt.received_quantity, comment: receipt.comment, wrongProduct: receipt.wrong_product, resolution: receipt.resolution, confirmedAt: receipt.created_at, confirmedBy: receipt.created_by, signedNoteId: receipt.signed_note_id } : null,
     }
   }).sort((a, b) => a.name.localeCompare(b.name, 'es'))
 

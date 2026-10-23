@@ -66,6 +66,8 @@ const rpcErrorCodes: Record<string, FeedbackCode> = {
   'producto-invalido': 'edicion-producto-invalido',
   'producto-repetido': 'edicion-producto-repetido',
   'sin-cambios': 'edicion-sin-cambios',
+  'remito-invalido': 'remito-invalido',
+  'remito-requerido': 'remito-requerido',
 }
 
 export function managementErrorCode(error: { message?: string } | null, fallback: FeedbackCode): FeedbackCode {
