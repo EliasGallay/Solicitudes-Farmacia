@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
-import { Ban, CircleUser, Clock, FileQuestion, FileText, Package, PackageCheck, PackageX, Printer, TriangleAlert, Truck } from 'lucide-react'
+import { Ban, CircleUser, Clock, FileQuestion, FileText, Package, PackageCheck, PackageX, Pencil, Printer, TriangleAlert, Truck } from 'lucide-react'
 import { z } from 'zod'
 import { cancelRequest } from '@/app/request-management-actions'
 import { BackButton } from '@/components/back-button'
@@ -16,7 +16,7 @@ import { PageHeader } from '@/components/page-header'
 import { StatusBadge } from '@/components/status-badge'
 import { DeliveryProgress } from '@/components/requests/delivery-progress'
 import { PurchaseRequirementCard, type PurchaseRequirement } from '@/components/requests/purchase-requirement'
-import { ReceiptDifferences, RequestHistory, UNKNOWN_ACTOR, type ClosureEvent, type DeliverySummary, type OpenDifference, type ReceiptEvent, type ResolutionEvent } from '@/components/requests/request-activity'
+import { ReceiptDifferences, RequestHistory, UNKNOWN_ACTOR, type ClosureEvent, type DeliverySummary, type EditEvent, type OpenDifference, type ReceiptEvent, type ResolutionEvent } from '@/components/requests/request-activity'
 import { RequestProductFilters } from '@/components/requests/request-product-filters'
 import { RequestProductsTable } from '@/components/requests/request-products-table'
 import { RequestsTableSkeleton } from '@/components/requests/requests-table'
@@ -78,7 +78,7 @@ function NotFound() {
 async function RequestDetail({ id, filters, feedback }: { id: string; filters: ProductFilters; feedback: Feedback }) {
   const { supabase, role, userId } = await requireSession()
   const isAdmin = role === 'admin'
-  const [areas, centers, { data, error }, { data: deliveryRows, error: deliveriesError }, { data: closureRows, error: closuresError }, { data: receiptRows, error: receiptsError }, { data: actorRows }] = await Promise.all([
+  const [areas, centers, { data, error }, { data: deliveryRows, error: deliveriesError }, { data: closureRows, error: closuresError }, { data: receiptRows, error: receiptsError }, { data: editRows, error: editsError }, { data: actorRows }] = await Promise.all([
     getAreas().then((result) => result ?? []),
     // El centro solo se muestra al admin: el solicitante ve únicamente las de su centro.
     isAdmin ? getCenters().then((result) => result ?? []) : null,
@@ -87,6 +87,8 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
     supabase.from('request_item_closures').select('id, quantity, reason, detail, created_at, created_by, voided_at, voided_by, void_reason, request_item:request_items(product:products(name))').eq('request_id', id).order('created_at'),
     // Recepciones del centro, línea por línea (supabase/migrations/202610040001_delivery_receipts.sql).
     supabase.from('delivery_item_receipts').select('id, delivery_item_id, delivered_quantity, received_quantity, comment, wrong_product, created_by, created_at, resolution, resolution_note, resolved_by, resolved_at').eq('request_id', id).order('created_at'),
+    // Correcciones del admin (supabase/migrations/202610230001_request_edits.sql).
+    supabase.from('request_item_edits').select('previous_quantity, new_quantity, reason, created_at, created_by, request_item:request_items(product:products(name))').eq('request_id', id).order('created_at'),
     // Nombres de todos los que actuaron sobre la solicitud. Por RLS de profiles el solicitante solo lee
     // su propio perfil; esta RPC le devuelve solo el nombre de sus compañeros y del admin
     // (supabase/migrations/202610030001_request_actor_names.sql).
@@ -164,6 +166,18 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
     }
   }
 
+  // Una corrección inserta una fila por producto con la misma fecha y autor: se agrupan. Solo informan
+  // (no definen acciones): si no se pueden leer, el historial se muestra sin ellas.
+  if (editsError) console.error('Error al cargar las correcciones de la solicitud', editsError)
+  const edits = new Map<string, EditEvent>()
+  for (const row of editRows ?? []) {
+    const key = `${row.created_at}|${row.created_by}`
+    const productName = relationOne(relationOne(row.request_item as { product: ProductName } | { product: ProductName }[] | null)?.product ?? null)?.name ?? 'Producto no disponible'
+    const event = edits.get(key) ?? { at: row.created_at as string, by: actorName(row.created_by as string), reason: row.reason as string, products: [] }
+    event.products.push({ name: productName, previous: row.previous_quantity as number | null, quantity: row.new_quantity as number })
+    edits.set(key, event)
+  }
+
   // Una operación de cierre inserta una fila por producto con la misma fecha y motivo: se agrupan.
   // Se anula entera (void_closures), así que la anulación se toma de cualquiera de sus filas.
   // Los cierres 'no_recibido' ya se muestran como resolución de la diferencia.
@@ -187,6 +201,7 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
   const actionButtons = isAdmin && summary.pending > 0
     ? (
       <div className="flex flex-col gap-2 sm:flex-row">
+        <Link href={`/solicitudes/${id}/editar`} className={buttonVariants({ variant: 'secondary' })}><Pencil />Corregir</Link>
         <Link href={`/solicitudes/${id}/cerrar`} className={buttonVariants({ variant: 'secondary' })}><PackageX />Cerrar pendiente</Link>
         <Link href={`/solicitudes/${id}/entregar`} className={buttonVariants()}><Truck />Registrar entrega</Link>
       </div>
@@ -296,7 +311,7 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
         </Suspense>
       </Card>
 
-      <RequestHistory requestId={id} isAdmin={isAdmin} createdAt={createdAt} createdBy={actorName(createdBy)} deliveries={deliveries} closures={[...closures.values()]} receipts={[...receiptEvents.values()]} resolutions={resolutions} purchaseRequirement={purchaseRequirement} />
+      <RequestHistory requestId={id} isAdmin={isAdmin} createdAt={createdAt} createdBy={actorName(createdBy)} deliveries={deliveries} closures={[...closures.values()]} receipts={[...receiptEvents.values()]} resolutions={resolutions} edits={[...edits.values()]} purchaseRequirement={purchaseRequirement} />
 
       <Card className="mt-6">
         <CardHeader><CardTitle>Observaciones</CardTitle></CardHeader>

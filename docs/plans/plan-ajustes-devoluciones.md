@@ -112,6 +112,18 @@ Estado al 2026-10-19, rama `develop`. Lista de devoluciones de las pruebas con u
     `search_variants`). App: `searchTerms` / `applySearch` / `matchesSearch` en `src/lib/filters.ts`.
     Entregas no cambia: se busca por número.
 
+- [x] **19. Corregir solicitudes (admin).**
+  - Decisión: mientras la solicitud tenga pendiente (también con entregas parciales), el admin cambia
+    la cantidad solicitada de cada producto y agrega productos activos del rubro, desde «Corregir»
+    en el detalle (`/solicitudes/[id]/editar`). La cantidad no baja de lo ya entregado + cerrado.
+    No se quitan productos (para eso está «Cerrar pendiente»). Motivo obligatorio; sin notificación
+    al centro.
+  - Registro: `request_item_edits` (una fila por producto, cantidad anterior y nueva; null = agregado),
+    visible en el historial de la solicitud para admin y centro («Solicitud corregida por …»), y
+    evento `request.edited` en la auditoría con las cantidades antes/después, los cambios y el motivo.
+  - Migración: `supabase/migrations/202610230001_request_edits.sql` (tabla, RLS, RPC
+    `edit_request_items`, `request_actor_names` con quien corrigió).
+
 ## 7. Tutoriales por pantalla y por tarea
 
 Objetivo: que cada pantalla explique qué hace cada cosa (qué es, para qué sirve, qué pasa al usarlo).

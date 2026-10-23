@@ -12,6 +12,6 @@ describe('mensajes de resultado por URL', () => {
 })
 
 describe('errores de las RPCs de gestión', () => {
-  it.each(['requerimiento-invalido', 'requerimiento-sin-pendiente', 'cierre-ya-anulado', 'cierre-no-anulable'])('traduce %s a un mensaje', (code) => expect(feedbackMessage(managementErrorCode({ message: code }, 'gestion-error'))).not.toBe(feedbackMessage('gestion-error')))
+  it.each(['requerimiento-invalido', 'requerimiento-sin-pendiente', 'cierre-ya-anulado', 'cierre-no-anulable', 'edicion-sin-pendiente', 'cantidad-menor-entregado', 'producto-invalido', 'producto-repetido', 'sin-cambios'])('traduce %s a un mensaje', (code) => expect(feedbackMessage(managementErrorCode({ message: code }, 'gestion-error'))).not.toBe(feedbackMessage('gestion-error')))
   it('usa el fallback ante un mensaje técnico', () => expect(managementErrorCode({ message: 'duplicate key value violates unique constraint' }, 'gestion-error')).toBe('gestion-error'))
 })
