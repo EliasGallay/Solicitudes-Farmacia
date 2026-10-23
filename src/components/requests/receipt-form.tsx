@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { Check, CheckCheck, CircleCheck, LoaderCircle, PackageCheck, PackageX, TriangleAlert } from 'lucide-react'
-import { confirmReceipt } from '@/app/request-management-actions'
+import { Check, CheckCheck, CircleCheck, LoaderCircle, PackageCheck, PackageX, Paperclip, TriangleAlert } from 'lucide-react'
+import { confirmReceipt, confirmReceiptWithSignedNote } from '@/app/request-management-actions'
+import { SignedNoteInput } from '@/components/deliveries/signed-note-input'
 import { FormError } from '@/components/form-feedback'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -23,8 +24,12 @@ type LineState = { mark: '' | 'ok' | 'diferencia' | 'equivocado'; received: stri
 // Confirmación de recepción, producto por producto. Cada línea se marca "Recibido conforme", "Con
 // diferencia" (cantidad recibida + detalle obligatorio) o "Producto equivocado" (llegó otra cosa: recibido
 // 0 + qué llegó, obligatorio); las que no se marcan quedan para después.
-export function ReceiptForm({ requestId, groups, cancelHref }: { requestId: string; groups: ReceiptGroup[]; cancelHref: string }) {
+// Con `signedNote`, lo usa el admin en /entregas/[id]/recibir: confirma las líneas de esa entrega con la
+// foto del remito firmado por el centro (obligatoria salvo que la entrega ya tenga `existing` remitos) o
+// solo adjunta el remito, sin marcar líneas.
+export function ReceiptForm({ requestId, groups, cancelHref, signedNote }: { requestId: string; groups: ReceiptGroup[]; cancelHref: string; signedNote?: { deliveryId: string; existing: number } }) {
   const lines = groups.flatMap((group) => group.lines)
+  const [file, setFile] = useState<File | null>(null)
   const [states, setStates] = useState<Record<string, LineState>>(() => Object.fromEntries(lines.map((line) => [line.id, { mark: '', received: '', comment: '' }])))
   const [error, setError] = useState<string>()
   const [confirming, setConfirming] = useState(false)
@@ -48,9 +53,14 @@ export function ReceiptForm({ requestId, groups, cancelHref }: { requestId: stri
   const differences = marked.filter((line) => states[line.id].mark === 'diferencia')
   const wrongProducts = marked.filter((line) => states[line.id].mark === 'equivocado')
   const invalid = marked.some((line) => differenceError(line, states[line.id]))
+  // Admin: para confirmar hace falta un remito (el nuevo o uno anterior); sin líneas marcadas, solo se adjunta.
+  const missingNote = Boolean(signedNote) && !file && (marked.length > 0 ? signedNote!.existing === 0 : true)
+  const attachOnly = Boolean(signedNote) && marked.length === 0 && Boolean(file)
+  const canSubmit = (marked.length > 0 || attachOnly) && !invalid && !missingNote
+  const emptyText = signedNote && lines.length === 0 ? 'Todos los productos de la entrega ya están confirmados.' : attachOnly ? 'Ningún producto marcado: solo se adjunta el remito.' : 'Ningún producto marcado.'
 
   function submit() {
-    if (marked.length === 0 || invalid) return
+    if (!canSubmit) return
     setError(undefined)
     setConfirming(true)
   }
@@ -63,7 +73,14 @@ export function ReceiptForm({ requestId, groups, cancelHref }: { requestId: stri
       return { delivery_item_id: line.id, received_quantity: Number(state.received), comment: state.comment.trim() }
     })
     startTransition(async () => {
-      const result = await confirmReceipt(requestId, payload)
+      let result: { error: string } | undefined
+      if (signedNote) {
+        const formData = new FormData()
+        if (file) formData.set('file', file)
+        result = await confirmReceiptWithSignedNote(signedNote.deliveryId, payload, formData)
+      } else {
+        result = await confirmReceipt(requestId, payload)
+      }
       if (result?.error) {
         setError(result.error)
         setConfirming(false)
@@ -73,13 +90,24 @@ export function ReceiptForm({ requestId, groups, cancelHref }: { requestId: stri
 
   return (
     <form onSubmit={(event) => { event.preventDefault(); submit() }}>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      {signedNote && (
+        <section aria-labelledby="remito-firmado" className="mb-6 flex flex-col gap-2">
+          <h3 id="remito-firmado" className="text-sm font-semibold">Remito firmado por el centro</h3>
+          <p className="text-sm text-foreground-secondary">
+            {signedNote.existing > 0
+              ? `La entrega ya tiene ${signedNote.existing === 1 ? '1 remito firmado adjunto' : `${signedNote.existing} remitos firmados adjuntos`}. Podés sumar otro (por ejemplo, otra hoja) o confirmar sin adjuntar.`
+              : 'Sacale una foto al remito con la firma del centro: queda como constancia de la recepción.'}
+          </p>
+          <SignedNoteInput value={file} onChange={setFile} disabled={pending} />
+        </section>
+      )}
+      {lines.length > 0 && <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-foreground-secondary">Lo que no marques queda para confirmar después.</p>
         {/* Solo completa lo que falta marcar: no pisa las diferencias ya cargadas. */}
         <Button data-tour="receipt-mark-all" type="button" variant="secondary" size="sm" onClick={() => setStates((current) => Object.fromEntries(Object.entries(current).map(([id, state]) => [id, state.mark ? state : { ...state, mark: 'ok' }])))}>
           <CheckCheck />Marcar todo como recibido conforme
         </Button>
-      </div>
+      </div>}
 
       <div className="flex flex-col gap-6">
         {groups.map((group) => (
@@ -146,14 +174,16 @@ export function ReceiptForm({ requestId, groups, cancelHref }: { requestId: stri
 
       <div className="mt-6 flex flex-col-reverse gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-foreground-secondary" aria-live="polite">
-          {marked.length === 0
-            ? 'Ningún producto marcado.'
-            : <><span className="font-semibold text-foreground">{marked.length} de {lines.length}</span> {lines.length === 1 ? 'producto marcado' : 'productos marcados'}{differences.length > 0 && <>, <span className="font-semibold text-warning">{differences.length} con diferencia</span></>}{wrongProducts.length > 0 && <>, <span className="font-semibold text-danger">{wrongProducts.length} {wrongProducts.length === 1 ? 'equivocado' : 'equivocados'}</span></>}.</>}
+          {missingNote && (marked.length > 0 || lines.length === 0)
+            ? <span className="font-semibold text-warning">Adjuntá el remito firmado para continuar.</span>
+            : marked.length === 0
+              ? emptyText
+              : <><span className="font-semibold text-foreground">{marked.length} de {lines.length}</span> {lines.length === 1 ? 'producto marcado' : 'productos marcados'}{differences.length > 0 && <>, <span className="font-semibold text-warning">{differences.length} con diferencia</span></>}{wrongProducts.length > 0 && <>, <span className="font-semibold text-danger">{wrongProducts.length} {wrongProducts.length === 1 ? 'equivocado' : 'equivocados'}</span></>}.</>}
         </p>
         <div className="flex flex-col-reverse gap-3 sm:flex-row">
           <Link href={cancelHref} className={buttonVariants({ variant: 'secondary' })}>Cancelar</Link>
-          <Button data-tour="receipt-submit" type="submit" disabled={pending || marked.length === 0 || invalid}>
-            {pending ? <><LoaderCircle className="motion-safe:animate-spin" aria-hidden />Confirmando...</> : <><PackageCheck />Confirmar recepción</>}
+          <Button data-tour="receipt-submit" type="submit" disabled={pending || !canSubmit}>
+            {pending ? <><LoaderCircle className="motion-safe:animate-spin" aria-hidden />{attachOnly ? 'Adjuntando...' : 'Confirmando...'}</> : attachOnly ? <><Paperclip />Adjuntar remito</> : <><PackageCheck />Confirmar recepción</>}
           </Button>
         </div>
       </div>
@@ -163,17 +193,20 @@ export function ReceiptForm({ requestId, groups, cancelHref }: { requestId: stri
         pending={pending}
         onCancel={() => setConfirming(false)}
         onConfirm={confirm}
-        icon={PackageCheck}
-        title="Confirmar recepción"
+        icon={attachOnly ? Paperclip : PackageCheck}
+        title={attachOnly ? 'Adjuntar remito firmado' : 'Confirmar recepción'}
         description={
-          <>
+          attachOnly ? 'El remito firmado queda adjunto a la entrega y no se puede quitar.' : <>
+            {signedNote && <span className="mb-2 block">Se registra en nombre de la administración, con el remito firmado como constancia.</span>}
             {differences.length + wrongProducts.length > 0
-              ? 'Las diferencias informadas serán revisadas por la administración, que resolverá el reenvío o el cierre del faltante. Lo confirmado no se puede modificar.'
+              ? signedNote
+                ? 'Las diferencias quedan abiertas en la solicitud, para reenviar o cerrar el faltante. Lo confirmado no se puede modificar.'
+                : 'Las diferencias informadas serán revisadas por la administración, que resolverá el reenvío o el cierre del faltante. Lo confirmado no se puede modificar.'
               : 'Se registra la recepción conforme de los productos marcados. Lo confirmado no se puede modificar.'}
             {marked.length < lines.length && <span className="mt-2 block font-semibold text-foreground">{lines.length - marked.length === 1 ? 'Queda 1 producto sin confirmar.' : `Quedan ${lines.length - marked.length} productos sin confirmar.`}</span>}
           </>
         }
-        confirmLabel={pending ? 'Confirmando...' : 'Confirmar'}
+        confirmLabel={pending ? (attachOnly ? 'Adjuntando...' : 'Confirmando...') : attachOnly ? 'Adjuntar' : 'Confirmar'}
       />
     </form>
   )

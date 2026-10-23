@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { feedbackMessage, withFeedback } from '../lib/feedback'
 import { closureReasons, managementErrorCode, NOTE_MAX_LENGTH, PURCHASE_REQUIREMENT_MAX_LENGTH, receiptResolutions } from '../lib/request-management'
 import { requireRole, requireSession } from '../lib/session'
+import { isSignedNoteType, SIGNED_NOTE_MAX_BYTES, SIGNED_NOTES_BUCKET, signedNotePath, type SignedNoteType } from '../lib/signed-notes'
 
 // Gestión de solicitudes (docs/plans/plan-gestion-solicitudes.md). Cada acción llama a una RPC de
 // supabase/migrations/202610020001_request_management.sql, que vuelve a validar rol, saldos y
@@ -137,13 +138,14 @@ export async function voidClosure(formData: FormData) {
   redirect(withFeedback(page, 'success', 'cierre-anulado'))
 }
 
-const receiptLinesSchema = z.array(z.object({
+const receiptLineSchema = z.object({
   delivery_item_id: z.string().uuid(),
   received_quantity: z.number().int().min(0),
   comment: noteSchema.optional(),
   // Producto equivocado: llegó otra cosa; va con recibido 0 y detalle (supabase/migrations/202610190001_wrong_product_receipts.sql).
   wrong_product: z.boolean().optional(),
-})).min(1)
+})
+const receiptLinesSchema = z.array(receiptLineSchema).min(1)
 
 // Formulario cliente de /solicitudes/[id]/recibir: el solicitante confirma lo que llegó, línea por línea.
 export async function confirmReceipt(requestId: string, lines: { delivery_item_id: string; received_quantity: number; comment?: string; wrong_product?: boolean }[]): Promise<{ error: string }> {
@@ -163,6 +165,45 @@ export async function confirmReceipt(requestId: string, lines: { delivery_item_i
 
   revalidateRequest(id.data)
   redirect(withFeedback(`/solicitudes/${id.data}`, 'success', remaining > 0 ? 'recepcion-confirmada-parcial' : 'recepcion-confirmada'))
+}
+
+// Formulario cliente de /entregas/[id]/recibir: el admin adjunta el remito firmado por el centro
+// (`file` en formData, ya comprimido si es foto) y confirma las líneas de esa entrega que el centro no
+// confirmó. Sin líneas, solo adjunta el remito. Sin archivo, usa un remito adjuntado antes.
+export async function confirmReceiptWithSignedNote(deliveryId: string, lines: { delivery_item_id: string; received_quantity: number; comment?: string; wrong_product?: boolean }[], formData: FormData): Promise<{ error: string }> {
+  const id = idSchema.safeParse(deliveryId)
+  const parsed = z.array(receiptLineSchema).safeParse(lines)
+  if (!id.success) return { error: feedbackMessage('gestion-datos-invalidos')! }
+  if (!parsed.success) return { error: feedbackMessage(parsed.error.issues[0]?.path.includes('comment') ? 'gestion-nota-larga' : 'gestion-datos-invalidos')! }
+
+  const file = formData.get('file')
+  const upload = file instanceof File && file.size > 0 ? file : null
+  if (!upload && parsed.data.length === 0) return { error: feedbackMessage('remito-requerido')! }
+  if (upload && !isSignedNoteType(upload.type)) return { error: feedbackMessage('remito-tipo-invalido')! }
+  if (upload && upload.size > SIGNED_NOTE_MAX_BYTES) return { error: feedbackMessage('remito-muy-grande')! }
+
+  const { supabase } = await requireRole('admin')
+  const { data: delivery } = await supabase.from('deliveries').select('request_id').eq('id', id.data).maybeSingle()
+  if (!delivery) return { error: feedbackMessage('gestion-datos-invalidos')! }
+
+  let path: string | null = null
+  if (upload) {
+    path = signedNotePath(id.data, upload.type as SignedNoteType)
+    const { error: uploadError } = await supabase.storage.from(SIGNED_NOTES_BUCKET).upload(path, upload, { contentType: upload.type, upsert: false })
+    if (uploadError) return { error: feedbackMessage('remito-subida-error')! }
+  }
+
+  const { data: confirmed, error } = await supabase.rpc('confirm_receipt_with_signed_note', { target_delivery_id: id.data, signed_note_path: path, receipt_lines: parsed.data.map((line) => ({ ...line, comment: line.comment || null })) })
+  if (error) {
+    // El archivo no quedó registrado: se borra para no dejarlo huérfano (la política solo permite eso).
+    if (path) await supabase.storage.from(SIGNED_NOTES_BUCKET).remove([path])
+    return { error: feedbackMessage(managementErrorCode(error, 'gestion-error'))! }
+  }
+
+  const requestId = delivery.request_id as string
+  revalidateRequest(requestId)
+  revalidatePath(`/recepciones/${id.data}`)
+  redirect(withFeedback(`/entregas/${id.data}`, 'success', (confirmed as number) > 0 ? 'recepcion-confirmada-remito' : 'remito-adjuntado'))
 }
 
 // Resolución de una diferencia de recepción desde el detalle de la solicitud (solo admin). El botón
