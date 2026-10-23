@@ -388,6 +388,11 @@ Todo filtro o búsqueda de la aplicación sigue estas reglas:
   - no distinguen mayúsculas ni acentos ("algodon" encuentra "Algodón");
   - admiten varias palabras en cualquier orden: todas deben aparecer
     ("para 500" encuentra "Paracetamol 500 mg");
+  - toleran errores de tipeo en palabras de 4 letras o más ("diasepam"
+    encuentra "Diazepam", "amoxicilna" encuentra "Amoxicilina"): cada palabra
+    coincide también con las parecidas del vocabulario (RPC `search_variants`,
+    distancia de edición 1 hasta 6 letras y 2 desde 7, también contra el
+    comienzo de la palabra mientras se escribe);
   - buscan sobre columnas de texto normalizado calculadas en la base
     (`product_search_text`, `item_search_text`, `request_search_text`).
 - Cambiar un filtro reinicia la paginación.

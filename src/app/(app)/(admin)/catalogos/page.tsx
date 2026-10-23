@@ -17,7 +17,7 @@ import { MobileList, MobileListItem } from '@/components/ui/mobile-list'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { areaName, getAreas, getProductTypes, selectedArea, type Area } from '@/lib/areas'
 import { feedbackMessage } from '@/lib/feedback'
-import { keyParamSchema, likeContains, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
+import { applySearch, keyParamSchema, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTerms } from '@/lib/filters'
 import { productTypeLabel, type ProductTypeRelation } from '@/lib/product-types'
 import { requireRole } from '@/lib/session'
 
@@ -80,7 +80,7 @@ async function ProductsList({ filters, areas }: { filters: Filters; areas?: Area
   if (filters.tipo) query = query.eq('product_type', filters.tipo)
   if (filters.estado) query = query.eq('active', filters.estado === 'activo')
   // Cada palabra debe aparecer en nombre o presentación, sin distinguir acentos (product_search_text).
-  for (const token of searchTokens(filters.buscar ?? '')) query = query.ilike('product_search_text', likeContains(token))
+  query = applySearch(query, 'product_search_text', await searchTerms(supabase, 'productos', filters.buscar ?? ''))
   const { data, count, error } = await query.order('name').range(...pageRange(filters.page, filters.por_pagina))
 
   // PGRST103: la página pedida está fuera de rango; se trata como sin resultados.

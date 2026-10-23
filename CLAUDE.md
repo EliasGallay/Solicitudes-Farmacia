@@ -47,7 +47,7 @@ Environment: copy `.env.example` to `.env.local` (`NEXT_PUBLIC_SUPABASE_URL`, `N
 
 **Feedback via URL codes**: actions redirect with `?error=<code>` / `?success=<code>` built by `withFeedback()`; `src/lib/feedback.ts` maps ASCII codes to Spanish messages. Never put free text or backend error messages in the URL. RPCs raise short code strings that `managementErrorCode()` (`src/lib/request-management.ts`) translates to feedback codes; add new codes in both places.
 
-**Filters and search** are always resolved server-side with state in the URL: `useUrlFilters` / `useSearchFilter` (`src/hooks/use-url-filters.ts`) on the client; `searchTokens`, `likeContains`, `keySchema`, page-size/range helpers (`src/lib/filters.ts`) on the server, querying normalized `*_search_text` columns (`unaccent`, mirrored by `normalizeSearch`). See `docs/ui-reference/UI-SPEC.md` §11.1.
+**Filters and search** are always resolved server-side with state in the URL: `useUrlFilters` / `useSearchFilter` (`src/hooks/use-url-filters.ts`) on the client; `searchTerms` + `applySearch` (typo-tolerant via the `search_variants` RPC), `keySchema`, page-size/range helpers (`src/lib/filters.ts`) on the server, querying normalized `*_search_text` columns (`unaccent`, mirrored by `normalizeSearch`). See `docs/ui-reference/UI-SPEC.md` §11.1.
 
 **Validation**: Zod on both client (React Hook Form + `@hookform/resolvers`) and server actions; server actions and RLS are authoritative. Length limits in TS constants must match DB checks.
 

@@ -14,7 +14,7 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { areaName, getAreas, selectedArea, type Area } from '@/lib/areas'
 import { centerTone, getCenters, type Center } from '@/lib/centers'
 import { INBOX_FILTER, openStatuses, PURCHASE_FILTER, statusViewParamSchema, type RequestStatus, type StatusView } from '@/lib/request-status'
-import { keyParamSchema, likeContains, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
+import { applySearch, keyParamSchema, likeContains, listHref, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTerms } from '@/lib/filters'
 import { parseRequestNumber, waitDays } from '@/lib/requests'
 import { requireSession } from '@/lib/session'
 
@@ -88,7 +88,8 @@ async function RequestsList({ filters, view, areas, centers }: { filters: Filter
   // - un número ("2", "#2", "SOL-2") busca por número parcial y ordena ascendente, por lo que la
   //   coincidencia exacta queda primera (todo número que contiene esos dígitos es mayor o igual);
   //   solo dígitos ("94020") busca además por número de requerimiento de compra;
-  // - cualquier otro texto busca cada palabra en el número y los productos, sin distinguir acentos.
+  // - cualquier otro texto busca cada palabra en el número y los productos, sin distinguir acentos y
+  //   tolerando errores de tipeo (searchTerms).
   const number = filters.buscar ? parseRequestNumber(filters.buscar) : null
 
   let query = supabase.from('requests').select('id, area, health_center_id, request_number, created_at, request_status, purchase_requirement_number, receipt_unconfirmed_count, receipt_discrepancy_count, request_items(count)', { count: 'exact' })
@@ -96,7 +97,7 @@ async function RequestsList({ filters, view, areas, centers }: { filters: Filter
   if (filters.centro) query = query.eq('health_center_id', filters.centro)
   if (number !== null && /^\d+$/.test(filters.buscar!.trim())) query = query.or(`request_number_text.ilike.${likeContains(String(number))},purchase_requirement_number.ilike.${likeContains(filters.buscar!.trim())}`)
   else if (number !== null) query = query.ilike('request_number_text', likeContains(String(number)))
-  else for (const token of searchTokens(filters.buscar ?? '')) query = query.ilike('request_search_text', likeContains(token))
+  else query = applySearch(query, 'request_search_text', await searchTerms(supabase, 'productos', filters.buscar ?? ''))
   if (filters.desde) query = query.gte('created_at', `${filters.desde}T00:00:00${DAY_OFFSET}`)
   // Por atender: con pendiente de entrega o con una diferencia de recepción sin resolver.
   if (inbox) query = query.or(INBOX_FILTER)
