@@ -61,6 +61,11 @@ const rpcErrorCodes: Record<string, FeedbackCode> = {
   'cierre-invalido': 'gestion-datos-invalidos',
   'cierre-ya-anulado': 'cierre-ya-anulado',
   'cierre-no-anulable': 'cierre-no-anulable',
+  'edicion-sin-pendiente': 'edicion-sin-pendiente',
+  'cantidad-menor-entregado': 'edicion-cantidad-menor',
+  'producto-invalido': 'edicion-producto-invalido',
+  'producto-repetido': 'edicion-producto-repetido',
+  'sin-cambios': 'edicion-sin-cambios',
 }
 
 export function managementErrorCode(error: { message?: string } | null, fallback: FeedbackCode): FeedbackCode {
