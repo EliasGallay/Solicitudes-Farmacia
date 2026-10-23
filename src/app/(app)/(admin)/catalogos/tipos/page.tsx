@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { areaName, getAreas, selectedArea } from '@/lib/areas'
 import { feedbackMessage } from '@/lib/feedback'
-import { keySchema, keyParamSchema, listHref, normalizeSearch, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTokens } from '@/lib/filters'
+import { keyParamSchema, keySchema, listHref, matchesSearch, pageParamSchema, pageRange, pageSizeParam, pageSizeParamSchema, searchParamSchema, searchTerms } from '@/lib/filters'
 import { requireRole } from '@/lib/session'
 
 const PATH = '/catalogos/tipos'
@@ -60,8 +60,9 @@ export default async function ProductTypesPage({ searchParams }: { searchParams:
   const multipleAreas = areas.length > 1
   if (!multipleAreas || !selectedArea(areas, filters.rubro)) filters.rubro = undefined
 
-  const tokens = searchTokens(filters.buscar ?? '')
-  // Pocos tipos por rubro: se filtran en memoria, con la misma normalización (sin acentos) que el resto de las búsquedas.
+  const terms = await searchTerms(supabase, 'tipos', filters.buscar ?? '')
+  // Pocos tipos por rubro: se filtran en memoria, con la misma normalización (sin acentos) y tolerancia
+  // a errores de tipeo que el resto de las búsquedas.
   const rows: TypeRow[] = (data ?? [])
     .map((type) => ({
       area: type.area as string,
@@ -73,7 +74,7 @@ export default async function ProductTypesPage({ searchParams }: { searchParams:
     }))
     .filter((type) => (!filters.rubro || type.area === filters.rubro)
       && (!filters.estado || type.active === (filters.estado === 'activo'))
-      && tokens.every((token) => normalizeSearch(type.label).includes(token)))
+      && matchesSearch(type.label, terms))
   const [from, to] = pageRange(filters.page, filters.por_pagina)
   const pageRows = rows.slice(from, to + 1)
   const isEditing = (row: TypeRow) => editing?.[0] === row.area && editing[1] === row.key

@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { DEFAULT_PAGE_SIZE, keyParamSchema, likeContains, listHref, normalizeSearch, pageRange, pageSizeParam, pageSizeParamSchema, searchTokens } from '../src/lib/filters'
+import { describe, expect, it, vi } from 'vitest'
+import { applySearch, containsAnyFilter, DEFAULT_PAGE_SIZE, keyParamSchema, likeContains, listHref, matchesSearch, normalizeSearch, pageRange, pageSizeParam, pageSizeParamSchema, searchTerms, searchTokens } from '../src/lib/filters'
 
 describe('búsqueda normalizada', () => {
   it('quita acentos y mayúsculas', () => expect(normalizeSearch('Algodón ÑANDÚ')).toBe('algodon nandu'))
@@ -11,6 +11,39 @@ describe('búsqueda normalizada', () => {
 describe('patrón ilike', () => {
   it('envuelve con comodines', () => expect(likeContains('gasa')).toBe('%gasa%'))
   it('escapa los comodines de LIKE', () => expect(likeContains('50%_x')).toBe('%50\\%\\_x%'))
+})
+
+describe('búsqueda tolerante a errores de tipeo', () => {
+  const rpc = (data: unknown, error: unknown = null) => ({ rpc: vi.fn(async () => ({ data, error })) }) as never
+
+  it('suma las palabras parecidas a cada palabra buscada', async () => {
+    const client = rpc([{ token: 'diasepam', variants: ['diazepam'] }])
+    expect(await searchTerms(client, 'productos', 'Diasepam 10')).toEqual([['diasepam', 'diazepam'], ['10']])
+  })
+  it('no consulta si ninguna palabra llega al largo mínimo', async () => {
+    const client = { rpc: vi.fn() }
+    expect(await searchTerms(client as never, 'productos', 'sal 10')).toEqual([['sal'], ['10']])
+    expect(client.rpc).not.toHaveBeenCalled()
+  })
+  it('si la consulta falla busca solo lo escrito', async () => {
+    expect(await searchTerms(rpc(null, { message: 'x' }), 'productos', 'gasas')).toEqual([['gasas']])
+  })
+  it('arma el filtro or con valores entre comillas', () => {
+    expect(containsAnyFilter('product_search_text', ['diasepam', 'a,b'])).toBe('product_search_text.ilike."%diasepam%",product_search_text.ilike."%a,b%"')
+  })
+  it('escapa comillas y barras dentro del valor', () => {
+    expect(containsAnyFilter('c', ['a"b', '50%'])).toBe(String.raw`c.ilike."%a\"b%",c.ilike."%50\\%%"`)
+  })
+  it('aplica un or por grupo', () => {
+    const calls: string[] = []
+    const query = { or: (filters: string) => { calls.push(filters); return query } }
+    applySearch(query, 'c', [['a', 'b'], ['c']])
+    expect(calls).toEqual(['c.ilike."%a%",c.ilike."%b%"', 'c.ilike."%c%"'])
+  })
+  it('filtra en memoria con la misma regla', () => {
+    expect(matchesSearch('Medicación oral', [['medicasion', 'medicacion']])).toBe(true)
+    expect(matchesSearch('Descartable', [['gasa']])).toBe(false)
+  })
 })
 
 describe('url de listados', () => {

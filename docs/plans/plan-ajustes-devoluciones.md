@@ -100,6 +100,18 @@ Estado al 2026-10-19, rama `develop`. Lista de devoluciones de las pruebas con u
     (solo `register_delivery` lo usa); `resolve_receipt_difference` con 'cerrar' cierra como mucho
     lo que volvió a pendiente, así `closed_quantity` no supera lo solicitado.
 
+- [x] **18. Búsquedas tolerantes a errores de tipeo.**
+  - Revisado: acentos y mayúsculas ya se ignoraban en todos los buscadores (`*_search_text`
+    normalizadas con `unaccent`); lo que fallaba eran las palabras mal escritas (búsqueda exacta).
+  - Decisión: cada palabra de 4 letras o más coincide también con las parecidas del vocabulario
+    (distancia de edición 1 hasta 6 letras y 2 desde 7, también contra el comienzo de la palabra).
+    Vocabularios: productos (catálogos, nueva solicitud, listado y detalle de solicitudes), tipos de
+    producto y nombres de usuarios (solo admin). Los resultados no se ordenan por parecido: se
+    mantiene el orden de cada listado. Si la consulta de parecidas falla, se busca solo lo escrito.
+  - Migración: `supabase/migrations/202610220001_fuzzy_search.sql` (`fuzzystrmatch`, RPC
+    `search_variants`). App: `searchTerms` / `applySearch` / `matchesSearch` en `src/lib/filters.ts`.
+    Entregas no cambia: se busca por número.
+
 ## 7. Tutoriales por pantalla y por tarea
 
 Objetivo: que cada pantalla explique qué hace cada cosa (qué es, para qué sirve, qué pasa al usarlo).
