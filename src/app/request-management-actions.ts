@@ -41,6 +41,31 @@ export async function registerDelivery(requestId: string, lines: { request_item_
   redirect(withFeedback(`/solicitudes/${id.data}?remito=${deliveryId}`, 'success', 'entrega-registrada'))
 }
 
+// Corrección de la solicitud: cantidad nueva de un producto existente o producto agregado.
+const editChangesSchema = z.array(z.union([
+  z.object({ request_item_id: z.string().uuid(), quantity: z.number().int().positive() }),
+  z.object({ product_id: z.string().uuid(), quantity: z.number().int().positive() }),
+])).min(1)
+
+// Formulario cliente de /solicitudes/[id]/editar: devuelve el error para mostrarlo sin perder lo cargado.
+export async function editRequest(requestId: string, changes: ({ request_item_id: string; quantity: number } | { product_id: string; quantity: number })[], reason: string): Promise<{ error: string }> {
+  const id = idSchema.safeParse(requestId)
+  const parsedChanges = editChangesSchema.safeParse(changes)
+  const parsedReason = noteSchema.safeParse(reason)
+  if (!id.success) return { error: feedbackMessage('gestion-datos-invalidos')! }
+  if (!parsedChanges.success) return { error: feedbackMessage(changes.length === 0 ? 'edicion-sin-cambios' : 'gestion-datos-invalidos')! }
+  if (!parsedReason.success) return { error: feedbackMessage('gestion-nota-larga')! }
+  if (!parsedReason.data) return { error: feedbackMessage('gestion-motivo-requerido')! }
+
+  const { supabase } = await requireRole('admin')
+  const { error } = await supabase.rpc('edit_request_items', { target_request_id: id.data, item_changes: parsedChanges.data, edit_reason: parsedReason.data })
+  if (error) return { error: feedbackMessage(managementErrorCode(error, 'gestion-error'))! }
+
+  revalidateRequest(id.data)
+  revalidatePath(`/hojas-de-pedido/${id.data}`)
+  redirect(withFeedback(`/solicitudes/${id.data}`, 'success', 'solicitud-corregida'))
+}
+
 const closeSchema = z.object({
   request_id: idSchema,
   reason: z.enum(closureReasons),
