@@ -124,6 +124,25 @@ Estado al 2026-10-19, rama `develop`. Lista de devoluciones de las pruebas con u
   - Migración: `supabase/migrations/202610230001_request_edits.sql` (tabla, RLS, RPC
     `edit_request_items`, `request_actor_names` con quien corrigió).
 
+- [x] **20. Confirmar la recepción con el remito firmado (admin).**
+  - Motivo: muchos centros no confirman la recepción en el sistema, pero firman el remito en papel.
+  - Decisión: desde la entrega (`/entregas/[id]/recibir`, botón «Confirmar recepción» en el detalle de la
+    entrega, aviso en el detalle de la solicitud y acceso en el historial) el admin sube la foto (o PDF)
+    del remito firmado y confirma las líneas que el centro no confirmó, con las mismas opciones que el
+    centro (conforme, con diferencia, producto equivocado). Remito obligatorio para confirmar: el que se
+    sube en esa operación o uno anterior. Si el centro ya confirmó todo, solo se adjunta el remito.
+  - Archivos: bucket privado `remitos-firmados` (`<entrega>/<uuid>.<ext>`, JPG/PNG/WebP/PDF hasta 5 MB);
+    las fotos se achican en el navegador (lado mayor 2000 px, JPEG) antes de subirlas por server action
+    (`bodySizeLimit` 6 MB en `next.config.ts`). Se ven con enlaces firmados temporales; los ve también el
+    centro en el historial de su solicitud. Varios archivos por entrega (remito de varias hojas). Nada
+    se borra: solo se elimina el archivo subido si la confirmación falla.
+  - Registro: `delivery_signed_notes` y `delivery_item_receipts.signed_note_id` (la línea la confirmó el
+    admin con ese remito). Historial: «Recepción confirmada por … con remito firmado»; detalle de entrega
+    y constancia lo aclaran. Auditoría: `delivery.received` (avisa al centro como siempre) o
+    `delivery.signed_note` si solo se adjuntó.
+  - Migración: `supabase/migrations/202610230002_signed_delivery_notes.sql` (bucket, políticas de
+    Storage, tabla, RLS, RPC `confirm_receipt_with_signed_note`, `request_actor_names`).
+
 ## 7. Tutoriales por pantalla y por tarea
 
 Objetivo: que cada pantalla explique qué hace cada cosa (qué es, para qué sirve, qué pasa al usarlo).

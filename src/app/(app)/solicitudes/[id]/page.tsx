@@ -31,6 +31,7 @@ import { formatDateTime, formatDeliveryNumber, formatRequestNumber, relationOne,
 import { productTypeLabel, type ProductTypeRelation } from '@/lib/product-types'
 import type { RequestStatus } from '@/lib/request-status'
 import { requireSession } from '@/lib/session'
+import { getSignedNotes } from '@/lib/signed-notes'
 
 const productFiltersSchema = z.object({
   buscar: searchParamSchema,
@@ -78,7 +79,7 @@ function NotFound() {
 async function RequestDetail({ id, filters, feedback }: { id: string; filters: ProductFilters; feedback: Feedback }) {
   const { supabase, role, userId } = await requireSession()
   const isAdmin = role === 'admin'
-  const [areas, centers, { data, error }, { data: deliveryRows, error: deliveriesError }, { data: closureRows, error: closuresError }, { data: receiptRows, error: receiptsError }, { data: editRows, error: editsError }, { data: actorRows }] = await Promise.all([
+  const [areas, centers, { data, error }, { data: deliveryRows, error: deliveriesError }, { data: closureRows, error: closuresError }, { data: receiptRows, error: receiptsError }, { data: editRows, error: editsError }, { data: actorRows }, signedNotes] = await Promise.all([
     getAreas().then((result) => result ?? []),
     // El centro solo se muestra al admin: el solicitante ve únicamente las de su centro.
     isAdmin ? getCenters().then((result) => result ?? []) : null,
@@ -86,13 +87,15 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
     supabase.from('deliveries').select('id, delivery_number, created_at, created_by, note, voided_at, voided_by, void_reason, delivery_items(id, current_quantity, request_item:request_items(product:products(name)))').eq('request_id', id).order('created_at'),
     supabase.from('request_item_closures').select('id, quantity, reason, detail, created_at, created_by, voided_at, voided_by, void_reason, request_item:request_items(product:products(name))').eq('request_id', id).order('created_at'),
     // Recepciones del centro, línea por línea (supabase/migrations/202610040001_delivery_receipts.sql).
-    supabase.from('delivery_item_receipts').select('id, delivery_item_id, delivered_quantity, received_quantity, comment, wrong_product, created_by, created_at, resolution, resolution_note, resolved_by, resolved_at').eq('request_id', id).order('created_at'),
+    supabase.from('delivery_item_receipts').select('id, delivery_item_id, delivered_quantity, received_quantity, comment, wrong_product, created_by, created_at, resolution, resolution_note, resolved_by, resolved_at, signed_note_id').eq('request_id', id).order('created_at'),
     // Correcciones del admin (supabase/migrations/202610230001_request_edits.sql).
     supabase.from('request_item_edits').select('previous_quantity, new_quantity, reason, created_at, created_by, request_item:request_items(product:products(name))').eq('request_id', id).order('created_at'),
     // Nombres de todos los que actuaron sobre la solicitud. Por RLS de profiles el solicitante solo lee
     // su propio perfil; esta RPC le devuelve solo el nombre de sus compañeros y del admin
     // (supabase/migrations/202610030001_request_actor_names.sql).
     supabase.rpc('request_actor_names', { target_request_id: id }),
+    // Remitos firmados que adjuntó el admin (supabase/migrations/202610230002_signed_delivery_notes.sql).
+    getSignedNotes(supabase, { requestId: id }),
   ])
   // Entregas, cierres y recepciones definen acciones y avisos: si alguna falla no se muestra un
   // estado parcial (p. ej. todo como "sin confirmar").
@@ -119,7 +122,7 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
 
   type ProductName = { name: string } | { name: string }[] | null
   type LineRow = { id: string; current_quantity: number; request_item: { product: ProductName } | { product: ProductName }[] | null }
-  const receiptsList = (receiptRows ?? []) as { id: string; delivery_item_id: string; delivered_quantity: number; received_quantity: number; comment: string | null; wrong_product: boolean; created_by: string; created_at: string; resolution: ReceiptResolution | null; resolution_note: string | null; resolved_by: string | null; resolved_at: string | null }[]
+  const receiptsList = (receiptRows ?? []) as { id: string; delivery_item_id: string; delivered_quantity: number; received_quantity: number; comment: string | null; wrong_product: boolean; created_by: string; created_at: string; resolution: ReceiptResolution | null; resolution_note: string | null; resolved_by: string | null; resolved_at: string | null; signed_note_id: string | null }[]
   const confirmedLines = new Set(receiptsList.map((receipt) => receipt.delivery_item_id))
 
   // Líneas entregadas, con su producto y remito, para describir recepciones y diferencias.
@@ -142,6 +145,8 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
       voidedBy: row.voided_at ? actorName(row.voided_by as string | null) : null,
       voidReason: row.void_reason as string | null,
       confirmed: lines.some((line) => confirmedLines.has(line.id)),
+      unconfirmed: lines.some((line) => !confirmedLines.has(line.id)),
+      signedNotes: signedNotes.filter((note) => note.deliveryId === row.id),
     }
   })
   // Líneas de entregas activas que el centro todavía no confirmó.
@@ -155,7 +160,7 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
     const info = lineInfo.get(receipt.delivery_item_id)
     const name = info?.name ?? 'Producto no disponible'
     const key = `${receipt.created_at}|${receipt.created_by}`
-    const event = receiptEvents.get(key) ?? { at: receipt.created_at, by: actorName(receipt.created_by), lines: [] }
+    const event = receiptEvents.get(key) ?? { at: receipt.created_at, by: actorName(receipt.created_by), signed: Boolean(receipt.signed_note_id), lines: [] }
     event.lines.push({ name, delivered: receipt.delivered_quantity, received: receipt.received_quantity, comment: receipt.comment, wrongProduct: receipt.wrong_product })
     receiptEvents.set(key, event)
 
@@ -197,6 +202,8 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
   const canCancel = role === 'requester' && summary.pending > 0 && summary.delivered === 0
   // Cualquier solicitante del centro confirma lo que llegó (la base lo vuelve a validar).
   const canConfirm = role === 'requester' && unconfirmedLines > 0
+  // Entrega activa más antigua con líneas sin confirmar, para el acceso del admin.
+  const firstUnconfirmed = isAdmin ? deliveries.find((delivery) => !delivery.voidedAt && delivery.unconfirmed) : undefined
 
   const actionButtons = isAdmin && summary.pending > 0
     ? (
@@ -282,6 +289,19 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
         <Card className="mb-6 flex gap-3 border-warning bg-warning-muted/40 p-4 text-sm sm:p-5">
           <TriangleAlert className="size-5 shrink-0 text-warning" aria-hidden />
           <p><span className="font-semibold">Se informaron diferencias en {openDifferences.length === 1 ? '1 producto' : `${openDifferences.length} productos`}.</span> La administración las está revisando; la solicitud se dará por recibida cuando se resuelvan.</p>
+        </Card>
+      )}
+      {/* El admin puede confirmar en nombre del centro si tiene el remito firmado. */}
+      {isAdmin && firstUnconfirmed && (
+        <Card className="mb-6 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <div className="flex gap-3 text-sm">
+            <PackageCheck className="size-5 shrink-0 text-primary-600" aria-hidden />
+            <div>
+              <p className="font-semibold">{unconfirmedLines === 1 ? 'El centro todavía no confirmó la recepción de 1 producto.' : `El centro todavía no confirmó la recepción de ${unconfirmedLines} productos.`}</p>
+              <p className="mt-1 text-foreground-secondary">Si tenés el remito firmado, subí la foto y confirmá la recepción desde la entrega.</p>
+            </div>
+          </div>
+          <Link href={`/entregas/${firstUnconfirmed.id}/recibir`} className={buttonVariants({ variant: 'secondary', className: 'shrink-0' })}><PackageCheck />Confirmar {formatDeliveryNumber(firstUnconfirmed.number)}</Link>
         </Card>
       )}
       {isAdmin && <ReceiptDifferences requestId={id} differences={openDifferences} />}
