@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, ChevronRight, Clock } from 'lucide-react'
+import { ArrowRight, CalendarDays, ChevronRight, Clock, Package } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { MobileList, MobileListItem } from '@/components/ui/mobile-list'
@@ -24,14 +24,15 @@ function WaitLabel({ days }: { days: number }) {
 }
 
 // Último movimiento queda fuera hasta que el backend lo provea.
-// Debajo de md cada solicitud es un enlace a su detalle; desde md, tabla.
-export function RequestsTable({ rows }: { rows: RequestRow[] }) {
-  const showArea = rows.some((row) => row.area)
+// Debajo de md cada solicitud es un enlace a su detalle (o una tarjeta propia con `mobileCards`); desde
+// md, tabla. `areaColumn`: muestra la columna Rubro; por defecto, cuando alguna fila trae rubro.
+export function RequestsTable({ rows, mobileCards = false, areaColumn }: { rows: RequestRow[]; mobileCards?: boolean; areaColumn?: boolean }) {
+  const showArea = areaColumn ?? rows.some((row) => row.area)
   const showCenter = rows.some((row) => row.center)
   const showWait = rows.some((row) => row.waitDays !== undefined)
   return (
     <>
-      <MobileList>
+      {mobileCards ? <RequestCards rows={rows} /> : <MobileList>
         {rows.map((row) => {
           const number = formatRequestNumber(row.number)
           return (
@@ -52,7 +53,7 @@ export function RequestsTable({ rows }: { rows: RequestRow[] }) {
             </MobileListItem>
           )
         })}
-      </MobileList>
+      </MobileList>}
       <Table containerClassName="hidden md:block">
         <TableHeader>
           <TableRow>
@@ -87,6 +88,37 @@ export function RequestsTable({ rows }: { rows: RequestRow[] }) {
         </TableBody>
       </Table>
     </>
+  )
+}
+
+// Tarjetas de mobile del listado de solicitudes: número y estado, rubro, fecha y productos, y el
+// botón para abrirla. El centro (admin) se marca con su color como en la tabla.
+function RequestCards({ rows }: { rows: RequestRow[] }) {
+  return (
+    <ul className="flex flex-col gap-3 md:hidden">
+      {rows.map((row) => {
+        const number = formatRequestNumber(row.number)
+        return (
+          <li key={row.id} className={cn('rounded-lg border border-border bg-surface p-4 shadow-card', row.center && ['pl-5', centerRowTones[row.center.tone]])}>
+            {row.center && <CenterBadge name={row.center.name} tone={row.center.tone} className="mb-2" />}
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="text-xl leading-7 font-bold text-foreground">{number}</h2>
+              <div className="flex flex-wrap justify-end gap-1"><StatusBadge status={row.status} purchase={row.purchase} /><ReceiptBadges unconfirmed={row.unconfirmed} discrepancy={row.discrepancy} /></div>
+            </div>
+            {row.area && <p className="mt-2 flex items-center gap-2 text-sm leading-5 text-foreground"><Package className="size-4 shrink-0 text-foreground-secondary" aria-hidden />{row.area}</p>}
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-3 text-sm leading-5 text-foreground-secondary">
+              <span className="flex items-center gap-1.5"><CalendarDays className="size-4 shrink-0" aria-hidden />{formatDateTime(row.createdAt)}</span>
+              <span aria-hidden className="h-4 w-px bg-border" />
+              <span className="flex items-center gap-1.5"><Package className="size-4 shrink-0" aria-hidden />{row.productCount} {row.productCount === 1 ? 'producto' : 'productos'}</span>
+              {row.waitDays !== undefined && <span className="basis-full">Espera: <WaitLabel days={row.waitDays} /></span>}
+            </div>
+            <Link href={`/solicitudes/${row.id}`} aria-label={`Ver solicitud ${number}`} className={cn(buttonVariants({ variant: 'secondary' }), 'relative mt-4 w-full')}>
+              Ver solicitud<ChevronRight className="absolute right-3" aria-hidden />
+            </Link>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 

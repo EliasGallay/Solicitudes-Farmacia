@@ -72,16 +72,19 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
       <div data-tour="requests-filters">
         <RequestFilters inbox={isAdmin} areas={multipleAreas ? areas : undefined} centers={centers?.map((center) => ({ id: center.id, name: center.name, tone: centerTone(centers, center.id) }))} rubro={filters.rubro} centro={filters.centro} buscar={filters.buscar} desde={filters.desde} hasta={filters.hasta} estado={filters.estado} />
       </div>
-      <Card data-tour="requests-list">
+      {/* En mobile cada solicitud es su propia tarjeta: la card contenedora solo se ve desde md. */}
+      <Card data-tour="requests-list" className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
         <Suspense key={pageHref(filters, filters.page)} fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
-          <RequestsList filters={filters} view={statusView(filters, isAdmin)} areas={multipleAreas ? areas : undefined} centers={centers ?? undefined} />
+          <RequestsList filters={filters} view={statusView(filters, isAdmin)} areas={areas} areaColumn={multipleAreas} centers={centers ?? undefined} />
         </Suspense>
       </Card>
     </>
   )
 }
 
-async function RequestsList({ filters, view, areas, centers }: { filters: Filters; view: StatusView; areas?: Area[]; centers?: Center[] }) {
+// `areas`: todos los visibles, para nombrar el rubro en las tarjetas de mobile; `areaColumn`: la tabla
+// muestra la columna Rubro (solo si el usuario ve más de uno).
+async function RequestsList({ filters, view, areas, areaColumn, centers }: { filters: Filters; view: StatusView; areas: Area[]; areaColumn: boolean; centers?: Center[] }) {
   const { supabase } = await requireSession()
   const inbox = view === 'por_atender'
   // Búsqueda (en la base, columnas de supabase/migrations/202609240006_search.sql):
@@ -126,7 +129,7 @@ async function RequestsList({ filters, view, areas, centers }: { filters: Filter
       productCount: (request.request_items as { count: number }[] | null)?.[0]?.count ?? 0,
       status,
       purchase: request.purchase_requirement_number !== null,
-      area: areas ? areaName(areas, request.area as string) : undefined,
+      area: areaName(areas, request.area as string),
       center: centers ? { name: center?.name ?? 'Centro no disponible', tone: centerTone(centers, centerId) } : undefined,
       // Espera: solo para el admin y solo mientras la solicitud tenga algo pendiente.
       waitDays: centers && openStatuses.includes(status) ? waitDays(request.created_at as string, now) : undefined,
@@ -150,8 +153,11 @@ async function RequestsList({ filters, view, areas, centers }: { filters: Filter
 
   return (
     <>
-      <CardContent className="pt-5"><RequestsTable rows={rows} /></CardContent>
-      <CardFooter divided><ListFooter page={filters.page} pageSize={filters.por_pagina} shown={rows.length} total={total} noun="solicitudes" hrefFor={(page) => pageHref(filters, page)} /></CardFooter>
+      <CardContent className="pt-5 max-md:p-0">
+        <p className="mb-3 text-sm leading-5 text-foreground-secondary md:hidden">{total} {total === 1 ? 'solicitud encontrada' : 'solicitudes encontradas'}</p>
+        <RequestsTable rows={rows} mobileCards areaColumn={areaColumn} />
+      </CardContent>
+      <CardFooter divided className="max-md:mt-3 max-md:border-0 max-md:px-0"><ListFooter page={filters.page} pageSize={filters.por_pagina} shown={rows.length} total={total} noun="solicitudes" hrefFor={(page) => pageHref(filters, page)} /></CardFooter>
     </>
   )
 }
