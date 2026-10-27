@@ -75,11 +75,11 @@ async function DashboardContent() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-3">
-      <div data-tour="home-metrics" className="grid gap-4 sm:grid-cols-2 xl:col-span-3 xl:grid-cols-4">
-        <MetricCard icon={Clock} value={pendingCount.count ?? 0} label="Pendientes" tone="warning" href="/solicitudes?estado=pending" />
-        <MetricCard icon={ShoppingCart} value={purchaseCount.count ?? 0} label="En compras" tone="warning" href="/solicitudes?estado=purchase" />
-        <MetricCard icon={Truck} value={partialCount.count ?? 0} label="Entregas parciales" tone="info" href="/solicitudes?estado=partial" />
-        <MetricCard icon={PackageCheck} value={unconfirmedCount.count ?? 0} label="Por confirmar recepción" tone="success" href="/solicitudes?estado=por_confirmar" />
+      <div data-tour="home-metrics" className="grid grid-cols-4 gap-2 sm:grid-cols-2 sm:gap-4 xl:col-span-3 xl:grid-cols-4">
+        <MetricCard compact icon={Clock} value={pendingCount.count ?? 0} label="Pendientes" tone="warning" href="/solicitudes?estado=pending" />
+        <MetricCard compact icon={ShoppingCart} value={purchaseCount.count ?? 0} label="En compras" tone="warning" href="/solicitudes?estado=purchase" />
+        <MetricCard compact icon={Truck} value={partialCount.count ?? 0} label="Entregas parciales" tone="info" href="/solicitudes?estado=partial" />
+        <MetricCard compact icon={PackageCheck} value={unconfirmedCount.count ?? 0} label="Por confirmar recepción" tone="success" href="/solicitudes?estado=por_confirmar" />
       </div>
       <Card data-tour="home-recent" className="xl:col-span-2">
         <CardHeader className="flex-row items-center justify-between gap-3">

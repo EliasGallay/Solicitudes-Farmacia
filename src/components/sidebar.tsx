@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { ChevronDown, CircleUser, ClipboardList, CirclePlus, FileText, House, Landmark, LogOut, Menu, Package, PackageCheck, Settings2, Truck, Users, X, type LucideIcon } from 'lucide-react'
+import { Building2, ChevronDown, CircleUser, ClipboardList, CirclePlus, FileText, House, Landmark, LogOut, Menu, Package, PackageCheck, Settings2, Truck, Users, X, type LucideIcon } from 'lucide-react'
 import { logout } from '@/app/login/actions'
 import type { AppRole } from '@/lib/session'
 import { cn } from '@/lib/utils'
@@ -32,6 +32,7 @@ const adminNavigation: NavItem[] = [
   { href: '/entregas', label: 'Entregas', icon: Truck },
   { href: '/catalogos', label: 'Catálogos', icon: Package },
   { href: '/usuarios', label: 'Usuarios', icon: Users },
+  { href: '/centros', label: 'Centros', icon: Building2 },
   { href: '/auditoria', label: 'Auditoría', icon: ClipboardList },
 ]
 

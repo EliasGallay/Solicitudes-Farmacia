@@ -10,18 +10,18 @@ import { cn } from '@/lib/utils'
 // de la pantalla: desde lg el sidebar ocupa parte del ancho, así que el viewport no alcanza para
 // decidir. Cada filtro ocupa una columna de al menos 9.5rem y entran tantas como quepan; las filas
 // quedan alineadas en una grilla en lugar de cortarse con anchos fijos.
-export function FilterBar({ children }: { children: ReactNode }) {
+export function FilterBar({ id, className, children }: { id?: string; className?: string; children: ReactNode }) {
   return (
-    <Card className="@container mb-6 p-4">
+    <Card id={id} className={cn('@container mb-6 p-4', className)}>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,9.5rem),1fr))] items-end gap-3">{children}</div>
     </Card>
   )
 }
 
 // `wide`: ocupa dos columnas cuando hay lugar (la búsqueda de texto).
-export function FilterField({ id, label, wide = false, children }: { id: string; label: string; wide?: boolean; children: ReactNode }) {
+export function FilterField({ id, label, wide = false, className, children }: { id: string; label: string; wide?: boolean; className?: string; children: ReactNode }) {
   return (
-    <div className={cn('flex min-w-0 flex-col gap-1.5', wide && 'col-span-full @md:col-span-2')}>
+    <div className={cn('flex min-w-0 flex-col gap-1.5', wide && 'col-span-full @md:col-span-2', className)}>
       <Label htmlFor={id}>{label}</Label>
       {children}
     </div>
@@ -29,11 +29,12 @@ export function FilterField({ id, label, wide = false, children }: { id: string;
 }
 
 // Campo de búsqueda con ícono, para usar dentro de un FilterField `wide`.
-export function FilterSearch({ id, placeholder, value, onChange }: { id: string; placeholder: string; value: string; onChange: (value: string) => void }) {
+// `ariaLabel`: cuando el campo va sin <Label> visible.
+export function FilterSearch({ id, placeholder, value, onChange, ariaLabel, className }: { id: string; placeholder: string; value: string; onChange: (value: string) => void; ariaLabel?: string; className?: string }) {
   return (
-    <div className="relative">
+    <div className={cn('relative', className)}>
       <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-foreground-muted" aria-hidden />
-      <Input id={id} type="search" placeholder={placeholder} className="pl-9" value={value} onChange={(event) => onChange(event.target.value)} />
+      <Input id={id} type="search" aria-label={ariaLabel} placeholder={placeholder} className="pl-9" value={value} onChange={(event) => onChange(event.target.value)} />
     </div>
   )
 }

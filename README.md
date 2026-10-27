@@ -60,7 +60,8 @@ npm run build
 28. Aplicar `supabase/migrations/202610220001_fuzzy_search.sql`. Búsquedas tolerantes a errores de tipeo (`fuzzystrmatch`, RPC `search_variants`).
 29. Aplicar `supabase/migrations/202610230001_request_edits.sql`. Corrección de solicitudes por el admin (cantidades y productos agregados, con motivo e historial).
 30. Aplicar `supabase/migrations/202610230002_signed_delivery_notes.sql`. Confirmación de recepción por el admin con la foto o el PDF del remito firmado: bucket privado de Storage `remitos-firmados` (JPG, PNG, WebP o PDF, hasta 5 MB), tabla `delivery_signed_notes` y RPC `confirm_receipt_with_signed_note`. Sin esta migración el detalle de solicitudes y entregas muestra un error de carga.
-31. Ejecutar `supabase/seed/rubros.sql` (con las migraciones ya aplicadas) para cargar Librería, Laboratorio y Limpieza. Es idempotente.
+31. Aplicar `supabase/migrations/202610270001_health_center_admin.sql`. Alta, renombrado y desactivación de centros por el admin (sección Centros); nombres únicos sin distinguir mayúsculas, hasta 80 caracteres.
+32. Ejecutar `supabase/seed/rubros.sql` (con las migraciones ya aplicadas) para cargar Librería, Laboratorio y Limpieza. Es idempotente.
 
 ## Puesta en marcha remota de la etapa 2
 
