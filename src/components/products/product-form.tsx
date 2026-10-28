@@ -12,10 +12,10 @@ import type { ProductTypeOption } from '@/lib/product-types'
 import { cn } from '@/lib/utils'
 
 const productFormSchema = z.object({
-  area: z.string({ required_error: 'Seleccioná un rubro' }).min(1, 'Seleccioná un rubro'),
+  area: z.string({ error: 'Seleccioná un rubro' }).min(1, 'Seleccioná un rubro'),
   name: z.string().trim().min(1, 'El nombre es obligatorio').max(150, 'Máximo 150 caracteres'),
   presentation: z.string().trim().min(1, 'La presentación es obligatoria').max(150, 'Máximo 150 caracteres'),
-  product_type: z.string({ required_error: 'Seleccioná un tipo' }).min(1, 'Seleccioná un tipo'),
+  product_type: z.string({ error: 'Seleccioná un tipo' }).min(1, 'Seleccioná un tipo'),
 })
 
 type ProductFormValues = z.infer<typeof productFormSchema>
