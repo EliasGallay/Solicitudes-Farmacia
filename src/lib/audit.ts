@@ -1,7 +1,7 @@
 // Acciones que escriben las RPCs y triggers de supabase/migrations/202610020001_request_management.sql
 // y, para Movilidad, de 202610280001_fleet.sql.
 export const auditActions = [
-  'request.created', 'request.cancelled', 'request.purchase_requirement', 'delivery.registered', 'delivery.voided', 'items.closed', 'closure.voided', 'request.edited', 'delivery.received', 'delivery.signed_note', 'receipt.resolved',
+  'request.created', 'request.cancelled', 'request.purchase_requirement', 'delivery.registered', 'delivery.voided', 'items.closed', 'closure.voided', 'request.edited', 'delivery.received', 'delivery.signed_note', 'receipt.resolved', 'request.comment',
   'vehicle.created', 'vehicle.updated', 'vehicle.deactivated', 'vehicle.activated', 'vehicle_record.created', 'vehicle_record.voided',
   'vehicle_request.created', 'vehicle_request.purchase_requirement', 'vehicle_request.completed', 'vehicle_request.cancelled',
   'fleet_evidence.added', 'fleet_evidence.deleted',
@@ -20,6 +20,7 @@ export const auditActionLabels: Record<AuditAction, string> = {
   'delivery.received': 'Recepción confirmada',
   'delivery.signed_note': 'Remito firmado adjuntado',
   'receipt.resolved': 'Diferencia de recepción resuelta',
+  'request.comment': 'Comentario agregado',
   'vehicle.created': 'Vehículo creado',
   'vehicle.updated': 'Vehículo actualizado',
   'vehicle.deactivated': 'Vehículo desactivado',

@@ -57,7 +57,7 @@ export function UserForm({ userId, defaultValues, centers, areas, isSelf = false
               <SelectTrigger aria-label="Rol"><SelectValue /></SelectTrigger>
               <SelectContent>{userRoles.map((value) => <SelectItem key={value} value={value}>{roleLabels[value]}</SelectItem>)}</SelectContent>
             </Select>
-            <FormDescription>{isSelf ? 'No podés cambiar tu propio rol.' : role === 'admin' ? 'Administra todo el sistema: todos los rubros y centros.' : 'Hace solicitudes para su centro, en los rubros habilitados.'}</FormDescription>
+            <FormDescription>{isSelf ? 'No podés cambiar tu propio rol.' : role === 'admin' ? 'Administra todo el sistema: todos los rubros y centros.' : role === 'purchasing' ? 'Ve las solicitudes con requerimiento de compra de todos los centros y comenta en su historial.' : 'Hace solicitudes para su centro, en los rubros habilitados.'}</FormDescription>
             <FormMessage />
           </FormItem>
         )} />

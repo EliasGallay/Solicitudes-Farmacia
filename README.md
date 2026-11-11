@@ -36,6 +36,7 @@ El estado lo calcula la base de datos con las cantidades; nadie lo edita a mano 
 
 - **Administrador** (uno global, sin centro): ve todos los centros y rubros. Entrega, cierra, corrige solicitudes, registra requerimientos de compra, resuelve diferencias y confirma recepciones con el remito firmado. Administra catálogos, usuarios, centros y la flota de Movilidad. También ve la auditoría y un panel con métricas.
 - **Solicitante** (pertenece a un centro y tiene uno o más rubros): crea solicitudes de sus rubros, sigue su estado, confirma lo que recibió, imprime la constancia de recepción y puede cancelar mientras no haya entregas. Si tiene el rubro **Movilidad**, ve ese módulo; si solo tiene Movilidad, ve únicamente ese módulo.
+- **Compras** (sin centro ni rubros): ve, de todos los centros, las solicitudes con requerimiento de compra y su historial, y deja comentarios en él. No crea, entrega ni modifica solicitudes.
 
 ## Funcionalidades
 
@@ -174,6 +175,8 @@ En el proyecto remoto, las migraciones **se aplican a mano** en el SQL Editor, e
 31. Aplicar `supabase/migrations/202610280002_fleet_notifications.sql`. Notificaciones de las solicitudes de servicio de Movilidad (`notifications.vehicle_request_id`). Después correr `supabase/checks/movilidad.sql` en el SQL Editor: todas las filas tienen que empezar con «ok» (no deja datos).
 32. Aplicar `supabase/migrations/202610290001_fleet_evidence.sql`. Archivos de evidencia de Movilidad: bucket privado `movilidad-evidencias` (JPG, PNG, WebP o PDF, hasta 10 MB), tipos de documento (`evidence_document_types`) y archivos con borrado lógico (`fleet_evidence`). Volver a correr `supabase/checks/movilidad.sql`.
 33. Ejecutar `supabase/seed/rubros.sql`. Carga Librería, Laboratorio y Limpieza con sus productos; es idempotente.
+34. Aplicar `supabase/migrations/202611110001_purchasing_role.sql` **sola** (agrega el rol `purchasing` al enum; Postgres no deja usarlo en la misma ejecución).
+35. Aplicar `supabase/migrations/202611110002_purchasing_access.sql`. Rol Compras: lee solo las solicitudes con requerimiento de compra, de todos los centros y rubros; comentarios de texto libre en el historial (`request_comments`, `add_request_comment`) que escriben el admin y Compras y ven todos los que ven la solicitud. Después correr `supabase/checks/compras.sql`: todas las filas tienen que empezar con «ok» (no deja datos).
 
 Si falta una migración, las pantallas que dependen de ella muestran un error de carga.
 

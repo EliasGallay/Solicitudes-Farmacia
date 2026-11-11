@@ -16,7 +16,7 @@ import { PageHeader } from '@/components/page-header'
 import { StatusBadge } from '@/components/status-badge'
 import { DeliveryProgress } from '@/components/requests/delivery-progress'
 import { PurchaseRequirementCard, type PurchaseRequirement } from '@/components/requests/purchase-requirement'
-import { ReceiptDifferences, RequestHistory, UNKNOWN_ACTOR, type ClosureEvent, type DeliverySummary, type EditEvent, type OpenDifference, type ReceiptEvent, type ResolutionEvent } from '@/components/requests/request-activity'
+import { ReceiptDifferences, RequestHistory, UNKNOWN_ACTOR, type ClosureEvent, type CommentEvent, type DeliverySummary, type EditEvent, type OpenDifference, type ReceiptEvent, type ResolutionEvent } from '@/components/requests/request-activity'
 import { RequestProductFilters } from '@/components/requests/request-product-filters'
 import { RequestProductsTable } from '@/components/requests/request-products-table'
 import { RequestsTableSkeleton } from '@/components/requests/requests-table'
@@ -79,10 +79,12 @@ function NotFound() {
 async function RequestDetail({ id, filters, feedback }: { id: string; filters: ProductFilters; feedback: Feedback }) {
   const { supabase, role, userId } = await requireSession()
   const isAdmin = role === 'admin'
-  const [areas, centers, { data, error }, { data: deliveryRows, error: deliveriesError }, { data: closureRows, error: closuresError }, { data: receiptRows, error: receiptsError }, { data: editRows, error: editsError }, { data: actorRows }, signedNotes] = await Promise.all([
+  // Compras: solo lectura de solicitudes con requerimiento de compra, más comentarios (RLS).
+  const purchasing = role === 'purchasing'
+  const [areas, centers, { data, error }, { data: deliveryRows, error: deliveriesError }, { data: closureRows, error: closuresError }, { data: receiptRows, error: receiptsError }, { data: editRows, error: editsError }, { data: actorRows }, signedNotes, { data: commentRows, error: commentsError }] = await Promise.all([
     getAreas().then((result) => result ?? []),
-    // El centro solo se muestra al admin: el solicitante ve únicamente las de su centro.
-    isAdmin ? getCenters().then((result) => result ?? []) : null,
+    // El centro se muestra al admin y a Compras: el solicitante ve únicamente las de su centro.
+    isAdmin || purchasing ? getCenters().then((result) => result ?? []) : null,
     supabase.from('requests').select('id, area, health_center_id, request_number, created_at, created_by, request_status, observations, purchase_requirement_number, purchase_requirement_at, purchase_requirement_by, request_items(requested_quantity, delivered_quantity, pending_quantity, closed_quantity)').eq('id', id).maybeSingle(),
     supabase.from('deliveries').select('id, delivery_number, created_at, created_by, note, voided_at, voided_by, void_reason, delivery_items(id, current_quantity, request_item:request_items(product:products(name)))').eq('request_id', id).order('created_at'),
     supabase.from('request_item_closures').select('id, quantity, reason, detail, created_at, created_by, voided_at, voided_by, void_reason, request_item:request_items(product:products(name))').eq('request_id', id).order('created_at'),
@@ -96,6 +98,8 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
     supabase.rpc('request_actor_names', { target_request_id: id }),
     // Remitos firmados que adjuntó el admin (supabase/migrations/202610230002_signed_delivery_notes.sql).
     getSignedNotes(supabase, { requestId: id }),
+    // Comentarios del admin y de Compras (supabase/migrations/202611110002_purchasing_access.sql).
+    supabase.from('request_comments').select('body, created_by, created_at').eq('request_id', id).order('created_at'),
   ])
   // Entregas, cierres y recepciones definen acciones y avisos: si alguna falla no se muestra un
   // estado parcial (p. ej. todo como "sin confirmar").
@@ -182,6 +186,10 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
     event.products.push({ name: productName, previous: row.previous_quantity as number | null, quantity: row.new_quantity as number })
     edits.set(key, event)
   }
+
+  // Los comentarios solo informan: si no se pueden leer, el historial se muestra sin ellos.
+  if (commentsError) console.error('Error al cargar los comentarios de la solicitud', commentsError)
+  const comments: CommentEvent[] = (commentRows ?? []).map((row) => ({ at: row.created_at as string, by: actorName(row.created_by as string), body: row.body as string }))
 
   // Una operación de cierre inserta una fila por producto con la misma fecha y motivo: se agrupan.
   // Se anula entera (void_closures), así que la anulación se toma de cualquiera de sus filas.
@@ -331,7 +339,7 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
         </Suspense>
       </Card>
 
-      <RequestHistory requestId={id} isAdmin={isAdmin} createdAt={createdAt} createdBy={actorName(createdBy)} deliveries={deliveries} closures={[...closures.values()]} receipts={[...receiptEvents.values()]} resolutions={resolutions} edits={[...edits.values()]} purchaseRequirement={purchaseRequirement} />
+      <RequestHistory requestId={id} role={role} createdAt={createdAt} createdBy={actorName(createdBy)} deliveries={deliveries} closures={[...closures.values()]} receipts={[...receiptEvents.values()]} resolutions={resolutions} edits={[...edits.values()]} comments={comments} purchaseRequirement={purchaseRequirement} canComment={isAdmin || purchasing} />
 
       <Card className="mt-6">
         <CardHeader><CardTitle>Observaciones</CardTitle></CardHeader>

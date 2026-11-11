@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { feedbackMessage, withFeedback } from '../lib/feedback'
-import { closureReasons, managementErrorCode, NOTE_MAX_LENGTH, PURCHASE_REQUIREMENT_MAX_LENGTH, receiptResolutions } from '../lib/request-management'
+import { closureReasons, commentSchema, managementErrorCode, NOTE_MAX_LENGTH, PURCHASE_REQUIREMENT_MAX_LENGTH, receiptResolutions } from '../lib/request-management'
 import { requireRole, requireSession } from '../lib/session'
 import { isSignedNoteType, SIGNED_NOTE_MAX_BYTES, SIGNED_NOTES_BUCKET, signedNotePath, type SignedNoteType } from '../lib/signed-notes'
 
@@ -244,6 +244,25 @@ export async function setPurchaseRequirement(formData: FormData) {
 
   revalidateRequest(requestId.data)
   redirect(withFeedback(page, 'success', 'requerimiento-guardado'))
+}
+
+// Comentario de texto libre en el historial: el admin y Compras. La base valida el rol y que Compras
+// solo comente solicitudes con requerimiento de compra (add_request_comment).
+export async function addRequestComment(formData: FormData) {
+  const requestId = idSchema.safeParse(formData.get('request_id'))
+  if (!requestId.success) redirect(withFeedback('/solicitudes', 'error', 'gestion-datos-invalidos'))
+  const page = `/solicitudes/${requestId.data}`
+
+  const body = commentSchema.safeParse(formData.get('comment') ?? '')
+  if (!body.success) redirect(withFeedback(page, 'error', 'comentario-invalido'))
+
+  const { supabase, role } = await requireSession()
+  if (role !== 'admin' && role !== 'purchasing') redirect(withFeedback(page, 'error', 'sin-permiso'))
+  const { error } = await supabase.rpc('add_request_comment', { target_request_id: requestId.data, comment_body: body.data })
+  if (error) redirect(withFeedback(page, 'error', managementErrorCode(error, 'gestion-error')))
+
+  revalidatePath(page)
+  redirect(withFeedback(page, 'success', 'comentario-agregado'))
 }
 
 // Cancelación por el solicitante mientras no haya entregas activas (la base lo valida).
