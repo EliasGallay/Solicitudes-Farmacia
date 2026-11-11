@@ -1,6 +1,6 @@
 # Solicitudes de Insumos
 
-Aplicación web para que los centros de salud de la Municipalidad de Funes pidan insumos a la Secretaría de Salud y para que la administración los entregue, haga el seguimiento y deje constancia de todo. Empezó como un sistema solo para farmacia y hoy cubre varios **rubros**: Farmacia, Limpieza, Laboratorio y Librería.
+Aplicación web para que los centros de salud de la Municipalidad de Funes pidan insumos a la Secretaría de Salud y para que la administración los entregue, haga el seguimiento y deje constancia de todo. Empezó como un sistema solo para farmacia y hoy cubre varios **rubros** de insumos (Farmacia, Limpieza, Laboratorio y Librería) y un módulo aparte de **Movilidad** para la flota de vehículos.
 
 ## Qué problema resuelve
 
@@ -21,7 +21,7 @@ La app ordena ese circuito en un solo lugar:
 
 ### Estados de una solicitud
 
-El estado lo calcula la base de datos con las cantidades; nadie lo edita a mano.
+El estado lo calcula la base de datos con las cantidades; nadie lo edita a mano (`src/lib/request-status.ts`).
 
 | Estado | Significa |
 |---|---|
@@ -34,12 +34,12 @@ El estado lo calcula la base de datos con las cantidades; nadie lo edita a mano.
 
 ## Roles
 
-- **Administrador** (uno global, sin centro): ve todos los centros y rubros. Entrega, cierra, corrige solicitudes, registra requerimientos de compra, resuelve diferencias, confirma recepciones con el remito firmado y administra catálogos y usuarios. También ve la auditoría y un panel con métricas.
-- **Solicitante** (pertenece a un centro y tiene uno o más rubros): crea solicitudes de sus rubros, sigue su estado, confirma lo que recibió, imprime la constancia de recepción y puede cancelar mientras no haya entregas.
+- **Administrador** (uno global, sin centro): ve todos los centros y rubros. Entrega, cierra, corrige solicitudes, registra requerimientos de compra, resuelve diferencias y confirma recepciones con el remito firmado. Administra catálogos, usuarios, centros y la flota de Movilidad. También ve la auditoría y un panel con métricas.
+- **Solicitante** (pertenece a un centro y tiene uno o más rubros): crea solicitudes de sus rubros, sigue su estado, confirma lo que recibió, imprime la constancia de recepción y puede cancelar mientras no haya entregas. Si tiene el rubro **Movilidad**, ve ese módulo; si solo tiene Movilidad, ve únicamente ese módulo.
 
 ## Funcionalidades
 
-- **Solicitudes:** asistente de nueva solicitud con catálogo por rubro; listado y detalle con filtros, búsqueda y paginación; hoja de pedido imprimible; cancelación por el centro.
+- **Solicitudes:** asistente de nueva solicitud con catálogo por rubro; listado y detalle con filtros, búsqueda y paginación; acceso directo «Por confirmar»; hoja de pedido imprimible; cancelación por el centro.
 - **Gestión del admin:** bandeja «Por atender» ordenada por antigüedad, con días de espera.
   - Entregas parciales o totales, incluso por encima de lo pedido.
   - Cierre del pendiente con motivo; anulación de entregas y de cierres hechos por error.
@@ -48,8 +48,14 @@ El estado lo calcula la base de datos con las cantidades; nadie lo edita a mano.
 - **Entregas y remitos:** sección Entregas con búsqueda por número de remito o de solicitud. Remito imprimible y constancia de recepción imprimible.
 - **Recepción:** confirmación por línea (conforme, con diferencia, producto equivocado) y resolución de diferencias por el admin. Confirmación por el admin adjuntando el remito firmado (foto JPG/PNG/WebP o PDF, hasta 5 MB; las fotos se achican en el navegador).
 - **Catálogos:** productos y tipos de producto por rubro, con activación y desactivación.
-- **Usuarios:** alta, edición, rubros, contraseña temporal, desactivación y baja. La contraseña se cambia obligatoriamente al primer ingreso; también hay recuperación por email.
-- **Notificaciones** en la app (campana y sección propia) generadas por cada operación.
+- **Centros:** alta, renombrado y desactivación de centros de salud y dependencias.
+- **Movilidad (flota de vehículos):**
+  - Vehículos con nombre, marca, modelo, año, dominio e identificador interno (por ejemplo «Blanco 01»).
+  - Historial de mantenimientos y reparaciones: qué, cuándo y dónde.
+  - Solicitudes de servicio con texto libre, que el admin pasa a compras y que se cierran cargando la reparación en el historial.
+  - Archivos de evidencia (presupuestos, facturas, fotos y otra documentación clasificada por tipo) en las solicitudes y en cada registro del historial; JPG/PNG/WebP o PDF hasta 10 MB, con borrado lógico por quien lo subió o el admin.
+- **Usuarios:** alta, edición, centro y rubros, contraseña temporal, desactivación y baja. La contraseña se cambia obligatoriamente al primer ingreso; también hay recuperación por email.
+- **Notificaciones** en la app (campana y sección propia) generadas por cada operación, incluidas las de Movilidad.
 - **Auditoría** con filtros por acción, usuario y fecha.
 - **Búsquedas tolerantes:** ignoran acentos, mayúsculas y errores de tipeo («diasepam» encuentra «Diazepam»).
 - **Recorridos guiados** por pantalla para el solicitante, modo claro y oscuro, diseño adaptable a celular.
@@ -58,17 +64,18 @@ El estado lo calcula la base de datos con las cantidades; nadie lo edita a mano.
 
 ### Tecnologías
 
-- **Next.js** (App Router, Server Components y Server Actions), **React 19** y **TypeScript**.
-- **Supabase**: Postgres, Auth y Storage. Las reglas de negocio viven en la base: RLS y funciones RPC.
-- **Tailwind CSS 4** con tokens semánticos y componentes estilo shadcn/ui (Radix).
-- **React Hook Form + Zod** para formularios y validación; **Vitest** para tests.
+- **Next.js 16** (App Router, Server Components y Server Actions), **React 19** y **TypeScript**.
+- **Supabase**: Postgres, Auth y Storage (buckets privados `remitos-firmados` y `movilidad-evidencias`). Las reglas de negocio viven en la base: RLS y funciones RPC.
+- **Tailwind CSS 4** con tokens semánticos y componentes estilo shadcn/ui (Radix); íconos de `lucide-react`, tema con `next-themes`, recorridos con `driver.js`.
+- **React Hook Form + Zod 4** para formularios y validación; **Vitest** para tests.
 - Despliegue en **Vercel**, con un Vercel Cron diario (`vercel.json`) que mantiene activo el proyecto de Supabase.
 
 ### Decisiones de arquitectura
 
-- **La autorización se controla dos veces.** En la app, cada página y server action llama a su guard (`requireSession`, `requireRole('admin')`, `requireArea`, en `src/lib/session.ts`). En la base, con RLS y funciones `security definer` (`current_app_role()`, `current_health_center_id()`, `has_area()`). La base es la autoridad; la app solo responde antes y mejor.
+- **La autorización se controla dos veces.** En la app, cada página y server action llama a su guard (`requireSession`, `requireRole('admin')`, `requireArea`, `requireFleetAccess`, en `src/lib/session.ts`). En la base, con RLS y funciones `security definer` (`current_app_role()`, `current_health_center_id()`, `has_area()`). La base es la autoridad; la app solo responde antes y mejor.
+- **Los rubros son datos, no código.** Viven en `public.areas`; cada uno es de insumos (`supplies`) o de flota (`fleet`). Los tipos de producto son por rubro. Movilidad usa sus propias tablas (`vehicles`, `vehicle_records`, `vehicle_requests`), no las de solicitudes.
 - **Las escrituras de negocio son RPCs transaccionales.** Ejemplos: `create_request_with_items`, `register_delivery`, `close_request_items`, `void_delivery`, `confirm_receipt`, `confirm_receipt_with_signed_note`. Cada una bloquea la solicitud (`for update`), revalida saldos y permisos y escribe el evento de auditoría en la misma transacción. Dos operaciones sobre la misma solicitud no pueden pisarse.
-- **Nada se borra.** Las entregas y los cierres se anulan; el pendiente se cierra con motivo; los remitos firmados quedan adjuntos. El historial siempre se puede reconstruir.
+- **Nada se borra.** Las entregas y los cierres se anulan; el pendiente se cierra con motivo; los remitos firmados quedan adjuntos; las evidencias de Movilidad tienen borrado lógico. El historial siempre se puede reconstruir.
 - **Cantidades y estados calculados.** Las columnas generadas derivan lo entregado, lo pendiente y el estado de cada producto y de la solicitud. No hay un campo de estado editable que pueda quedar desactualizado.
 - **Notificaciones desde la auditoría.** Un trigger sobre `audit_events` genera las notificaciones, así nacen en la misma transacción que la operación.
 - **Mensajes por código.** Las acciones redirigen con `?error=<código>` / `?success=<código>`, y `src/lib/feedback.ts` los traduce al español. En la URL nunca viaja texto libre ni errores técnicos del backend.
@@ -80,26 +87,30 @@ El estado lo calcula la base de datos con las cantidades; nadie lo edita a mano.
 ```
 src/
   app/
-    (app)/                 shell autenticado (sidebar): inicio, solicitudes, catálogo, perfil, notificaciones
-    (app)/(admin)/         solo admin: catalogos, usuarios, entregas, auditoria
+    (app)/                 shell autenticado (sidebar): inicio, solicitudes, catálogo, movilidad, notificaciones, perfil
+    (app)/(admin)/         solo admin: catalogos, usuarios, centros, entregas, auditoria
     remitos/, recepciones/, hojas-de-pedido/   documentos imprimibles, fuera del shell
+    login/, change-password/, recuperar-contrasena/, auth/confirm/   acceso y contraseñas
     api/                   rutas de notificaciones y cron (/api/cron/keepalive)
-    *-actions.ts           server actions (request-, request-management-, product-, user-, profile-, notification-)
+    *-actions.ts           server actions (request-, request-management-, product-, user-, profile-, center-, fleet-, notification-)
   components/              componentes compartidos; ui/ (primitivas) y una carpeta por funcionalidad
-  lib/                     sesión, consultas, estados, filtros, mensajes, utilidades
+  hooks/                   filtros y búsqueda en la URL
+  lib/                     sesión, navegación, consultas, estados, filtros, mensajes, Movilidad, utilidades
   middleware.ts            refresca la sesión y redirige a /login
 supabase/
   migrations/              esquema, RLS y RPCs (se aplican a mano, en orden)
   seed.sql, seed/          datos ficticios, catálogo real de farmacia y rubros
+  checks/                  verificaciones SQL autocontenidas (no dejan datos)
+  config.toml              Supabase local (CLI)
 docs/
   ui-reference/            UI-SPEC.md (pantallas y comportamiento), DESIGN-SYSTEM.md, capturas
-  plans/                   planes por fase, con decisiones registradas
+  plans/                   planes y diseños por fase, con decisiones registradas
 tests/                     tests de Vitest
 ```
 
 ## Puesta en marcha local
 
-Requisitos: Node.js 22 LTS y npm, y un proyecto de Supabase **de desarrollo**.
+Requisitos: Node.js 22 LTS y npm, y un proyecto de Supabase **de desarrollo** (remoto o local).
 
 ```powershell
 npm install
@@ -113,6 +124,10 @@ Variables (`.env.example`):
 - `SUPABASE_SECRET_KEY`: clave secreta, solo del servidor (gestión de usuarios). Nunca con prefijo `NEXT_PUBLIC_`.
 - `CRON_SECRET`: secreto de Vercel Cron para `/api/cron/keepalive`. Solo hace falta en Vercel.
 
+### Supabase local (opcional)
+
+Con Docker instalado, `npx supabase start` levanta Supabase en la máquina (API en `http://127.0.0.1:54321`, Studio en `http://127.0.0.1:54323`) y aplica las migraciones y `supabase/seed.sql`. `npx supabase status` muestra las claves para `.env.local`. Los catálogos reales (`supabase/seed/productos.sql` y `supabase/seed/rubros.sql`) se cargan aparte.
+
 Comprobaciones:
 
 ```powershell
@@ -124,7 +139,7 @@ npm run build
 
 ## Base de datos (Supabase) — NO ejecutar sin autorización
 
-Las migraciones **se aplican a mano** en el SQL Editor del proyecto de desarrollo, en este orden. Nada las ejecuta automáticamente y no se debe usar un proyecto de producción sin revisarlas antes.
+En el proyecto remoto, las migraciones **se aplican a mano** en el SQL Editor, en este orden. Nada las ejecuta automáticamente y no se debe usar un proyecto de producción sin revisarlas antes.
 
 1. Aplicar `supabase/migrations/202609180001_initial_schema.sql`. Esquema inicial (centros, perfiles, productos, solicitudes, entregas).
 2. Ejecutar `supabase/seed.sql` únicamente en el proyecto vacío. Contiene 3 centros (Houssay, Maradona, Faust) y 5 productos ficticios.
@@ -155,7 +170,10 @@ Las migraciones **se aplican a mano** en el SQL Editor del proyecto de desarroll
 27. Aplicar `supabase/migrations/202610230001_request_edits.sql`. Corrección de solicitudes por el admin, con motivo e historial.
 28. Aplicar `supabase/migrations/202610230002_signed_delivery_notes.sql`. Confirmación de recepción por el admin con el remito firmado: bucket privado `remitos-firmados` (JPG, PNG, WebP o PDF, hasta 5 MB), tabla `delivery_signed_notes` y RPC `confirm_receipt_with_signed_note`.
 29. Aplicar `supabase/migrations/202610270001_health_center_admin.sql`. Alta, renombrado y desactivación de centros por el admin (sección Centros); nombres únicos sin distinguir mayúsculas, hasta 80 caracteres.
-30. Ejecutar `supabase/seed/rubros.sql`. Carga Librería, Laboratorio y Limpieza con sus productos; es idempotente.
+30. **Antes de desplegar el código que incluye Movilidad** (la sesión consulta `areas.kind` y las notificaciones `vehicle_request_id`: sin estas dos migraciones todos los usuarios quedan sin rol), aplicar `supabase/migrations/202610280001_fleet.sql`. Módulo Movilidad: rubro `fleet` («Movilidad»), vehículos, historial de mantenimientos y reparaciones, y solicitudes de servicio con requerimiento de compra.
+31. Aplicar `supabase/migrations/202610280002_fleet_notifications.sql`. Notificaciones de las solicitudes de servicio de Movilidad (`notifications.vehicle_request_id`). Después correr `supabase/checks/movilidad.sql` en el SQL Editor: todas las filas tienen que empezar con «ok» (no deja datos).
+32. Aplicar `supabase/migrations/202610290001_fleet_evidence.sql`. Archivos de evidencia de Movilidad: bucket privado `movilidad-evidencias` (JPG, PNG, WebP o PDF, hasta 10 MB), tipos de documento (`evidence_document_types`) y archivos con borrado lógico (`fleet_evidence`). Volver a correr `supabase/checks/movilidad.sql`.
+33. Ejecutar `supabase/seed/rubros.sql`. Carga Librería, Laboratorio y Limpieza con sus productos; es idempotente.
 
 Si falta una migración, las pantallas que dependen de ella muestran un error de carga.
 
@@ -173,7 +191,14 @@ from auth.users
 where email = 'admin@ejemplo.com';
 ```
 
-En el primer ingreso se pide cambiar la contraseña. Desde ahí, el admin crea los solicitantes, con su centro y sus rubros, en `/usuarios`.
+En el primer ingreso se pide cambiar la contraseña. Desde ahí, el admin crea los centros en `/centros` y los solicitantes, con su centro y sus rubros, en `/usuarios`.
+
+### Habilitar Movilidad
+
+1. Aplicar `202610280001_fleet.sql` y `202610280002_fleet_notifications.sql` **antes de desplegar el código**, después `202610290001_fleet_evidence.sql`, y correr `supabase/checks/movilidad.sql`.
+2. Crear la dependencia «Movilidad» en `/centros`.
+3. En `/usuarios`, asignar a sus usuarios ese centro y el rubro **Movilidad**. Un usuario que solo tiene Movilidad ve únicamente ese módulo; uno que además tiene rubros de insumos ve los dos.
+4. Cargar los vehículos desde `/movilidad` (solo el admin).
 
 ## Convenciones
 

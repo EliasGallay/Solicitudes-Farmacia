@@ -18,14 +18,14 @@ export async function openNotification(formData: FormData) {
   if (!id.success) redirect(withFeedback('/notificaciones', 'error', 'notificacion-invalida'))
 
   const { supabase } = await requireSession()
-  const { data: notification } = await supabase.from('notifications').select('kind, request_id, read_at').eq('id', id.data).maybeSingle()
+  const { data: notification } = await supabase.from('notifications').select('kind, request_id, vehicle_request_id, read_at').eq('id', id.data).maybeSingle()
   if (!notification) redirect(withFeedback('/notificaciones', 'error', 'notificacion-invalida'))
 
   if (!notification.read_at) {
     await supabase.rpc('mark_notifications_read', { notification_ids: [id.data] })
     revalidatePath('/notificaciones')
   }
-  redirect(notificationHref(notification.kind as string, notification.request_id as string))
+  redirect(notificationHref(notification.kind as string, (notification.vehicle_request_id ?? notification.request_id) as string))
 }
 
 export async function markAllNotificationsRead() {

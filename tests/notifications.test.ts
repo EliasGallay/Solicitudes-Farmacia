@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { formatRelativeTime, formatUnreadCount, notificationHref, notificationKinds, notificationText, type NotificationContext } from '../src/lib/notifications'
 
-const base: NotificationContext = { kind: 'request.created', recipientRole: 'admin', requestNumber: 12, deliveryNumber: null, centerName: 'CAPS Norte', areaName: 'Farmacia' }
+const base: NotificationContext = { kind: 'request.created', recipientRole: 'admin', requestNumber: 12, deliveryNumber: null, centerName: 'CAPS Norte', areaName: 'Farmacia', vehicleName: null }
 
 describe('textos de notificaciones', () => {
   it('avisa al admin de una solicitud nueva con centro y rubro', () => expect(notificationText(base)).toEqual({ title: 'Solicitud nueva', body: 'CAPS Norte envió la solicitud #SOL-12 (Farmacia).' }))
@@ -40,4 +40,17 @@ describe('tiempo relativo del panel', () => {
   })
   it('después de una semana muestra la fecha', () => expect(formatRelativeTime('2026-09-20T12:00:00-03:00', now)).toMatch(/20/))
   it('una fecha futura (reloj desfasado) cuenta como recién', () => expect(formatRelativeTime(ago(-3), now)).toBe('Recién'))
+})
+
+describe('notificaciones de Movilidad', () => {
+  const vehicle: NotificationContext = { ...base, kind: 'vehicle_request.created', requestNumber: 15, vehicleName: 'Blanco 01 · Ambulancia (AB123CD)', centerName: null, areaName: null }
+  it('nombra la solicitud de servicio y el vehículo', () => {
+    const { title, body } = notificationText(vehicle)
+    expect(title).toBe('Solicitud de servicio nueva')
+    expect(body).toContain('#SRV-15')
+    expect(body).toContain('Blanco 01')
+  })
+  it('avisa el requerimiento de compra', () => expect(notificationText({ ...vehicle, kind: 'vehicle_request.purchase_requirement', recipientRole: 'requester' }).body).toContain('compras'))
+  it('lleva al detalle de la solicitud de servicio', () => expect(notificationHref('vehicle_request.completed', 'abc')).toBe('/movilidad/solicitudes/abc'))
+  it('sin datos visibles usa un texto genérico', () => expect(notificationText({ ...vehicle, kind: 'vehicle_request.cancelled', requestNumber: null, vehicleName: null }).body).toBe('Se canceló una solicitud de servicio.'))
 })

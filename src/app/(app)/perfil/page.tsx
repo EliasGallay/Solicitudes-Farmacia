@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/page-header'
 import { ProfileDetails } from '@/components/profile/profile-details'
 import { SecuritySection } from '@/components/profile/security-section'
 import { areaName, getAreas } from '@/lib/areas'
+import { FLEET_AREA } from '@/lib/fleet'
 import { feedbackMessage } from '@/lib/feedback'
 import { requireSession } from '@/lib/session'
 import { roleLabels } from '@/lib/users'
@@ -13,13 +14,15 @@ const PASSWORD_FEEDBACK = new Set(['password-invalida', 'password-igual', 'passw
 // Datos personales del usuario logueado, en modo lectura. Solo el nombre y la contraseña son
 // editables: email, rol, centro y rubros los gestiona el administrador desde /usuarios.
 export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ error?: string; success?: string }> }) {
-  const { supabase, userId, fullName, role, centerName, areas: assignedAreas } = await requireSession()
+  const { supabase, userId, fullName, role, centerName, areas: supplyAreas, fleetAccess } = await requireSession()
+  // session.areas no incluye Movilidad: se suma para mostrar todos los rubros asignados.
+  const assignedAreas = fleetAccess ? [...supplyAreas, FLEET_AREA] : supplyAreas
   const feedback = await searchParams
 
   // Email: columna computada de supabase/migrations/202609300001_user_admin.sql (visible para uno mismo).
   const [{ data: profile, error }, areas] = await Promise.all([
     supabase.from('profiles').select('profile_email').eq('user_id', userId).maybeSingle(),
-    getAreas(),
+    getAreas(false, true),
   ])
   const email = error ? null : ((profile?.profile_email as string | null | undefined) ?? null)
   const requester = role === 'requester'

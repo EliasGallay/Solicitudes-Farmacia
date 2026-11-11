@@ -7,6 +7,7 @@ import { StatTile } from './stat-tile'
 import { TrendChart } from './trend-chart'
 import { formatAxisDate, formatBucket, formatHours, getAdminMetrics, metricPeriodLabels, percent, relativeChange, type AdminMetrics, type MetricPeriod } from '@/lib/admin-metrics'
 import { formatCount } from '@/lib/chart'
+import { FLEET_AREA } from '@/lib/fleet'
 import { listHref } from '@/lib/filters'
 import { closureReasonLabels } from '@/lib/request-management'
 import { shiftDate, WAIT_WARNING_DAYS } from '@/lib/requests'
@@ -48,10 +49,12 @@ export function AdminMetricsView({ metrics, period }: { metrics: AdminMetrics; p
   const requestsTrend = metrics.series.map((point) => point.requests)
   const deliveriesTrend = metrics.series.map((point) => point.deliveries)
 
-  const areaOrder = [...metrics.areas].sort((a, b) => a.name.localeCompare(b.name, 'es')).map((area) => area.key)
-  const areasWithData = metrics.areas.filter((area) => area.requests > 0)
-  const shownAreas = metrics.areas.filter((area) => areaOrder.indexOf(area.key) < AREA_COLORS.length)
-  const otherAreas = metrics.areas.filter((area) => areaOrder.indexOf(area.key) >= AREA_COLORS.length)
+  // Movilidad no tiene solicitudes de insumos: no ocupa un color del desglose por rubro.
+  const supplyAreas = metrics.areas.filter((area) => area.key !== FLEET_AREA)
+  const areaOrder = [...supplyAreas].sort((a, b) => a.name.localeCompare(b.name, 'es')).map((area) => area.key)
+  const areasWithData = supplyAreas.filter((area) => area.requests > 0)
+  const shownAreas = supplyAreas.filter((area) => areaOrder.indexOf(area.key) < AREA_COLORS.length)
+  const otherAreas = supplyAreas.filter((area) => areaOrder.indexOf(area.key) >= AREA_COLORS.length)
   const areaSegments = [
     ...shownAreas.map((area) => ({ key: area.key, label: area.name, value: area.requests, ...AREA_COLORS[areaOrder.indexOf(area.key)] })),
     ...(otherAreas.length ? [{ key: 'otros', label: 'Otros rubros', value: otherAreas.reduce((sum, area) => sum + area.requests, 0), ...OTHER_COLOR }] : []),

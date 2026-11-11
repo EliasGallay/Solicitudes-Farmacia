@@ -1,8 +1,8 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  // El remito firmado (/entregas/[id]/recibir) se sube por server action: hasta 5 MB por archivo
-  // (SIGNED_NOTE_MAX_BYTES en src/lib/signed-notes.ts), con margen para el resto del formulario.
-  experimental: { serverActions: { bodySizeLimit: '6mb' } },
+  // Archivos por server action: remito firmado (/entregas/[id]/recibir, hasta 5 MB, SIGNED_NOTE_MAX_BYTES)
+  // y evidencias de Movilidad (de a uno, hasta 10 MB, FLEET_EVIDENCE_MAX_BYTES), con margen para el resto.
+  experimental: { serverActions: { bodySizeLimit: '11mb' } },
 }
 export default nextConfig

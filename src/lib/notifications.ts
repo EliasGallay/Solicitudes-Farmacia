@@ -1,11 +1,16 @@
+import { formatVehicleRequestNumber } from './fleet'
 import { formatDeliveryNumber, formatRequestNumber } from './requests'
 import type { AppRole } from './session'
 import type { createSupabaseServerClient } from './supabase/server'
 
 type SupabaseClient = Awaited<ReturnType<typeof createSupabaseServerClient>>
 
-// Tipos que genera el trigger notify_from_audit (supabase/migrations/202610080001_notifications.sql).
-export const notificationKinds = ['request.created', 'request.cancelled', 'delivery.registered', 'delivery.voided', 'items.closed', 'delivery.received', 'receipt.difference', 'receipt.resolved'] as const
+// Tipos que genera el trigger notify_from_audit (supabase/migrations/202610080001_notifications.sql y,
+// para Movilidad, 202610280002_fleet_notifications.sql).
+export const notificationKinds = [
+  'request.created', 'request.cancelled', 'delivery.registered', 'delivery.voided', 'items.closed', 'delivery.received', 'receipt.difference', 'receipt.resolved',
+  'vehicle_request.created', 'vehicle_request.purchase_requirement', 'vehicle_request.completed', 'vehicle_request.cancelled',
+] as const
 export type NotificationKind = (typeof notificationKinds)[number]
 
 // Cada cuánto el shell vuelve a consultar las no leídas (además de al navegar y al volver a la pestaña).
@@ -19,12 +24,15 @@ export type NotificationContext = {
   deliveryNumber: number | null
   centerName: string | null
   areaName: string | null
+  // Movilidad: vehículo de la solicitud de servicio (requestNumber es su número #SRV).
+  vehicleName: string | null
 }
 
 // Título y detalle de una notificación. Toda operación sobre una solicitud se notifica al admin y al
 // centro, así que cada texto tiene la versión de cada uno. Los datos de la solicitud pueden faltar
 // si quien la recibe ya no la puede ver (por ejemplo, le quitaron el rubro): se muestra un texto genérico.
 export function notificationText(context: NotificationContext): { title: string; body: string } {
+  if (context.kind.startsWith('vehicle_request.')) return vehicleNotificationText(context)
   const admin = context.recipientRole === 'admin'
   const number = context.requestNumber != null ? formatRequestNumber(context.requestNumber) : null
   const area = context.areaName ? ` (${context.areaName})` : ''
@@ -62,8 +70,28 @@ export function notificationText(context: NotificationContext): { title: string;
   }
 }
 
+// Solicitudes de servicio de Movilidad: las ven el admin y los usuarios con el rubro, sin centro.
+function vehicleNotificationText(context: NotificationContext) {
+  const number = context.requestNumber != null ? formatVehicleRequestNumber(context.requestNumber) : null
+  const request = number ? `la solicitud de servicio ${number}${context.vehicleName ? ` (${context.vehicleName})` : ''}` : 'una solicitud de servicio'
+  switch (context.kind) {
+    case 'vehicle_request.created':
+      return { title: 'Solicitud de servicio nueva', body: `Se pidió ${request}.` }
+    case 'vehicle_request.purchase_requirement':
+      return { title: 'Solicitud de servicio en compras', body: `Se registró el requerimiento de compra de ${request}: quedó en compras.` }
+    case 'vehicle_request.completed':
+      return { title: 'Solicitud de servicio completada', body: `Se completó ${request}. El trabajo quedó en el historial del vehículo.` }
+    case 'vehicle_request.cancelled':
+      return { title: 'Solicitud de servicio cancelada', body: `Se canceló ${request}.` }
+    default:
+      return { title: 'Novedad', body: `Hay una novedad en ${request}.` }
+  }
+}
+
 // Pantalla a la que lleva la notificación. La entrega registrada lleva directo a confirmar la recepción.
+// `requestId`: la solicitud de insumos o, en Movilidad, la solicitud de servicio.
 export function notificationHref(kind: string, requestId: string) {
+  if (kind.startsWith('vehicle_request.')) return `/movilidad/solicitudes/${requestId}`
   if (kind === 'delivery.registered') return `/solicitudes/${requestId}/recibir`
   return `/solicitudes/${requestId}`
 }
