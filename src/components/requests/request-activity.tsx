@@ -1,16 +1,17 @@
 import Link from 'next/link'
-import { Ban, CircleCheck, FilePlus2, PackageCheck, PackageX, Pencil, Printer, RotateCcw, ShoppingCart, TriangleAlert, Truck, Undo2, type LucideIcon } from 'lucide-react'
-import { resolveReceiptDifference, voidClosure, voidDelivery } from '@/app/request-management-actions'
+import { Ban, CircleCheck, FilePlus2, MessageSquare, PackageCheck, PackageX, Pencil, Printer, RotateCcw, ShoppingCart, TriangleAlert, Truck, Undo2, type LucideIcon } from 'lucide-react'
+import { addRequestComment, resolveReceiptDifference, voidClosure, voidDelivery } from '@/app/request-management-actions'
 import { ConfirmSubmit } from '@/components/confirm-submit'
 import { DeliveryStatusBadge } from '@/components/deliveries/delivery-status-badge'
 import { SignedNoteLinks } from '@/components/deliveries/signed-notes'
 import { Badge } from '@/components/ui/badge'
-import { buttonVariants } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import type { PurchaseRequirement } from '@/components/requests/purchase-requirement'
-import { closureReasonLabels, isVoidableClosure, NOTE_MAX_LENGTH, receiptResolutionLabels, type ClosureReason, type ReceiptResolution } from '@/lib/request-management'
+import { closureReasonLabels, COMMENT_MAX_LENGTH, isVoidableClosure, NOTE_MAX_LENGTH, receiptResolutionLabels, type ClosureReason, type ReceiptResolution } from '@/lib/request-management'
 import { formatDateTime, formatDeliveryNumber } from '@/lib/requests'
+import type { AppRole } from '@/lib/session'
 import type { SignedNote } from '@/lib/signed-notes'
 import { cn } from '@/lib/utils'
 
@@ -31,6 +32,8 @@ export type ResolutionEvent = { at: string; by: string; resolution: ReceiptResol
 // Una corrección del admin agrupa los productos que cambió en la misma operación.
 // `previous` null: producto agregado.
 export type EditEvent = { at: string; by: string; reason: string; products: { name: string; previous: number | null; quantity: number }[] }
+// Comentario de texto libre del admin o de Compras (request_comments).
+export type CommentEvent = { at: string; by: string; body: string }
 export type OpenDifference = { receiptId: string; name: string; deliveryNumber: number; delivered: number; received: number; comment: string | null; wrongProduct: boolean; by: string; at: string }
 
 function DeliveryActions({ delivery, requestId }: { delivery: DeliverySummary; requestId: string }) {
@@ -153,10 +156,11 @@ function receiptDetail(event: ReceiptEvent) {
 }
 
 // Historial único de la solicitud: creación, correcciones, requerimiento de compra, entregas,
-// anulaciones, recepciones y cierres, armado
-// con los datos de negocio (visibles también para el solicitante). En cada entrega, el admin puede
-// ver el detalle, imprimir el remito y anular.
-export function RequestHistory({ requestId, isAdmin, createdAt, createdBy, deliveries, closures, receipts, resolutions, edits, purchaseRequirement }: { requestId: string; isAdmin: boolean; createdAt: string; createdBy: string; deliveries: DeliverySummary[]; closures: ClosureEvent[]; receipts: ReceiptEvent[]; resolutions: ResolutionEvent[]; edits: EditEvent[]; purchaseRequirement: PurchaseRequirement | null }) {
+// anulaciones, recepciones, cierres y comentarios, armado con los datos de negocio (visibles también
+// para el solicitante y Compras). En cada entrega, el admin puede ver el detalle, imprimir el remito y
+// anular; el centro, imprimir sus constancias. `canComment`: el admin y Compras agregan comentarios.
+export function RequestHistory({ requestId, role, createdAt, createdBy, deliveries, closures, receipts, resolutions, edits, comments, purchaseRequirement, canComment }: { requestId: string; role: AppRole | null; createdAt: string; createdBy: string; deliveries: DeliverySummary[]; closures: ClosureEvent[]; receipts: ReceiptEvent[]; resolutions: ResolutionEvent[]; edits: EditEvent[]; comments: CommentEvent[]; purchaseRequirement: PurchaseRequirement | null; canComment: boolean }) {
+  const isAdmin = role === 'admin'
   const events: HistoryEvent[] = [
     { at: createdAt, icon: FilePlus2, tone: 'bg-primary-100 text-primary-600', title: `Solicitud creada por ${createdBy}` },
     ...edits.map((edit): HistoryEvent => ({
@@ -201,6 +205,7 @@ export function RequestHistory({ requestId, isAdmin, createdAt, createdBy, deliv
       },
       ...(closure.voidedAt ? [{ at: closure.voidedAt, icon: Undo2, tone: 'bg-danger-muted text-danger', title: `Cierre anulado por ${closure.voidedBy}`, detail: closure.voidReason ?? undefined }] : []),
     ]),
+    ...comments.map((comment): HistoryEvent => ({ at: comment.at, icon: MessageSquare, tone: 'bg-info-muted text-info', title: `Comentario de ${comment.by}`, detail: comment.body })),
   ].sort((a, b) => a.at.localeCompare(b.at))
 
   return (
@@ -223,7 +228,7 @@ export function RequestHistory({ requestId, isAdmin, createdAt, createdBy, deliv
                 {isAdmin && event.delivery && <DeliveryActions delivery={event.delivery} requestId={requestId} />}
                 {isAdmin && event.closure && !event.closure.voidedAt && isVoidableClosure(event.closure.reason) && <VoidClosureForm closure={event.closure} requestId={requestId} />}
                 {/* El centro imprime la constancia de lo que confirmó haber recibido. */}
-                {!isAdmin && event.delivery && (event.delivery.confirmed || event.delivery.signedNotes.length > 0) && (
+                {role === 'requester' && event.delivery && (event.delivery.confirmed || event.delivery.signedNotes.length > 0) && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {event.delivery.confirmed && <ReceiptNoteLink deliveryId={event.delivery.id} />}
                     <SignedNoteLinks notes={event.delivery.signedNotes} />
@@ -233,6 +238,13 @@ export function RequestHistory({ requestId, isAdmin, createdAt, createdBy, deliv
             </li>
           ))}
         </ol>
+        {canComment && (
+          <form action={addRequestComment} className="mt-6 flex flex-col gap-2 border-t border-border pt-5 sm:flex-row">
+            <input type="hidden" name="request_id" value={requestId} />
+            <Input name="comment" required maxLength={COMMENT_MAX_LENGTH} aria-label="Comentario para el historial" placeholder="Agregá un comentario al historial" className="min-w-0 flex-1" />
+            <Button type="submit" variant="secondary"><MessageSquare />Comentar</Button>
+          </form>
+        )}
       </CardContent>
     </Card>
   )

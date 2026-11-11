@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { ChevronRight, CircleCheck, FileQuestion, Plus } from 'lucide-react'
@@ -18,6 +19,8 @@ import { requireSession } from '@/lib/session'
 
 export default async function NewRequestPage({ searchParams }: { searchParams: Promise<{ enviada?: string; rubro?: string; buscar?: string; tipo?: string; page?: string; por_pagina?: string }> }) {
   const session = await requireSession()
+  // Compras no hace solicitudes: solo ve las que tienen requerimiento de compra.
+  if (session.role === 'purchasing') redirect('/solicitudes')
   const params = await searchParams
   const sentId = z.string().uuid().safeParse(params.enviada)
   const buscar = searchParamSchema.parse(params.buscar)

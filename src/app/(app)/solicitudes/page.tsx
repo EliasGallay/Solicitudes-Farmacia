@@ -52,21 +52,23 @@ function pageHref(filters: Filters, page: number) {
 export default async function RequestsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const { role } = await requireSession()
   const isAdmin = role === 'admin'
+  // Compras ve, de todos los centros, solo las solicitudes con requerimiento de compra (RLS).
+  const purchasing = role === 'purchasing'
   const filters = filtersSchema.parse(await searchParams)
   // El rubro solo se muestra y se filtra cuando el usuario ve más de uno.
-  const [areas, centers] = await Promise.all([getAreas().then((result) => result ?? []), isAdmin ? getCenters().then((result) => result ?? []) : null])
+  const [areas, centers] = await Promise.all([getAreas().then((result) => result ?? []), isAdmin || purchasing ? getCenters().then((result) => result ?? []) : null])
   const multipleAreas = areas.length > 1
   if (!multipleAreas || !selectedArea(areas, filters.rubro)) filters.rubro = undefined
-  // El centro solo lo ve y lo filtra el admin: el solicitante ve únicamente el suyo.
+  // El centro solo lo ven y lo filtran el admin y Compras: el solicitante ve únicamente el suyo.
   if (!centers?.some((center) => center.id === filters.centro)) filters.centro = undefined
 
   return (
     <>
       <PageHeader
         title="Solicitudes"
-        description={isAdmin ? 'Visualizá las solicitudes de insumos de todos los centros de salud.' : 'Visualizá todas tus solicitudes de insumos.'}
+        description={isAdmin ? 'Visualizá las solicitudes de insumos de todos los centros de salud.' : purchasing ? 'Visualizá las solicitudes con requerimiento de compra de todos los centros de salud.' : 'Visualizá todas tus solicitudes de insumos.'}
         // "Nueva solicitud" está oculta para el admin por ahora.
-        actions={isAdmin ? undefined : <Link data-tour="requests-new" href="/solicitudes/nueva" className={buttonVariants()}><Plus />Nueva solicitud</Link>}
+        actions={isAdmin || purchasing ? undefined : <Link data-tour="requests-new" href="/solicitudes/nueva" className={buttonVariants()}><Plus />Nueva solicitud</Link>}
       />
       {/* data-tour: pasos del recorrido de la pantalla (src/lib/tours.ts). */}
       <div data-tour="requests-filters">
@@ -75,7 +77,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
       {/* En mobile cada solicitud es su propia tarjeta: la card contenedora solo se ve desde md. */}
       <Card data-tour="requests-list" className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
         <Suspense key={pageHref(filters, filters.page)} fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
-          <RequestsList filters={filters} view={statusView(filters, isAdmin)} areas={areas} areaColumn={multipleAreas} centers={centers ?? undefined} />
+          <RequestsList filters={filters} view={statusView(filters, isAdmin)} areas={areas} areaColumn={multipleAreas} centers={centers ?? undefined} purchasing={purchasing} />
         </Suspense>
       </Card>
     </>
@@ -84,7 +86,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
 
 // `areas`: todos los visibles, para nombrar el rubro en las tarjetas de mobile; `areaColumn`: la tabla
 // muestra la columna Rubro (solo si el usuario ve más de uno).
-async function RequestsList({ filters, view, areas, areaColumn, centers }: { filters: Filters; view: StatusView; areas: Area[]; areaColumn: boolean; centers?: Center[] }) {
+async function RequestsList({ filters, view, areas, areaColumn, centers, purchasing }: { filters: Filters; view: StatusView; areas: Area[]; areaColumn: boolean; centers?: Center[]; purchasing: boolean }) {
   const { supabase } = await requireSession()
   const inbox = view === 'por_atender'
   // Búsqueda (en la base, columnas de supabase/migrations/202609240006_search.sql):
@@ -146,7 +148,9 @@ async function RequestsList({ filters, view, areas, areaColumn, centers }: { fil
     }
     return hasFilters || total > 0
       ? <EmptyState icon={SearchX} title="No encontramos solicitudes">Probá modificando los filtros aplicados.</EmptyState>
-      : centers
+      : purchasing
+        ? <EmptyState icon={FileText} title="Todavía no hay solicitudes en compras">Cuando el administrador registre un requerimiento de compra, la solicitud aparecerá en este listado.</EmptyState>
+        : centers
         ? <EmptyState icon={FileText} title="Todavía no hay solicitudes">Cuando los centros de salud realicen solicitudes aparecerán en este listado.</EmptyState>
         : <EmptyState icon={FileText} title="Todavía no hay solicitudes" action={<Link href="/solicitudes/nueva" className={buttonVariants()}><Plus />Nueva solicitud</Link>}>Cuando realices una solicitud aparecerá en este listado.</EmptyState>
   }

@@ -5,7 +5,8 @@ import { withFeedback } from './feedback'
 import { relationOne } from './requests'
 import { createSupabaseServerClient } from './supabase/server'
 
-export type AppRole = 'admin' | 'requester'
+// purchasing (Compras): sin centro ni rubros; ve las solicitudes con requerimiento de compra y comenta.
+export type AppRole = 'admin' | 'requester' | 'purchasing'
 
 // Clave de public.areas ('pharmacy', 'cleaning', ...). Los rubros son datos: no hay lista fija en el código.
 export type AreaKey = string

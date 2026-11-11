@@ -26,6 +26,11 @@ export function requesterNavigation(access: NavAccess): NavItem[] {
   ]
 }
 
+// Compras solo ve las solicitudes con requerimiento de compra (la base filtra el listado).
+export const purchasingNavigation: NavItem[] = [
+  { href: '/solicitudes', label: 'Solicitudes', icon: FileText },
+]
+
 // "Nueva solicitud" está oculta para el admin por ahora; la ruta sigue disponible.
 export const adminNavigation: NavItem[] = [
   { href: '/', label: 'Panel', icon: House },

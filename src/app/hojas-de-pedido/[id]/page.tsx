@@ -37,7 +37,7 @@ export default async function RequestSheetPage({ params }: { params: Promise<{ i
 
   // Nombre de quien pidió: el solicitante no lee perfiles ajenos.
   const [centers, areas, { data: actorRows }] = await Promise.all([
-    isAdmin ? getCenters().then((result) => result ?? []) : null,
+    isAdmin || role === 'purchasing' ? getCenters().then((result) => result ?? []) : null,
     getAreas(true).then((result) => result ?? []),
     supabase.rpc('request_actor_names', { target_request_id: data.id }),
   ])

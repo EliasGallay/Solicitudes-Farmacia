@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import type { FeedbackCode } from './feedback'
 
 // Motivos de cierre (check de public.request_item_closures.reason). Los que elige el admin al cerrar
@@ -32,6 +33,9 @@ export const receiptResolutionLabels: Record<ReceiptResolution, string> = {
 
 // Debe coincidir con los checks de longitud de notas y motivos en la base.
 export const NOTE_MAX_LENGTH = 500
+// Comentario del historial (check de request_comments.body).
+export const COMMENT_MAX_LENGTH = 500
+export const commentSchema = z.string().trim().min(1).max(COMMENT_MAX_LENGTH)
 // Número de requerimiento de compra (check de requests.purchase_requirement_number).
 export const PURCHASE_REQUIREMENT_MAX_LENGTH = 30
 
@@ -58,6 +62,7 @@ const rpcErrorCodes: Record<string, FeedbackCode> = {
   'con-recepcion': 'gestion-con-recepcion',
   'requerimiento-invalido': 'requerimiento-invalido',
   'requerimiento-sin-pendiente': 'requerimiento-sin-pendiente',
+  'comentario-invalido': 'comentario-invalido',
   'cierre-invalido': 'gestion-datos-invalidos',
   'cierre-ya-anulado': 'cierre-ya-anulado',
   'cierre-no-anulable': 'cierre-no-anulable',
