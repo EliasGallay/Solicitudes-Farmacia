@@ -80,7 +80,7 @@ async function AuditList({ filters }: { filters: Filters }) {
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                   <p className="text-sm font-semibold">
                     {auditActionLabel(event.action as string)}
-                    {href && <> · <Link href={href} className="font-normal text-primary-600 hover:underline">ver {event.entity_type === 'delivery' ? 'entrega' : 'solicitud'}</Link></>}
+                    {href && <> · <Link href={href} className="font-normal text-primary-600 hover:underline">ver {event.entity_type === 'delivery' ? 'entrega' : event.entity_type === 'vehicle' ? 'vehículo' : 'solicitud'}</Link></>}
                   </p>
                   <p className="text-xs text-foreground-secondary tabular-nums">{formatDateTime(event.created_at as string)}</p>
                 </div>

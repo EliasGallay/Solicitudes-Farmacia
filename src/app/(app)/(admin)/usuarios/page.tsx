@@ -93,7 +93,7 @@ async function UsersList({ filters }: { filters: Filters }) {
   if (filters.rol) query = query.eq('role', filters.rol)
   if (filters.centro) query = query.eq('health_center_id', filters.centro)
   if (filters.estado) query = query.eq('active', filters.estado === 'activo')
-  const [{ data, count, error }, areas] = await Promise.all([query.order('full_name').range(...pageRange(filters.page, filters.por_pagina)), getAreas(true)])
+  const [{ data, count, error }, areas] = await Promise.all([query.order('full_name').range(...pageRange(filters.page, filters.por_pagina)), getAreas(true, true)])
 
   // PGRST103: la página pedida está fuera de rango; se trata como sin resultados.
   if (error && error.code !== 'PGRST103') return <ErrorState title="No pudimos cargar los usuarios" />

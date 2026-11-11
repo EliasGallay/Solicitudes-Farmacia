@@ -4,6 +4,9 @@ import { getSession, type AreaKey } from './session'
 
 export type Area = { key: AreaKey; name: string; active: boolean }
 
+// Rubros de insumos ('supplies'); Movilidad es 'fleet' y no usa catálogo ni solicitudes por ítems.
+export type AreaKind = 'supplies' | 'fleet'
+
 // Nombre para mostrar; un rubro inactivo (fuera de getAreas) se muestra por su clave.
 export function areaName(areas: Area[], key: AreaKey) {
   return areas.find((area) => area.key === key)?.name ?? key
@@ -17,12 +20,14 @@ export function selectedArea(areas: Area[], key: AreaKey | undefined) {
 // Ambas consultas devuelven null ante un error, para que cada página muestre su estado de error.
 
 // Rubros visibles para el usuario (RLS): todos para el admin, los asignados para el solicitante.
-// Por defecto solo los activos; `includeInactive` es para la gestión del admin.
-export const getAreas = cache(async (includeInactive = false): Promise<Area[] | null> => {
+// Por defecto solo los activos; `includeInactive` es para la gestión del admin. Por defecto solo los
+// de insumos; `includeFleet` suma Movilidad (asignación de rubros a usuarios y perfil).
+export const getAreas = cache(async (includeInactive = false, includeFleet = false): Promise<Area[] | null> => {
   const session = await getSession()
   if (!session) return []
   let query = session.supabase.from('areas').select('key, name, active')
   if (!includeInactive) query = query.eq('active', true)
+  if (!includeFleet) query = query.eq('kind', 'supplies')
   const { data, error } = await query.order('name')
   if (error) console.error('Error al cargar rubros', error)
   return error ? null : (data ?? []) as Area[]

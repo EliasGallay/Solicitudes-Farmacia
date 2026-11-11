@@ -15,3 +15,21 @@ describe('errores de las RPCs de gestión', () => {
   it.each(['requerimiento-invalido', 'requerimiento-sin-pendiente', 'cierre-ya-anulado', 'cierre-no-anulable', 'edicion-sin-pendiente', 'cantidad-menor-entregado', 'producto-invalido', 'producto-repetido', 'sin-cambios', 'remito-invalido', 'remito-requerido'])('traduce %s a un mensaje', (code) => expect(feedbackMessage(managementErrorCode({ message: code }, 'gestion-error'))).not.toBe(feedbackMessage('gestion-error')))
   it('usa el fallback ante un mensaje técnico', () => expect(managementErrorCode({ message: 'duplicate key value violates unique constraint' }, 'gestion-error')).toBe('gestion-error'))
 })
+
+describe('errores de las RPCs de Movilidad', () => {
+  it.each(['vehiculo-invalido', 'vehiculo-inactivo', 'vehiculo-con-solicitudes', 'solicitud-cerrada', 'fecha-invalida', 'ya-anulado', 'descripcion-invalida', 'taller-invalido', 'registro-invalido', 'anio-invalido'])('traduce %s a un mensaje propio', (code) => {
+    const translated = managementErrorCode({ message: code }, 'movilidad-error')
+    expect(translated).not.toBe('movilidad-error')
+    expect(feedbackMessage(translated)).toBeDefined()
+  })
+  it('tiene mensaje para el error genérico', () => expect(feedbackMessage('movilidad-error')).toBeDefined())
+})
+
+describe('errores de los archivos de Movilidad', () => {
+  it.each(['archivo-invalido', 'tipo-documento-invalido', 'ya-borrado', 'sin-permiso'])('traduce %s a un mensaje propio', (code) => {
+    const translated = managementErrorCode({ message: code }, 'movilidad-error')
+    expect(translated).not.toBe('movilidad-error')
+    expect(feedbackMessage(translated)).toBeDefined()
+  })
+  it.each(['archivo-borrado', 'archivo-tipo-invalido', 'archivo-muy-grande', 'archivo-subida-error'])('tiene mensaje para %s', (code) => expect(feedbackMessage(code)).toBeDefined())
+})

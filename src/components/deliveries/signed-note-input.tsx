@@ -3,37 +3,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Camera, FileText, LoaderCircle, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { compressImage } from '@/lib/image-compression'
 import { isSignedNoteType, SIGNED_NOTE_MAX_BYTES } from '@/lib/signed-notes'
-
-// Lado mayor y calidad de la foto comprimida: alcanza para leer el remito y la firma, y queda muy por
-// debajo del límite de 5 MB (una foto de celular suele pesar 3–8 MB).
-const MAX_SIDE = 2000
-const QUALITIES = [0.82, 0.65, 0.5]
-
-// Redimensiona la foto y la pasa a JPEG en el navegador. Lanza si el navegador no puede leerla (p. ej.
-// HEIC fuera de Safari).
-async function compressImage(file: File): Promise<File> {
-  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
-  const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height))
-  const canvas = document.createElement('canvas')
-  canvas.width = Math.round(bitmap.width * scale)
-  canvas.height = Math.round(bitmap.height * scale)
-  const context = canvas.getContext('2d')
-  if (!context) throw new Error('canvas')
-  // Fondo blanco: un PNG con transparencia no queda negro al pasarlo a JPEG.
-  context.fillStyle = '#ffffff'
-  context.fillRect(0, 0, canvas.width, canvas.height)
-  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-  bitmap.close()
-
-  let blob: Blob | null = null
-  for (const quality of QUALITIES) {
-    blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality))
-    if (blob && blob.size <= SIGNED_NOTE_MAX_BYTES) break
-  }
-  if (!blob) throw new Error('toBlob')
-  return new File([blob], 'remito-firmado.jpg', { type: 'image/jpeg' })
-}
 
 // Foto (o PDF) del remito firmado. Las fotos se comprimen al elegirlas; `onChange` recibe el archivo
 // listo para subir, o null si se quitó.
@@ -65,7 +36,7 @@ export function SignedNoteInput({ value, onChange, disabled }: { value: File | n
     if (!file.type.startsWith('image/')) return setError('Elegí una foto o un PDF.')
     setProcessing(true)
     try {
-      onChange(await compressImage(file))
+      onChange(await compressImage(file, SIGNED_NOTE_MAX_BYTES, 'remito-firmado.jpg'))
     } catch {
       // Si no se puede comprimir, se sube tal cual cuando el formato y el tamaño lo permiten.
       if (isSignedNoteType(file.type) && file.size <= SIGNED_NOTE_MAX_BYTES) onChange(file)

@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { ArrowRight, Building2, Clock, FileText, Inbox, Package, PackageCheck, Plus, ShoppingCart, TriangleAlert, Truck } from 'lucide-react'
 import { AdminMetricsSection } from '@/components/dashboard/admin-metrics-section'
 import { PeriodSelect } from '@/components/dashboard/period-select'
@@ -25,6 +26,8 @@ const PENDING_LIMIT = 5
 export default async function Home({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const session = await requireSession()
   if (session.role === 'admin') return <AdminPanel period={metricPeriodParamSchema.parse((await searchParams).periodo)} />
+  // Solo Movilidad: el inicio de insumos no le sirve.
+  if (session.areas.length === 0 && session.fleetAccess) redirect('/movilidad')
 
   // data-tour: pasos del recorrido de la pantalla (src/lib/tours.ts).
   const newRequest = <Link data-tour="home-new-request" href="/solicitudes/nueva" className={buttonVariants()}><Plus />Nueva solicitud</Link>
