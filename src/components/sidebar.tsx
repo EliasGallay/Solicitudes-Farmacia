@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { ChevronDown, CircleUser, Landmark, LogOut, Menu, Settings2, X } from 'lucide-react'
 import { logout } from '@/app/login/actions'
-import { adminNavigation, requesterNavigation, type NavAccess, type NavItem } from '@/lib/navigation'
+import { adminNavigation, purchasingNavigation, requesterNavigation, type NavAccess, type NavItem } from '@/lib/navigation'
 import type { AppRole } from '@/lib/session'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -50,7 +50,7 @@ export function SidebarItem({ item, active }: { item: NavItem; active: boolean }
 function Navigation({ role, pendingReceipts, access = SUPPLIES_ONLY, className }: { role: AppRole | null; pendingReceipts?: number; access?: NavAccess; className?: string }) {
   const pathname = usePathname()
   const estado = useSearchParams().get('estado')
-  const items = role === 'admin' ? adminNavigation : requesterNavigation(access).map((item) => item.estado === 'por_confirmar' ? { ...item, count: pendingReceipts } : item)
+  const items = role === 'admin' ? adminNavigation : role === 'purchasing' ? purchasingNavigation : requesterNavigation(access).map((item) => item.estado === 'por_confirmar' ? { ...item, count: pendingReceipts } : item)
   const current = activeHref(items, pathname, estado)
   return (
     <nav data-tour="navigation" aria-label="Navegación principal" className={className}>

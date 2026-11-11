@@ -26,6 +26,8 @@ const PENDING_LIMIT = 5
 export default async function Home({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const session = await requireSession()
   if (session.role === 'admin') return <AdminPanel period={metricPeriodParamSchema.parse((await searchParams).periodo)} />
+  // Compras trabaja solo sobre el listado de solicitudes con requerimiento de compra.
+  if (session.role === 'purchasing') redirect('/solicitudes')
   // Solo Movilidad: el inicio de insumos no le sirve.
   if (session.areas.length === 0 && session.fleetAccess) redirect('/movilidad')
 

@@ -65,6 +65,8 @@ const messages = {
   'requerimiento-guardado': 'Requerimiento de compra guardado.',
   'requerimiento-invalido': 'Ingresá el número de requerimiento de compra (hasta 30 caracteres).',
   'requerimiento-sin-pendiente': 'La solicitud ya no tiene nada pendiente: no se puede registrar un requerimiento de compra.',
+  'comentario-agregado': 'Comentario agregado al historial.',
+  'comentario-invalido': 'Escribí el comentario (hasta 500 caracteres).',
   'gestion-sobreentrega': 'La cantidad supera lo pendiente del producto. Revisá las cantidades: puede que otra operación haya cambiado la solicitud.',
   'gestion-entrega-vacia': 'Indicá al menos un producto con cantidad a entregar.',
   'gestion-sin-pendiente': 'No hay cantidades pendientes para cerrar en los productos elegidos.',

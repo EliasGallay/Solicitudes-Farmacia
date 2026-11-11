@@ -4,11 +4,12 @@ import type { AppRole } from './session'
 // Validación compartida por el formulario de usuarios (cliente) y las server actions.
 // La base repite las reglas de rol, centro y rubros en admin_save_user.
 
-export const userRoles = ['requester', 'admin'] as const satisfies readonly AppRole[]
+export const userRoles = ['requester', 'purchasing', 'admin'] as const satisfies readonly AppRole[]
 
 export const roleLabels: Record<AppRole, string> = {
   admin: 'Administrador',
   requester: 'Solicitante',
+  purchasing: 'Compras',
 }
 
 export const PASSWORD_MIN_LENGTH = 8
@@ -25,7 +26,7 @@ const userFields = z.object({
   areas: z.array(z.string()),
 })
 
-// El solicitante necesita centro y al menos un rubro; el admin no usa ninguno de los dos.
+// El solicitante necesita centro y al menos un rubro; el admin y Compras no usan ninguno de los dos.
 function requesterRules(values: z.infer<typeof userFields>, ctx: z.RefinementCtx) {
   if (values.role !== 'requester') return
   if (!z.string().uuid().safeParse(values.health_center_id).success) ctx.addIssue({ code: 'custom', path: ['health_center_id'], message: 'Seleccioná el centro de salud' })
