@@ -20,7 +20,7 @@ const fullNameSchema = z.string().trim().min(1, 'El nombre es obligatorio').max(
 const userFields = z.object({
   full_name: fullNameSchema,
   email: z.string().trim().toLowerCase().email('Ingresá un email válido'),
-  role: z.enum(userRoles, { errorMap: () => ({ message: 'Seleccioná un rol' }) }),
+  role: z.enum(userRoles, { error: 'Seleccioná un rol' }),
   health_center_id: z.string().optional(),
   areas: z.array(z.string()),
 })

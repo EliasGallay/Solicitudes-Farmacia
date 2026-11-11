@@ -68,6 +68,21 @@ const rpcErrorCodes: Record<string, FeedbackCode> = {
   'sin-cambios': 'edicion-sin-cambios',
   'remito-invalido': 'remito-invalido',
   'remito-requerido': 'remito-requerido',
+  // Movilidad (supabase/migrations/202610280001_fleet.sql).
+  'vehiculo-invalido': 'vehiculo-invalido',
+  'vehiculo-inactivo': 'vehiculo-inactivo',
+  'vehiculo-con-solicitudes': 'vehiculo-con-solicitudes',
+  'anio-invalido': 'anio-invalido',
+  'descripcion-invalida': 'descripcion-invalida',
+  'fecha-invalida': 'fecha-trabajo-invalida',
+  'taller-invalido': 'taller-invalido',
+  'solicitud-cerrada': 'solicitud-servicio-cerrada',
+  'registro-invalido': 'registro-invalido',
+  'ya-anulado': 'registro-ya-anulado',
+  'sin-permiso': 'sin-permiso',
+  'archivo-invalido': 'archivo-invalido',
+  'tipo-documento-invalido': 'tipo-documento-invalido',
+  'ya-borrado': 'archivo-ya-borrado',
 }
 
 export function managementErrorCode(error: { message?: string } | null, fallback: FeedbackCode): FeedbackCode {

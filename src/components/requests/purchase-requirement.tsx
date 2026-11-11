@@ -8,9 +8,12 @@ import { formatDateTime } from '@/lib/requests'
 
 export type PurchaseRequirement = { number: string; at: string; by: string }
 
+const HINT = 'Si hay que pedirlo a compras, anotá el número de requerimiento: la solicitud queda «En compras» hasta que se entregue todo lo pendiente.'
+
 // Requerimiento de compra en el detalle (solo admin, mientras haya pendiente): registrar el número
 // que dio el sistema de compras o corregirlo. El mismo número puede ir en varias solicitudes.
-export function PurchaseRequirementCard({ requestId, requirement }: { requestId: string; requirement: PurchaseRequirement | null }) {
+// `action` y `hint`: Movilidad usa la misma tarjeta con su server action y su explicación.
+export function PurchaseRequirementCard({ requestId, requirement, action = setPurchaseRequirement, hint = HINT }: { requestId: string; requirement: PurchaseRequirement | null; action?: (formData: FormData) => Promise<void>; hint?: string }) {
   return (
     <Card className="mb-6 flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between sm:p-5">
       <div className="flex gap-3 text-sm">
@@ -22,11 +25,11 @@ export function PurchaseRequirementCard({ requestId, requirement }: { requestId:
           <p className="mt-1 text-foreground-secondary">
             {requirement
               ? `Registrado por ${requirement.by} el ${formatDateTime(requirement.at)}.`
-              : 'Si hay que pedirlo a compras, anotá el número de requerimiento: la solicitud queda «En compras» hasta que se entregue todo lo pendiente.'}
+              : hint}
           </p>
         </div>
       </div>
-      <form action={setPurchaseRequirement} className="flex shrink-0 gap-2">
+      <form action={action} className="flex shrink-0 gap-2">
         <input type="hidden" name="request_id" value={requestId} />
         <Input name="requirement_number" required maxLength={PURCHASE_REQUIREMENT_MAX_LENGTH} defaultValue={requirement?.number} aria-label="Número de requerimiento de compra" placeholder="N° de requerimiento" className="min-w-0 flex-1 lg:w-44" />
         <Button type="submit" variant={requirement ? 'secondary' : 'default'}>{requirement ? 'Corregir' : 'Registrar'}</Button>

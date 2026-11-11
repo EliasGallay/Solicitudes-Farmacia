@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-"Solicitudes de Insumos" (originally pharmacy-only): health centers request supplies by *rubro* (area: pharmacy, cleaning, laboratory, stationery); a single global admin delivers, closes and audits. Next.js 15 App Router + React 19 + Supabase (Postgres, Auth, RLS). UI text, code comments, docs and commit messages are in Spanish (rioplatense: "Revisá", "Intentá") — keep it that way.
+"Solicitudes de Insumos" (originally pharmacy-only): health centers request supplies by *rubro* (area: pharmacy, cleaning, laboratory, stationery); a single global admin delivers, closes and audits. Next.js 16 App Router + React 19 + Supabase (Postgres, Auth, RLS). UI text, code comments, docs and commit messages are in Spanish (rioplatense: "Revisá", "Intentá") — keep it that way.
 
 ## Git
 
@@ -39,7 +39,9 @@ Environment: copy `.env.example` to `.env.local` (`NEXT_PUBLIC_SUPABASE_URL`, `N
 - `src/middleware.ts` only refreshes the Supabase session cookie and redirects unauthenticated users to `/login` (except `/api/cron/*`, Vercel Cron routes that check `CRON_SECRET` themselves).
 - Supabase clients: `src/lib/supabase/server.ts` (session client, used for all app data) and `src/lib/supabase/admin.ts` (secret key, bypasses RLS — only for the Supabase Auth admin API inside actions already guarded by `requireRole('admin')`, plus the `/api/cron/keepalive` Vercel Cron route guarded by `CRON_SECRET`).
 
-**Routing** (`src/app`): `(app)/` is the authenticated shell; `(app)/(admin)/` holds admin-only sections (`catalogos`, `usuarios`, `entregas`, `auditoria`). Server actions live in top-level files `src/app/*-actions.ts` (`request-`, `request-management-`, `product-`, `user-`, `profile-`).
+**Routing** (`src/app`): `(app)/` is the authenticated shell; `(app)/(admin)/` holds admin-only sections (`catalogos`, `usuarios`, `entregas`, `auditoria`). Server actions live in top-level files `src/app/*-actions.ts` (`request-`, `request-management-`, `product-`, `user-`, `profile-`, `fleet-`).
+
+**Movilidad (fleet module)**: vehicles, their maintenance/repair history and free-text service requests live in their own tables (`vehicles`, `vehicle_records`, `vehicle_requests`, migration `202610280001_fleet.sql`), not in `requests`. Access is the area `fleet` (`areas.kind = 'fleet'`): `requireFleetAccess()` / `has_area('fleet')`. `getAreas()` returns only supply areas unless `includeFleet`; `session.areas` excludes `fleet` (`session.fleetAccess` instead). Evidence files: private bucket `movilidad-evidencias` + `fleet_evidence` (soft delete) + `evidence_document_types`, migration `202610290001_fleet_evidence.sql`, `src/lib/fleet-evidence.ts`. SQL checks: `supabase/checks/movilidad.sql` (self-contained, rolls back). Local Supabase: `npx supabase start` (Docker), `.env.local` points to it.
 
 **Writes**: multi-row/business operations go through Postgres RPCs (`create_request_with_items`, `register_delivery`, `close_request_items`, `void_delivery`, ...) that lock rows (`for update`), validate balances and write `audit_events` in the same transaction. Nothing is deleted: deliveries are voided, pending quantities are closed with a reason.
 

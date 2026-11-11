@@ -335,6 +335,39 @@ Ruta:
 Muestra los datos del producto: nombre, tipo y presentación.
 Incluye el botón "Volver". Sin acciones adicionales.
 
+## 9.3 Movilidad (flota de vehículos)
+
+Diseño: `docs/plans/diseno-movilidad.md`. Acceso: admin o solicitante con el rubro Movilidad (`fleet`).
+Un solicitante que solo tiene Movilidad ve en el menú Inicio y Movilidad, y el inicio lo lleva a `/movilidad`.
+
+Rutas:
+
+- `/movilidad`: vehículos (por defecto los activos). Filtros: búsqueda por identificador, nombre, marca,
+  modelo o dominio, y estado (activos, inactivos, todos). Columnas: Identificador, Vehículo, Año, Dominio,
+  Estado (con las solicitudes abiertas). Acciones: «Solicitudes de servicio», «Pedir reparación» y, para el
+  admin, «Nuevo vehículo».
+- `/movilidad/vehiculos/nuevo` y `/movilidad/vehiculos/{id}/editar` (admin): nombre, marca, modelo, año,
+  dominio (se guarda en mayúsculas, sin espacios ni guiones) e identificador interno opcional.
+- `/movilidad/vehiculos/{id}`: ficha con solicitudes abiertas, «Cargar en el historial» (tipo, qué, cuándo,
+  dónde; solo vehículos activos) e historial de lo más reciente a lo más antiguo. El admin edita, desactiva
+  (no con solicitudes abiertas) y anula registros con motivo; un registro anulado queda tachado.
+- `/movilidad/solicitudes`: por defecto las abiertas. Filtros: búsqueda (un número solo busca por número de
+  solicitud o de requerimiento), estado y vehículo. Columnas: Número (`#SRV-n`), Vehículo, Problema, Estado,
+  Fecha, Espera.
+- `/movilidad/solicitudes/nueva` (`?vehiculo=` preselecciona): vehículo activo y descripción libre.
+- `/movilidad/solicitudes/{id}`: vehículo, qué necesita, requerimiento de compra (lo carga el admin),
+  «Completar» (qué se reparó, cuándo, dónde: queda en el historial) y «Cancelar» con motivo.
+
+Estados de la solicitud de servicio (calculados): Pendiente, En compras, Completada, Cancelada. Anular el
+registro que la completó la vuelve a abrir.
+
+Archivos (`docs/plans/diseno-movilidad-adjuntos.md`): la solicitud de servicio tiene una tarjeta «Archivos» y
+cada registro del historial lista los suyos (y, si cerró una solicitud, los de la solicitud marcados «de la
+solicitud #SRV-n»). «Adjuntar archivos» pide el tipo de documento (lista de la base; «Otro» pide texto) y
+uno o más archivos JPG, PNG, WebP o PDF de hasta 10 MB; las fotos se achican y se suben de a uno, y si
+alguno falla se informa cuál. Se adjunta en cualquier estado. «Borrar» lo ven quien lo subió y el admin;
+el archivo deja de mostrarse pero queda guardado.
+
 ## 10. Estados visuales
 
 Estados generales:

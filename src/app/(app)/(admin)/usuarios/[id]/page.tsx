@@ -29,7 +29,7 @@ export default async function UserDetailPage({ params, searchParams }: { params:
   const [{ data: profile, error }, { data: centers }, areas] = await Promise.all([
     supabase.from('profiles').select('user_id, full_name, role, active, must_change_password, created_at, health_center_id, profile_email, profile_last_sign_in_at, profile_has_activity, profile_areas(area)').eq('user_id', id.data).maybeSingle(),
     supabase.from('health_centers').select('id, name, active').order('name'),
-    getAreas(true),
+    getAreas(true, true),
   ])
   if (error) return <><BackButton fallback="/usuarios" /><Card><ErrorState title="No pudimos cargar el usuario" /></Card></>
   if (!profile) return <><BackButton fallback="/usuarios" /><NotFound /></>

@@ -3,38 +3,14 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { Building2, ChevronDown, CircleUser, ClipboardList, CirclePlus, FileText, House, Landmark, LogOut, Menu, Package, PackageCheck, Settings2, Truck, Users, X, type LucideIcon } from 'lucide-react'
+import { ChevronDown, CircleUser, Landmark, LogOut, Menu, Settings2, X } from 'lucide-react'
 import { logout } from '@/app/login/actions'
+import { adminNavigation, requesterNavigation, type NavAccess, type NavItem } from '@/lib/navigation'
 import type { AppRole } from '@/lib/session'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { ProductTour, ScreenHelpButton, WorkflowTour } from '@/components/product-tour'
 import { NotificationBell } from '@/components/notifications/notification-bell'
-
-// `estado`: el ítem apunta al listado de solicitudes filtrado (?estado=); `count`: indicador a la derecha.
-// `tour`: data-tour del ítem, para los recorridos por pantalla (src/lib/tours.ts).
-type NavItem = { label: string; icon: LucideIcon; href: string; estado?: string; count?: number; tour?: string }
-
-const requesterNavigation: NavItem[] = [
-  { href: '/', label: 'Inicio', icon: House },
-  { href: '/solicitudes', label: 'Solicitudes', icon: FileText },
-  // Acceso directo a lo que el centro tiene que confirmar, sin pasar por filtros ni notificaciones.
-  { href: '/solicitudes?estado=por_confirmar', estado: 'por_confirmar', label: 'Por confirmar', icon: PackageCheck, tour: 'nav-pending-receipts' },
-  { href: '/solicitudes/nueva', label: 'Nueva solicitud', icon: CirclePlus },
-  { href: '/catalogo', label: 'Catálogo', icon: Package },
-]
-
-// Administrative navigation is kept as it was; its screens are outside this UI scope.
-// "Nueva solicitud" está oculta para el admin por ahora; la ruta sigue disponible.
-const adminNavigation: NavItem[] = [
-  { href: '/', label: 'Panel', icon: House },
-  { href: '/solicitudes', label: 'Solicitudes', icon: FileText },
-  { href: '/entregas', label: 'Entregas', icon: Truck },
-  { href: '/catalogos', label: 'Catálogos', icon: Package },
-  { href: '/usuarios', label: 'Usuarios', icon: Users },
-  { href: '/centros', label: 'Centros', icon: Building2 },
-  { href: '/auditoria', label: 'Auditoría', icon: ClipboardList },
-]
 
 // Ítems del desplegable "Sistema y tutoriales": más compactos que la navegación, todos del mismo alto.
 const menuItemClasses = 'h-10 px-3 text-sm [&_svg]:size-4'
@@ -44,7 +20,10 @@ const menuSeparatorClasses = 'mx-1.5 my-1.5 h-px bg-sidebar-muted/20'
 const itemClasses = 'flex h-11 shrink-0 items-center gap-3 rounded-md px-4 text-base transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 [&_svg]:size-5 [&_svg]:shrink-0'
 
 // `pendingReceipts`: solicitudes del centro con entregas sin confirmar (solo solicitante).
-type SidebarProps = { role: AppRole | null; userName: string; centerName: string | null; pendingReceipts?: number }
+// `access`: módulos del solicitante (insumos, Movilidad); por defecto solo insumos.
+type SidebarProps = { role: AppRole | null; userName: string; centerName: string | null; pendingReceipts?: number; access?: NavAccess }
+
+const SUPPLIES_ONLY: NavAccess = { supplies: true, fleet: false }
 
 // El ítem con ?estado= queda activo solo con ese filtro; si no, gana la ruta más específica.
 function activeHref(items: NavItem[], pathname: string, estado: string | null) {
@@ -68,10 +47,10 @@ export function SidebarItem({ item, active }: { item: NavItem; active: boolean }
   )
 }
 
-function Navigation({ role, pendingReceipts, className }: { role: AppRole | null; pendingReceipts?: number; className?: string }) {
+function Navigation({ role, pendingReceipts, access = SUPPLIES_ONLY, className }: { role: AppRole | null; pendingReceipts?: number; access?: NavAccess; className?: string }) {
   const pathname = usePathname()
   const estado = useSearchParams().get('estado')
-  const items = role === 'admin' ? adminNavigation : requesterNavigation.map((item) => item.estado === 'por_confirmar' ? { ...item, count: pendingReceipts } : item)
+  const items = role === 'admin' ? adminNavigation : requesterNavigation(access).map((item) => item.estado === 'por_confirmar' ? { ...item, count: pendingReceipts } : item)
   const current = activeHref(items, pathname, estado)
   return (
     <nav data-tour="navigation" aria-label="Navegación principal" className={className}>
@@ -106,13 +85,13 @@ function Brand({ className }: { className?: string }) {
 // Contenido compartido entre el sidebar de desktop y el drawer de pantallas chicas.
 // `notifications`: campana y ayuda de la pantalla encima del perfil (solo desktop; en mobile van en
 // la barra superior).
-function SidebarBody({ role, userName, centerName, pendingReceipts, notifications }: SidebarProps & { notifications?: boolean }) {
+function SidebarBody({ role, userName, centerName, pendingReceipts, access, notifications }: SidebarProps & { notifications?: boolean }) {
   const pathname = usePathname()
   const onProfile = pathname === '/perfil'
   const showNotifications = Boolean(notifications && role)
   return (
     <>
-      <Navigation role={role} pendingReceipts={pendingReceipts} className="flex flex-col gap-1" />
+      <Navigation role={role} pendingReceipts={pendingReceipts} access={access} className="flex flex-col gap-1" />
       {showNotifications && (
         <div className="mt-auto flex items-center gap-1 pb-1">
           <NotificationBell tone="nav" className="min-w-0 flex-1" />

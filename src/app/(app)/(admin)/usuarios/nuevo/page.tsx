@@ -9,7 +9,7 @@ export default async function NewUserPage() {
   const { supabase } = await requireRole('admin')
   const [{ data: centers }, areas] = await Promise.all([
     supabase.from('health_centers').select('id, name').eq('active', true).order('name'),
-    getAreas(),
+    getAreas(false, true),
   ])
 
   return (
