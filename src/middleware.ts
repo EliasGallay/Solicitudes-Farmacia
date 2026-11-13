@@ -22,7 +22,10 @@ export async function middleware(request: NextRequest) {
     },
   })
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // getClaims valida el JWT localmente (claves de firma asimétricas, JWKS cacheado) y refresca la sesión
+  // si venció; con claves simétricas recurre a getUser. Evita un viaje al servidor de Auth por request.
+  const { data } = await supabase.auth.getClaims()
+  const user = data?.claims.sub ? data.claims : null
   const { pathname } = request.nextUrl
   // /auth/confirm valida el enlace de recuperación de contraseña, con o sin sesión previa.
   if (pathname === '/auth/confirm') return response

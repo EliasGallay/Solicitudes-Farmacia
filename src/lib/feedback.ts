@@ -5,6 +5,7 @@ const messages = {
   'login-invalido': 'Ingresá un email y una contraseña válidos.',
   'login-fallido': 'No se pudo iniciar sesión. Revisá tu email y contraseña.',
   'sesion-expirada': 'La sesión expiró. Iniciá sesión nuevamente.',
+  'cuenta-inactiva': 'Tu cuenta no está habilitada para ingresar. Consultá con el administrador.',
   'password-invalida': 'La contraseña debe tener al menos 8 caracteres y ambas deben coincidir.',
   'password-igual': 'La nueva contraseña debe ser distinta de la actual.',
   'password-debil': 'La contraseña es demasiado débil. Probá con una más larga o combinada.',

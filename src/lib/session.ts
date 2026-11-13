@@ -14,8 +14,11 @@ export type AreaKey = string
 // Cached per request: pages and AppShell share one profile lookup.
 export const getSession = cache(async () => {
   const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  // JWT validado localmente (ver middleware): la base es la autoridad y aplica RLS con el mismo token.
+  const { data: auth } = await supabase.auth.getClaims()
+  const claims = auth?.claims
+  if (!claims?.sub) return null
+  const user = { id: claims.sub, email: claims.email }
 
   // Perfil, centro y rubros en una sola consulta (relaciones embebidas).
   const { data: profile, error: profileError } = await supabase.from('profiles').select('full_name, role, active, health_center_id, must_change_password, health_center:health_centers(name), profile_areas(area, area_info:areas(kind))').eq('user_id', user.id).maybeSingle()
@@ -46,6 +49,8 @@ export const getSession = cache(async () => {
 export async function requireSession() {
   const session = await getSession()
   if (!session) redirect('/login')
+  // Sin rol: perfil inactivo o inexistente. La base ya le niega todo (current_app_role()); se cierra la sesión.
+  if (!session.role) redirect('/auth/salir')
   if (session.mustChangePassword) redirect('/change-password')
   return session
 }
