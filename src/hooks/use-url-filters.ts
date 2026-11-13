@@ -1,19 +1,21 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useListTransition } from '@/components/list-transition'
 
 // Estándar de filtros: el estado vive en la URL y el servidor resuelve la consulta filtrada.
-// Cambiar un filtro reinicia la paginación.
+// Cambiar un filtro reinicia la paginación. Navega dentro de la transición compartida del listado
+// (ListTransitionProvider) para que ListPending atenúe el listado actual mientras llega el nuevo.
 export function useUrlFilters() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const [pending, startTransition] = useTransition()
+  const { pending, startTransition } = useListTransition()
 
   const navigate = useCallback((params: URLSearchParams) => {
     startTransition(() => router.replace(params.size ? `${pathname}?${params}` : pathname, { scroll: false }))
-  }, [pathname, router])
+  }, [pathname, router, startTransition])
 
   const setFilters = useCallback((updates: Record<string, string | undefined>) => {
     const params = new URLSearchParams(searchParams)

@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import { ListPending } from '@/components/list-transition'
 import Link from 'next/link'
 import { ArrowRight, ChevronRight, Plus, SearchX, Users } from 'lucide-react'
 import { z } from 'zod'
@@ -55,9 +56,9 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
       {feedbackMessage(params.error) && <div className="-mt-4 mb-6"><FormError>{feedbackMessage(params.error)}</FormError></div>}
       <UserFilters centers={centers} buscar={filters.buscar} rol={filters.rol} centro={filters.centro} estado={filters.estado} />
       <Card>
-        <Suspense key={pageHref(filters, filters.page)} fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
+        <ListPending><Suspense fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
           <UsersList filters={filters} />
-        </Suspense>
+        </Suspense></ListPending>
       </Card>
 
       {/* Solo consulta: los centros se administran desde la base. */}

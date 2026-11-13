@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import { ListPending } from '@/components/list-transition'
 import Link from 'next/link'
 import { ArrowRight, ChevronRight, Package, Plus, SearchX } from 'lucide-react'
 import { z } from 'zod'
@@ -51,9 +52,9 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
       />
       <CatalogFilters areas={multipleAreas ? areas ?? [] : undefined} rubro={filters.rubro} types={types} buscar={filters.buscar} tipo={filters.tipo} />
       <Card>
-        <Suspense key={pageHref(filters, filters.page)} fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
+        <ListPending><Suspense fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
           <ProductList filters={filters} areas={multipleAreas ? areas ?? [] : undefined} />
-        </Suspense>
+        </Suspense></ListPending>
       </Card>
     </>
   )
