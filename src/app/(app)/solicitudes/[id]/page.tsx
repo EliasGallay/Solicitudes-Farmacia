@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import { ListPending } from '@/components/list-transition'
 import Link from 'next/link'
 import { Ban, CircleUser, Clock, FileQuestion, FileText, Package, PackageCheck, PackageX, Pencil, Printer, TriangleAlert, Truck } from 'lucide-react'
 import { z } from 'zod'
@@ -334,9 +335,9 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
           <CardTitle>Productos</CardTitle>
           <RequestProductFilters buscar={filters.buscar} pendiente={filters.pendiente} />
         </CardHeader>
-        <Suspense key={productsHref(id, filters, filters.page)} fallback={<CardContent><RequestsTableSkeleton rows={3} /></CardContent>}>
+        <ListPending><Suspense fallback={<CardContent><RequestsTableSkeleton rows={3} /></CardContent>}>
           <RequestProducts requestId={id} filters={filters} />
-        </Suspense>
+        </Suspense></ListPending>
       </Card>
 
       <RequestHistory requestId={id} role={role} createdAt={createdAt} createdBy={actorName(createdBy)} deliveries={deliveries} closures={[...closures.values()]} receipts={[...receiptEvents.values()]} resolutions={resolutions} edits={[...edits.values()]} comments={comments} purchaseRequirement={purchaseRequirement} canComment={isAdmin || purchasing} />

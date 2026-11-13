@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import { ListPending } from '@/components/list-transition'
 import { Bell, BellOff, CheckCheck } from 'lucide-react'
 import { z } from 'zod'
 import { markAllNotificationsRead } from '@/app/notification-actions'
@@ -53,9 +54,9 @@ export default async function NotificationsPage({ searchParams }: { searchParams
       {feedbackMessage(params.error) && <div className="-mt-4 mb-6"><FormError>{feedbackMessage(params.error)}</FormError></div>}
       <div className="mb-4"><NotificationFilters estado={filters.estado} /></div>
       <Card>
-        <Suspense key={pageHref(filters, filters.page)} fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
+        <ListPending><Suspense fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
           <NotificationList filters={filters} />
-        </Suspense>
+        </Suspense></ListPending>
       </Card>
     </>
   )

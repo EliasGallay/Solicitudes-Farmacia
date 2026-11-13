@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import { ListPending } from '@/components/list-transition'
 import Link from 'next/link'
 import { ClipboardList, SearchX } from 'lucide-react'
 import { z } from 'zod'
@@ -42,9 +43,9 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
       <PageHeader title="Auditoría" description="Registro inmutable de las operaciones sobre solicitudes y entregas: quién hizo qué, cuándo y por qué." />
       <AuditFilters users={(users ?? []).map((user) => ({ id: user.user_id as string, name: user.full_name as string }))} accion={filters.accion} usuario={filters.usuario} desde={filters.desde} hasta={filters.hasta} />
       <Card>
-        <Suspense key={pageHref(filters, filters.page)} fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
+        <ListPending><Suspense fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
           <AuditList filters={filters} />
-        </Suspense>
+        </Suspense></ListPending>
       </Card>
     </>
   )

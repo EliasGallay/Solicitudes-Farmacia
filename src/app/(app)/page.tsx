@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import { ListPending } from '@/components/list-transition'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { ArrowRight, Building2, Clock, FileText, Inbox, Package, PackageCheck, Plus, ShoppingCart, TriangleAlert, Truck } from 'lucide-react'
@@ -163,9 +164,9 @@ async function AdminPanel({ period }: { period: MetricPeriod }) {
           </div>
           <PeriodSelect value={period} />
         </div>
-        <Suspense key={period} fallback={<MetricsSkeleton />}>
+        <ListPending><Suspense fallback={<MetricsSkeleton />}>
           <AdminMetricsSection period={period} />
-        </Suspense>
+        </Suspense></ListPending>
       </section>
     </>
   )
