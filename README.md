@@ -178,6 +178,9 @@ En el proyecto remoto, las migraciones **se aplican a mano** en el SQL Editor, e
 34. Aplicar `supabase/migrations/202611110001_purchasing_role.sql` **sola** (agrega el rol `purchasing` al enum; Postgres no deja usarlo en la misma ejecución).
 35. Aplicar `supabase/migrations/202611110002_purchasing_access.sql`. Rol Compras: lee solo las solicitudes con requerimiento de compra, de todos los centros y rubros; comentarios de texto libre en el historial (`request_comments`, `add_request_comment`) que escriben el admin y Compras y ven todos los que ven la solicitud. Después correr `supabase/checks/compras.sql`: todas las filas tienen que empezar con «ok» (no deja datos).
 
+36. Aplicar `supabase/migrations/202611180001_merge_requests.sql`. Unificar solicitudes: el admin pasa lo pendiente de una solicitud sin entregas a otra abierta del mismo centro y rubro (`merge_requests`); la de origen queda cerrada con motivo «Duplicado» y lo sumado queda en el historial de la destino.
+37. Aplicar `supabase/migrations/202611180002_unified_requests.sql` **después** del punto 36. Estado «Unificada» para la origen (`request_status`) y registro de unificaciones (`request_merges`): la origen muestra con qué solicitud se unificó y la destino lista de cuáles recibió lo pendiente.
+
 Si falta una migración, las pantallas que dependen de ella muestran un error de carga.
 
 ### Primer administrador
