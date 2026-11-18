@@ -10,6 +10,7 @@ const statusVariants: Record<RequestStatus, NonNullable<BadgeProps['variant']>> 
   completed: 'primary',
   received: 'success',
   closed: 'neutral',
+  unified: 'neutral',
 }
 
 // "Cerrada" es neutral, pero el fondo gris solo casi no se distingue de la superficie: lleva borde y
@@ -17,6 +18,7 @@ const statusVariants: Record<RequestStatus, NonNullable<BadgeProps['variant']>> 
 // ícono para distinguirlos.
 const statusClasses: Partial<Record<RequestStatus, string>> = {
   closed: 'border border-border-strong text-foreground',
+  unified: 'border border-border-strong text-foreground',
   purchase: 'border border-warning',
 }
 

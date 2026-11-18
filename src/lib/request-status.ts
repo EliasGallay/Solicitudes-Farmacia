@@ -4,7 +4,8 @@ import { z } from 'zod'
 // 202610040001_delivery_receipts.sql y 202610210001_purchase_requirements.sql). 'purchase': sin
 // entregas y con requerimiento de compra registrado; 'completed': todo entregado, falta que el centro
 // confirme la recepción; 'received': entregado y confirmado sin diferencias abiertas.
-export const requestStatuses = ['pending', 'purchase', 'partial', 'completed', 'received', 'closed'] as const
+// 'unified': solicitud origen de una unificación (supabase/migrations/202611180002_unified_requests.sql).
+export const requestStatuses = ['pending', 'purchase', 'partial', 'completed', 'received', 'closed', 'unified'] as const
 export type RequestStatus = (typeof requestStatuses)[number]
 
 export const requestStatusLabels: Record<RequestStatus, string> = {
@@ -14,6 +15,7 @@ export const requestStatusLabels: Record<RequestStatus, string> = {
   completed: 'Entregada',
   received: 'Recibida',
   closed: 'Cerrada',
+  unified: 'Unificada',
 }
 
 export const requestStatusSchema = z.enum(requestStatuses)

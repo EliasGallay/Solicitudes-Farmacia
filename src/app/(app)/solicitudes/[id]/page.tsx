@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
-import { Ban, CircleUser, Clock, FileQuestion, FileText, Package, PackageCheck, PackageX, Pencil, Printer, TriangleAlert, Truck } from 'lucide-react'
+import { Ban, CircleUser, Clock, FileQuestion, FileText, GitMerge, Package, PackageCheck, PackageX, Pencil, Printer, TriangleAlert, Truck } from 'lucide-react'
 import { z } from 'zod'
 import { cancelRequest } from '@/app/request-management-actions'
 import { BackButton } from '@/components/back-button'
@@ -16,6 +16,7 @@ import { PageHeader } from '@/components/page-header'
 import { StatusBadge } from '@/components/status-badge'
 import { DeliveryProgress } from '@/components/requests/delivery-progress'
 import { PurchaseRequirementCard, type PurchaseRequirement } from '@/components/requests/purchase-requirement'
+import { RequestMergesCard, type RequestMerge } from '@/components/requests/request-merges'
 import { ReceiptDifferences, RequestHistory, UNKNOWN_ACTOR, type ClosureEvent, type CommentEvent, type DeliverySummary, type EditEvent, type OpenDifference, type ReceiptEvent, type ResolutionEvent } from '@/components/requests/request-activity'
 import { RequestProductFilters } from '@/components/requests/request-product-filters'
 import { RequestProductsTable } from '@/components/requests/request-products-table'
@@ -101,10 +102,16 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
     // Comentarios del admin y de Compras (supabase/migrations/202611110002_purchasing_access.sql).
     supabase.from('request_comments').select('body, created_by, created_at').eq('request_id', id).order('created_at'),
   ])
+  // Unificaciones como origen y como destino (supabase/migrations/202611180002_unified_requests.sql).
+  const mergeSelect = 'source_request_id, target_request_id, reason, created_at, source:requests!source_request_id(request_number), target:requests!target_request_id(request_number)'
+  const [{ data: mergesAsSource, error: mergesSourceError }, { data: mergesAsTarget, error: mergesTargetError }] = await Promise.all([
+    supabase.from('request_merges').select(mergeSelect).eq('source_request_id', id),
+    supabase.from('request_merges').select(mergeSelect).eq('target_request_id', id),
+  ])
   // Entregas, cierres y recepciones definen acciones y avisos: si alguna falla no se muestra un
   // estado parcial (p. ej. todo como "sin confirmar").
-  if (error || deliveriesError || closuresError || receiptsError) {
-    console.error('Error al cargar la solicitud', error ?? deliveriesError ?? closuresError ?? receiptsError)
+  if (error || deliveriesError || closuresError || receiptsError || mergesSourceError || mergesTargetError) {
+    console.error('Error al cargar la solicitud', error ?? deliveriesError ?? closuresError ?? receiptsError ?? mergesSourceError ?? mergesTargetError)
     return <Card><ErrorState title="No pudimos cargar la solicitud" /></Card>
   }
   if (!data) return <NotFound />
@@ -114,6 +121,15 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
 
   const summary = summarizeItems((data.request_items ?? []) as ItemQuantitiesRow[])
   const status = data.request_status as RequestStatus
+  type MergeRow = { source_request_id: string; target_request_id: string; reason: string; created_at: string; source: { request_number: number } | { request_number: number }[] | null; target: { request_number: number } | { request_number: number }[] | null }
+  const merges: RequestMerge[] = [...((mergesAsSource ?? []) as MergeRow[]), ...((mergesAsTarget ?? []) as MergeRow[])].map((row) => ({
+    sourceId: row.source_request_id,
+    sourceNumber: relationOne(row.source)?.request_number ?? 0,
+    targetId: row.target_request_id,
+    targetNumber: relationOne(row.target)?.request_number ?? 0,
+    reason: row.reason,
+    createdAt: row.created_at,
+  }))
 
   const createdAt = data.created_at as string
   const createdBy = data.created_by as string
@@ -218,6 +234,8 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
       <div className="flex flex-col gap-2 sm:flex-row">
         <Link href={`/solicitudes/${id}/editar`} className={buttonVariants({ variant: 'secondary' })}><Pencil />Corregir</Link>
         <Link href={`/solicitudes/${id}/cerrar`} className={buttonVariants({ variant: 'secondary' })}><PackageX />Cerrar pendiente</Link>
+        {/* Solo sin entregas: lo entregado no se mueve (la base lo vuelve a validar). */}
+        {summary.delivered === 0 && <Link href={`/solicitudes/${id}/unificar`} className={buttonVariants({ variant: 'secondary' })}><GitMerge />Unificar</Link>}
         <Link href={`/solicitudes/${id}/entregar`} className={buttonVariants()}><Truck />Registrar entrega</Link>
       </div>
     )
@@ -313,6 +331,7 @@ async function RequestDetail({ id, filters, feedback }: { id: string; filters: P
         </Card>
       )}
       {isAdmin && <ReceiptDifferences requestId={id} differences={openDifferences} />}
+      <RequestMergesCard requestId={id} merges={merges} />
       {/* Mientras haya pendiente el admin registra o corrige el requerimiento de compra. */}
       {isAdmin && summary.pending > 0 && <PurchaseRequirementCard requestId={id} requirement={purchaseRequirement} />}
 

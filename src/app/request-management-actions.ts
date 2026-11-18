@@ -265,6 +265,28 @@ export async function addRequestComment(formData: FormData) {
   redirect(withFeedback(page, 'success', 'comentario-agregado'))
 }
 
+// /solicitudes/[id]/unificar: pasa lo pendiente de la solicitud origen a la destino y cierra el origen
+// (merge_requests, supabase/migrations/202611180001_merge_requests.sql).
+export async function mergeRequests(formData: FormData) {
+  const sourceId = idSchema.safeParse(formData.get('source_id'))
+  if (!sourceId.success) redirect(withFeedback('/solicitudes', 'error', 'gestion-datos-invalidos'))
+  const page = `/solicitudes/${sourceId.data}/unificar`
+
+  const targetId = idSchema.safeParse(formData.get('target_id'))
+  if (!targetId.success) redirect(withFeedback(page, 'error', 'gestion-datos-invalidos'))
+  const reason = noteSchema.safeParse(formData.get('reason') ?? '')
+  if (!reason.success) redirect(withFeedback(page, 'error', 'gestion-nota-larga'))
+  if (!reason.data) redirect(withFeedback(page, 'error', 'gestion-motivo-requerido'))
+
+  const { supabase } = await requireRole('admin')
+  const { error } = await supabase.rpc('merge_requests', { source_request_id: sourceId.data, target_request_id: targetId.data, merge_reason: reason.data })
+  if (error) redirect(withFeedback(page, 'error', managementErrorCode(error, 'gestion-error')))
+
+  revalidateRequest(sourceId.data)
+  revalidateRequest(targetId.data)
+  redirect(withFeedback(`/solicitudes/${targetId.data}`, 'success', 'solicitud-unificada'))
+}
+
 // Cancelación por el solicitante mientras no haya entregas activas (la base lo valida).
 export async function cancelRequest(formData: FormData) {
   const requestId = idSchema.safeParse(formData.get('request_id'))
