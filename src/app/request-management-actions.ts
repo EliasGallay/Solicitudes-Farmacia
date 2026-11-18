@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { redirectAfterAction } from '@/lib/redirect'
 import { z } from 'zod'
 import { feedbackMessage, withFeedback } from '../lib/feedback'
 import { closureReasons, commentSchema, managementErrorCode, NOTE_MAX_LENGTH, PURCHASE_REQUIREMENT_MAX_LENGTH, receiptResolutions } from '../lib/request-management'
@@ -39,7 +39,7 @@ export async function registerDelivery(requestId: string, lines: { request_item_
 
   revalidateRequest(id.data)
   // ?remito=: el detalle ofrece imprimir el remito recién creado.
-  redirect(withFeedback(`/solicitudes/${id.data}?remito=${deliveryId}`, 'success', 'entrega-registrada'))
+  redirectAfterAction(withFeedback(`/solicitudes/${id.data}?remito=${deliveryId}`, 'success', 'entrega-registrada'))
 }
 
 // Corrección de la solicitud: cantidad nueva de un producto existente o producto agregado.
@@ -64,7 +64,7 @@ export async function editRequest(requestId: string, changes: ({ request_item_id
 
   revalidateRequest(id.data)
   revalidatePath(`/hojas-de-pedido/${id.data}`)
-  redirect(withFeedback(`/solicitudes/${id.data}`, 'success', 'solicitud-corregida'))
+  redirectAfterAction(withFeedback(`/solicitudes/${id.data}`, 'success', 'solicitud-corregida'))
 }
 
 const closeSchema = z.object({
@@ -77,65 +77,65 @@ const closeSchema = z.object({
 // /solicitudes/[id]/cerrar: cierra todo lo pendiente de los productos elegidos.
 export async function closePending(formData: FormData) {
   const requestId = idSchema.safeParse(formData.get('request_id'))
-  if (!requestId.success) redirect(withFeedback('/solicitudes', 'error', 'gestion-datos-invalidos'))
+  if (!requestId.success) redirectAfterAction(withFeedback('/solicitudes', 'error', 'gestion-datos-invalidos'))
   const page = `/solicitudes/${requestId.data}/cerrar`
 
   const parsed = closeSchema.safeParse({ request_id: requestId.data, reason: formData.get('reason') || undefined, detail: formData.get('detail') ?? undefined, items: formData.getAll('item') })
   if (!parsed.success) {
     const issue = parsed.error.issues[0]?.path[0]
-    redirect(withFeedback(page, 'error', issue === 'reason' ? 'gestion-motivo-requerido' : issue === 'items' ? 'gestion-sin-pendiente' : issue === 'detail' ? 'gestion-nota-larga' : 'gestion-datos-invalidos'))
+    redirectAfterAction(withFeedback(page, 'error', issue === 'reason' ? 'gestion-motivo-requerido' : issue === 'items' ? 'gestion-sin-pendiente' : issue === 'detail' ? 'gestion-nota-larga' : 'gestion-datos-invalidos'))
   }
   const { reason, detail, items } = parsed.data
-  if (reason === 'otro' && !detail) redirect(withFeedback(page, 'error', 'gestion-motivo-requerido'))
+  if (reason === 'otro' && !detail) redirectAfterAction(withFeedback(page, 'error', 'gestion-motivo-requerido'))
 
   const { supabase } = await requireRole('admin')
   // Sin `quantity`: la base cierra todo el pendiente de cada ítem, calculado con la solicitud bloqueada.
   const lines = [...new Set(items)].map((itemId) => ({ request_item_id: itemId }))
   const { error } = await supabase.rpc('close_request_items', { target_request_id: requestId.data, closure_items: lines, closure_reason: reason, closure_detail: detail || null })
-  if (error) redirect(withFeedback(page, 'error', managementErrorCode(error, 'gestion-error')))
+  if (error) redirectAfterAction(withFeedback(page, 'error', managementErrorCode(error, 'gestion-error')))
 
   revalidateRequest(requestId.data)
-  redirect(withFeedback(`/solicitudes/${requestId.data}`, 'success', 'pendiente-cerrado'))
+  redirectAfterAction(withFeedback(`/solicitudes/${requestId.data}`, 'success', 'pendiente-cerrado'))
 }
 
 // Anulación desde el detalle de la solicitud o de la entrega (`from`), que es adonde se vuelve.
 export async function voidDelivery(formData: FormData) {
   const deliveryId = idSchema.safeParse(formData.get('delivery_id'))
   const requestId = idSchema.safeParse(formData.get('request_id'))
-  if (!deliveryId.success || !requestId.success) redirect(withFeedback('/entregas', 'error', 'gestion-datos-invalidos'))
+  if (!deliveryId.success || !requestId.success) redirectAfterAction(withFeedback('/entregas', 'error', 'gestion-datos-invalidos'))
   const page = formData.get('from') === 'entrega' ? `/entregas/${deliveryId.data}` : `/solicitudes/${requestId.data}`
 
   const reason = noteSchema.safeParse(formData.get('reason') ?? '')
-  if (!reason.success) redirect(withFeedback(page, 'error', 'gestion-nota-larga'))
-  if (!reason.data) redirect(withFeedback(page, 'error', 'gestion-motivo-requerido'))
+  if (!reason.success) redirectAfterAction(withFeedback(page, 'error', 'gestion-nota-larga'))
+  if (!reason.data) redirectAfterAction(withFeedback(page, 'error', 'gestion-motivo-requerido'))
 
   const { supabase } = await requireRole('admin')
   const { error } = await supabase.rpc('void_delivery', { target_delivery_id: deliveryId.data, reason: reason.data })
-  if (error) redirect(withFeedback(page, 'error', managementErrorCode(error, 'gestion-error')))
+  if (error) redirectAfterAction(withFeedback(page, 'error', managementErrorCode(error, 'gestion-error')))
 
   revalidateRequest(requestId.data)
-  redirect(withFeedback(page, 'success', 'entrega-anulada'))
+  redirectAfterAction(withFeedback(page, 'success', 'entrega-anulada'))
 }
 
 // Anulación de una operación de cierre desde el historial de la solicitud (solo admin): llegan los
 // ids de todas sus filas y el motivo.
 export async function voidClosure(formData: FormData) {
   const requestId = idSchema.safeParse(formData.get('request_id'))
-  if (!requestId.success) redirect(withFeedback('/solicitudes', 'error', 'gestion-datos-invalidos'))
+  if (!requestId.success) redirectAfterAction(withFeedback('/solicitudes', 'error', 'gestion-datos-invalidos'))
   const page = `/solicitudes/${requestId.data}`
 
   const closureIds = z.array(idSchema).min(1).safeParse(formData.getAll('closure_id'))
   const reason = noteSchema.safeParse(formData.get('reason') ?? '')
-  if (!closureIds.success) redirect(withFeedback(page, 'error', 'gestion-datos-invalidos'))
-  if (!reason.success) redirect(withFeedback(page, 'error', 'gestion-nota-larga'))
-  if (!reason.data) redirect(withFeedback(page, 'error', 'gestion-motivo-requerido'))
+  if (!closureIds.success) redirectAfterAction(withFeedback(page, 'error', 'gestion-datos-invalidos'))
+  if (!reason.success) redirectAfterAction(withFeedback(page, 'error', 'gestion-nota-larga'))
+  if (!reason.data) redirectAfterAction(withFeedback(page, 'error', 'gestion-motivo-requerido'))
 
   const { supabase } = await requireRole('admin')
   const { error } = await supabase.rpc('void_closures', { target_request_id: requestId.data, closure_ids: [...new Set(closureIds.data)], reason: reason.data })
-  if (error) redirect(withFeedback(page, 'error', managementErrorCode(error, 'gestion-error')))
+  if (error) redirectAfterAction(withFeedback(page, 'error', managementErrorCode(error, 'gestion-error')))
 
   revalidateRequest(requestId.data)
-  redirect(withFeedback(page, 'success', 'cierre-anulado'))
+  redirectAfterAction(withFeedback(page, 'success', 'cierre-anulado'))
 }
 
 const receiptLineSchema = z.object({
@@ -164,7 +164,7 @@ export async function confirmReceipt(requestId: string, lines: { delivery_item_i
   const remaining = (request?.receipt_unconfirmed_count as number | undefined) ?? 0
 
   revalidateRequest(id.data)
-  redirect(withFeedback(`/solicitudes/${id.data}`, 'success', remaining > 0 ? 'recepcion-confirmada-parcial' : 'recepcion-confirmada'))
+  redirectAfterAction(withFeedback(`/solicitudes/${id.data}`, 'success', remaining > 0 ? 'recepcion-confirmada-parcial' : 'recepcion-confirmada'))
 }
 
 // Formulario cliente de /entregas/[id]/recibir: el admin adjunta el remito firmado por el centro
@@ -203,7 +203,7 @@ export async function confirmReceiptWithSignedNote(deliveryId: string, lines: { 
   const requestId = delivery.request_id as string
   revalidateRequest(requestId)
   revalidatePath(`/recepciones/${id.data}`)
-  redirect(withFeedback(`/entregas/${id.data}`, 'success', (confirmed as number) > 0 ? 'recepcion-confirmada-remito' : 'remito-adjuntado'))
+  redirectAfterAction(withFeedback(`/entregas/${id.data}`, 'success', (confirmed as number) > 0 ? 'recepcion-confirmada-remito' : 'remito-adjuntado'))
 }
 
 // Resolución de una diferencia de recepción desde el detalle de la solicitud (solo admin). El botón
@@ -211,20 +211,20 @@ export async function confirmReceiptWithSignedNote(deliveryId: string, lines: { 
 export async function resolveReceiptDifference(formData: FormData) {
   const requestId = idSchema.safeParse(formData.get('request_id'))
   const receiptId = idSchema.safeParse(formData.get('receipt_id'))
-  if (!requestId.success || !receiptId.success) redirect(withFeedback('/solicitudes', 'error', 'gestion-datos-invalidos'))
+  if (!requestId.success || !receiptId.success) redirectAfterAction(withFeedback('/solicitudes', 'error', 'gestion-datos-invalidos'))
   const page = `/solicitudes/${requestId.data}`
 
   const resolution = z.enum(receiptResolutions).safeParse(formData.get('resolution'))
   const note = noteSchema.safeParse(formData.get('note') ?? '')
-  if (!resolution.success) redirect(withFeedback(page, 'error', 'gestion-motivo-requerido'))
-  if (!note.success) redirect(withFeedback(page, 'error', 'gestion-nota-larga'))
+  if (!resolution.success) redirectAfterAction(withFeedback(page, 'error', 'gestion-motivo-requerido'))
+  if (!note.success) redirectAfterAction(withFeedback(page, 'error', 'gestion-nota-larga'))
 
   const { supabase } = await requireRole('admin')
   const { error } = await supabase.rpc('resolve_receipt_difference', { target_receipt_id: receiptId.data, target_resolution: resolution.data, target_note: note.data || null })
-  if (error) redirect(withFeedback(page, 'error', managementErrorCode(error, 'gestion-error')))
+  if (error) redirectAfterAction(withFeedback(page, 'error', managementErrorCode(error, 'gestion-error')))
 
   revalidateRequest(requestId.data)
-  redirect(withFeedback(page, 'success', 'diferencia-resuelta'))
+  redirectAfterAction(withFeedback(page, 'success', 'diferencia-resuelta'))
 }
 
 // Requerimiento de compra desde el detalle (solo admin): registra o corrige el número que dio el
@@ -232,73 +232,75 @@ export async function resolveReceiptDifference(formData: FormData) {
 // muestra "En compras" junto a "Entrega parcial".
 export async function setPurchaseRequirement(formData: FormData) {
   const requestId = idSchema.safeParse(formData.get('request_id'))
-  if (!requestId.success) redirect(withFeedback('/solicitudes', 'error', 'gestion-datos-invalidos'))
+  if (!requestId.success) redirectAfterAction(withFeedback('/solicitudes', 'error', 'gestion-datos-invalidos'))
   const page = `/solicitudes/${requestId.data}`
 
   const number = z.string().trim().min(1).max(PURCHASE_REQUIREMENT_MAX_LENGTH).safeParse(formData.get('requirement_number') ?? '')
-  if (!number.success) redirect(withFeedback(page, 'error', 'requerimiento-invalido'))
+  if (!number.success) redirectAfterAction(withFeedback(page, 'error', 'requerimiento-invalido'))
 
   const { supabase } = await requireRole('admin')
   const { error } = await supabase.rpc('set_purchase_requirement', { target_request_id: requestId.data, requirement_number: number.data })
-  if (error) redirect(withFeedback(page, 'error', managementErrorCode(error, 'gestion-error')))
+  if (error) redirectAfterAction(withFeedback(page, 'error', managementErrorCode(error, 'gestion-error')))
 
   revalidateRequest(requestId.data)
-  redirect(withFeedback(page, 'success', 'requerimiento-guardado'))
+  redirectAfterAction(withFeedback(page, 'success', 'requerimiento-guardado'))
 }
 
 // Comentario de texto libre en el historial: el admin y Compras. La base valida el rol y que Compras
 // solo comente solicitudes con requerimiento de compra (add_request_comment).
 export async function addRequestComment(formData: FormData) {
   const requestId = idSchema.safeParse(formData.get('request_id'))
-  if (!requestId.success) redirect(withFeedback('/solicitudes', 'error', 'gestion-datos-invalidos'))
+  if (!requestId.success) redirectAfterAction(withFeedback('/solicitudes', 'error', 'gestion-datos-invalidos'))
   const page = `/solicitudes/${requestId.data}`
 
   const body = commentSchema.safeParse(formData.get('comment') ?? '')
-  if (!body.success) redirect(withFeedback(page, 'error', 'comentario-invalido'))
+  // Vuelve al ancla del formulario de comentarios: sin ella, la página se recarga desde arriba.
+  const at = `${page}#comentar`
+  if (!body.success) redirectAfterAction(withFeedback(at, 'error', 'comentario-invalido'))
 
   const { supabase, role } = await requireSession()
-  if (role !== 'admin' && role !== 'purchasing') redirect(withFeedback(page, 'error', 'sin-permiso'))
+  if (role !== 'admin' && role !== 'purchasing') redirectAfterAction(withFeedback(at, 'error', 'sin-permiso'))
   const { error } = await supabase.rpc('add_request_comment', { target_request_id: requestId.data, comment_body: body.data })
-  if (error) redirect(withFeedback(page, 'error', managementErrorCode(error, 'gestion-error')))
+  if (error) redirectAfterAction(withFeedback(at, 'error', managementErrorCode(error, 'gestion-error')))
 
   revalidatePath(page)
-  redirect(withFeedback(page, 'success', 'comentario-agregado'))
+  redirectAfterAction(withFeedback(at, 'success', 'comentario-agregado'))
 }
 
 // /solicitudes/[id]/unificar: pasa lo pendiente de la solicitud origen a la destino y cierra el origen
 // (merge_requests, supabase/migrations/202611180001_merge_requests.sql).
 export async function mergeRequests(formData: FormData) {
   const sourceId = idSchema.safeParse(formData.get('source_id'))
-  if (!sourceId.success) redirect(withFeedback('/solicitudes', 'error', 'gestion-datos-invalidos'))
+  if (!sourceId.success) redirectAfterAction(withFeedback('/solicitudes', 'error', 'gestion-datos-invalidos'))
   const page = `/solicitudes/${sourceId.data}/unificar`
 
   const targetId = idSchema.safeParse(formData.get('target_id'))
-  if (!targetId.success) redirect(withFeedback(page, 'error', 'gestion-datos-invalidos'))
+  if (!targetId.success) redirectAfterAction(withFeedback(page, 'error', 'gestion-datos-invalidos'))
   const reason = noteSchema.safeParse(formData.get('reason') ?? '')
-  if (!reason.success) redirect(withFeedback(page, 'error', 'gestion-nota-larga'))
-  if (!reason.data) redirect(withFeedback(page, 'error', 'gestion-motivo-requerido'))
+  if (!reason.success) redirectAfterAction(withFeedback(page, 'error', 'gestion-nota-larga'))
+  if (!reason.data) redirectAfterAction(withFeedback(page, 'error', 'gestion-motivo-requerido'))
 
   const { supabase } = await requireRole('admin')
   const { error } = await supabase.rpc('merge_requests', { source_request_id: sourceId.data, target_request_id: targetId.data, merge_reason: reason.data })
-  if (error) redirect(withFeedback(page, 'error', managementErrorCode(error, 'gestion-error')))
+  if (error) redirectAfterAction(withFeedback(page, 'error', managementErrorCode(error, 'gestion-error')))
 
   revalidateRequest(sourceId.data)
   revalidateRequest(targetId.data)
-  redirect(withFeedback(`/solicitudes/${targetId.data}`, 'success', 'solicitud-unificada'))
+  redirectAfterAction(withFeedback(`/solicitudes/${targetId.data}`, 'success', 'solicitud-unificada'))
 }
 
 // Cancelación por el solicitante mientras no haya entregas activas (la base lo valida).
 export async function cancelRequest(formData: FormData) {
   const requestId = idSchema.safeParse(formData.get('request_id'))
-  if (!requestId.success) redirect(withFeedback('/solicitudes', 'error', 'gestion-datos-invalidos'))
+  if (!requestId.success) redirectAfterAction(withFeedback('/solicitudes', 'error', 'gestion-datos-invalidos'))
   const page = `/solicitudes/${requestId.data}`
 
   const { supabase, role } = await requireSession()
-  if (role !== 'requester') redirect(withFeedback(page, 'error', 'gestion-datos-invalidos'))
+  if (role !== 'requester') redirectAfterAction(withFeedback(page, 'error', 'gestion-datos-invalidos'))
   const { error } = await supabase.rpc('cancel_request', { target_request_id: requestId.data })
-  if (error) redirect(withFeedback(page, 'error', managementErrorCode(error, 'gestion-error')))
+  if (error) redirectAfterAction(withFeedback(page, 'error', managementErrorCode(error, 'gestion-error')))
 
   revalidateRequest(requestId.data)
   // La solicitud cancelada ya no tiene acciones: se vuelve al listado.
-  redirect(withFeedback('/solicitudes', 'success', 'solicitud-cancelada'))
+  redirectAfterAction(withFeedback('/solicitudes', 'success', 'solicitud-cancelada'))
 }

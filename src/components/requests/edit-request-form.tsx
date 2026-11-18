@@ -40,6 +40,7 @@ export function EditRequestForm({ requestId, items, products, buscar, cancelHref
   const [confirming, setConfirming] = useState(false)
   const [pending, startTransition] = useTransition()
   const search = useSearchFilter('buscar', buscar)
+  const [itemFilter, setItemFilter] = useState('')
 
   const lines = items.map((item) => {
     const minimum = Math.max(item.minimum, 1)
@@ -52,6 +53,11 @@ export function EditRequestForm({ requestId, items, products, buscar, cancelHref
   const missingReason = reason.trim() === ''
   const addedIds = new Set(added.map((product) => product.id))
   const results = products.filter((product) => !addedIds.has(product.id))
+  // Filtro solo visual: las cantidades cargadas se conservan aunque el producto quede oculto.
+  const itemTerm = itemFilter.trim().toLowerCase()
+  const matchesItem = (name: string, presentation: string) => !itemTerm || `${name} ${presentation}`.toLowerCase().includes(itemTerm)
+  const shownLines = lines.filter((line) => matchesItem(line.item.name, line.item.presentation))
+  const shownAdded = addedLines.filter((line) => matchesItem(line.product.name, line.product.presentation))
 
   function add(product: EditFormProduct) {
     setAdded((current) => [...current, { ...product, quantity: '1' }])
@@ -102,9 +108,13 @@ export function EditRequestForm({ requestId, items, products, buscar, cancelHref
   return (
     <form onSubmit={(event) => { event.preventDefault(); submit() }}>
       <p className="mb-4 text-sm text-foreground-secondary">Cambiá la cantidad solicitada o agregá productos. La cantidad no puede bajar de lo ya entregado o cerrado.</p>
+      <div className="relative mb-4 w-full md:max-w-md">
+        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-foreground-muted" aria-hidden />
+        <Input type="search" aria-label="Buscar producto de la solicitud" placeholder="Buscar en los productos de la solicitud..." className="pl-9" value={itemFilter} onChange={(event) => setItemFilter(event.target.value)} />
+      </div>
 
       <MobileList>
-        {lines.map(({ item, minimum, valid }) => (
+        {shownLines.map(({ item, minimum, valid }) => (
           <MobileListItem key={item.id}>
             <MobileListHeader title={item.name} subtitle={item.presentation} />
             <MobileListFields fields={[
@@ -119,7 +129,7 @@ export function EditRequestForm({ requestId, items, products, buscar, cancelHref
             {!valid && <p className="text-xs text-danger">{minimumHint(minimum)}.</p>}
           </MobileListItem>
         ))}
-        {addedLines.map(({ product, valid }) => (
+        {shownAdded.map(({ product, valid }) => (
           <MobileListItem key={product.id}>
             <MobileListHeader title={product.name} subtitle={product.presentation} aside={<Badge variant="info">Nuevo</Badge>} />
             <div className="flex items-center justify-between gap-3">
@@ -144,7 +154,7 @@ export function EditRequestForm({ requestId, items, products, buscar, cancelHref
           </TableRow>
         </TableHeader>
         <TableBody>
-          {lines.map(({ item, minimum, valid }) => (
+          {shownLines.map(({ item, minimum, valid }) => (
             <TableRow key={item.id}>
               <TableCell>
                 <span className="font-semibold">{item.name}</span>
@@ -161,7 +171,7 @@ export function EditRequestForm({ requestId, items, products, buscar, cancelHref
               </TableCell>
             </TableRow>
           ))}
-          {addedLines.map(({ product, valid }) => (
+          {shownAdded.map(({ product, valid }) => (
             <TableRow key={product.id}>
               <TableCell>
                 <span className="flex flex-wrap items-center gap-2 font-semibold">{product.name}<Badge variant="info">Nuevo</Badge></span>

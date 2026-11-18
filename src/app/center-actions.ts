@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { redirectAfterAction } from '@/lib/redirect'
 import { z } from 'zod'
 import { withFeedback } from '../lib/feedback'
 import { requireRole } from '../lib/session'
@@ -28,37 +28,37 @@ const CENTERS_PAGE = '/centros'
 // el de alta (?nuevo=1) o el de renombrar (?editar=).
 export async function createCenter(formData: FormData) {
   const name = centerNameSchema.safeParse(formData.get('name'))
-  if (!name.success) redirect(withFeedback(`${CENTERS_PAGE}?nuevo=1`, 'error', 'centro-invalido'))
+  if (!name.success) redirectAfterAction(withFeedback(`${CENTERS_PAGE}?nuevo=1`, 'error', 'centro-invalido'))
 
   const { supabase } = await requireRole('admin')
   const { error } = await supabase.from('health_centers').insert({ name: name.data })
-  if (error) redirect(withFeedback(`${CENTERS_PAGE}?nuevo=1`, 'error', centerErrorCode(error)))
+  if (error) redirectAfterAction(withFeedback(`${CENTERS_PAGE}?nuevo=1`, 'error', centerErrorCode(error)))
   revalidateCenters()
-  redirect(withFeedback(CENTERS_PAGE, 'success', 'centro-creado'))
+  redirectAfterAction(withFeedback(CENTERS_PAGE, 'success', 'centro-creado'))
 }
 
 export async function updateCenter(formData: FormData) {
   const id = centerIdSchema.safeParse(formData.get('id'))
-  if (!id.success) redirect(withFeedback(CENTERS_PAGE, 'error', 'centro-invalido'))
+  if (!id.success) redirectAfterAction(withFeedback(CENTERS_PAGE, 'error', 'centro-invalido'))
   const editPage = `${CENTERS_PAGE}?editar=${id.data}`
   const name = centerNameSchema.safeParse(formData.get('name'))
-  if (!name.success) redirect(withFeedback(editPage, 'error', 'centro-invalido'))
+  if (!name.success) redirectAfterAction(withFeedback(editPage, 'error', 'centro-invalido'))
 
   const { supabase } = await requireRole('admin')
   const { error } = await supabase.from('health_centers').update({ name: name.data }).eq('id', id.data)
-  if (error) redirect(withFeedback(editPage, 'error', centerErrorCode(error)))
+  if (error) redirectAfterAction(withFeedback(editPage, 'error', centerErrorCode(error)))
   revalidateCenters()
-  redirect(withFeedback(CENTERS_PAGE, 'success', 'centro-actualizado'))
+  redirectAfterAction(withFeedback(CENTERS_PAGE, 'success', 'centro-actualizado'))
 }
 
 export async function toggleCenter(formData: FormData) {
   const id = centerIdSchema.safeParse(formData.get('id'))
   const active = formData.get('active') === 'true'
-  if (!id.success) redirect(withFeedback(CENTERS_PAGE, 'error', 'centro-invalido'))
+  if (!id.success) redirectAfterAction(withFeedback(CENTERS_PAGE, 'error', 'centro-invalido'))
 
   const { supabase } = await requireRole('admin')
   const { error } = await supabase.from('health_centers').update({ active: !active }).eq('id', id.data)
-  if (error) redirect(withFeedback(CENTERS_PAGE, 'error', centerErrorCode(error)))
+  if (error) redirectAfterAction(withFeedback(CENTERS_PAGE, 'error', centerErrorCode(error)))
   revalidateCenters()
-  redirect(withFeedback(CENTERS_PAGE, 'success', active ? 'centro-desactivado' : 'centro-reactivado'))
+  redirectAfterAction(withFeedback(CENTERS_PAGE, 'success', active ? 'centro-desactivado' : 'centro-reactivado'))
 }

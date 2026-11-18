@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { redirectAfterAction } from '@/lib/redirect'
 import { z } from 'zod'
 import { feedbackMessage, withFeedback, type FeedbackCode } from '../lib/feedback'
 import { evidenceName, evidencePath, evidenceTypeSchema, FLEET_EVIDENCE_BUCKET, FLEET_EVIDENCE_MAX_BYTES, isEvidenceContentType, type EvidenceTarget, type EvidenceTypeInput } from '../lib/fleet-evidence'
@@ -40,7 +40,7 @@ export async function createVehicle(values: VehicleInput): Promise<{ error: stri
   if (error || !data) return { error: feedbackMessage(fleetErrorCode(error))! }
 
   revalidateFleet()
-  redirect(withFeedback(vehiclePage(data.id as string), 'success', 'vehiculo-creado'))
+  redirectAfterAction(withFeedback(vehiclePage(data.id as string), 'success', 'vehiculo-creado'))
 }
 
 export async function updateVehicle(vehicleId: string, values: VehicleInput): Promise<{ error: string }> {
@@ -53,21 +53,21 @@ export async function updateVehicle(vehicleId: string, values: VehicleInput): Pr
   if (error || !data) return { error: feedbackMessage(fleetErrorCode(error))! }
 
   revalidateFleet()
-  redirect(withFeedback(vehiclePage(id.data), 'success', 'vehiculo-actualizado'))
+  redirectAfterAction(withFeedback(vehiclePage(id.data), 'success', 'vehiculo-actualizado'))
 }
 
 // Activa o desactiva (`active` = estado nuevo). La base impide desactivar con solicitudes abiertas.
 export async function toggleVehicle(formData: FormData) {
   const id = idSchema.safeParse(formData.get('vehicle_id'))
-  if (!id.success) redirect(withFeedback(FLEET_HOME, 'error', 'vehiculo-invalido'))
+  if (!id.success) redirectAfterAction(withFeedback(FLEET_HOME, 'error', 'vehiculo-invalido'))
   const active = formData.get('active') === 'true'
 
   const { supabase } = await requireRole('admin')
   const { data, error } = await supabase.from('vehicles').update({ active }).eq('id', id.data).select('id').maybeSingle()
-  if (error || !data) redirect(withFeedback(vehiclePage(id.data), 'error', fleetErrorCode(error)))
+  if (error || !data) redirectAfterAction(withFeedback(vehiclePage(id.data), 'error', fleetErrorCode(error)))
 
   revalidateFleet()
-  redirect(withFeedback(vehiclePage(id.data), 'success', active ? 'vehiculo-activado' : 'vehiculo-desactivado'))
+  redirectAfterAction(withFeedback(vehiclePage(id.data), 'success', active ? 'vehiculo-activado' : 'vehiculo-desactivado'))
 }
 
 // Carga directa en el historial (mantenimiento de rutina o reparación sin solicitud).
@@ -87,26 +87,26 @@ export async function addVehicleRecord(vehicleId: string, values: VehicleRecordV
   if (error) return { error: feedbackMessage(fleetErrorCode(error))! }
 
   revalidateFleet()
-  redirect(withFeedback(vehiclePage(id.data), 'success', 'registro-creado'))
+  redirectAfterAction(withFeedback(vehiclePage(id.data), 'success', 'registro-creado'))
 }
 
 // Anulación de un registro del historial con motivo (solo admin). Si había cerrado una solicitud,
 // la solicitud vuelve a estar abierta.
 export async function voidVehicleRecord(formData: FormData) {
   const vehicleId = idSchema.safeParse(formData.get('vehicle_id'))
-  if (!vehicleId.success) redirect(withFeedback(FLEET_HOME, 'error', 'vehiculo-invalido'))
+  if (!vehicleId.success) redirectAfterAction(withFeedback(FLEET_HOME, 'error', 'vehiculo-invalido'))
   const page = vehiclePage(vehicleId.data)
   const recordId = idSchema.safeParse(formData.get('record_id'))
-  if (!recordId.success) redirect(withFeedback(page, 'error', 'registro-invalido'))
+  if (!recordId.success) redirectAfterAction(withFeedback(page, 'error', 'registro-invalido'))
   const reason = reasonSchema.safeParse(formData.get('reason') ?? '')
-  if (!reason.success) redirect(withFeedback(page, 'error', 'gestion-motivo-requerido'))
+  if (!reason.success) redirectAfterAction(withFeedback(page, 'error', 'gestion-motivo-requerido'))
 
   const { supabase } = await requireRole('admin')
   const { error } = await supabase.rpc('void_vehicle_record', { target_record_id: recordId.data, reason: reason.data })
-  if (error) redirect(withFeedback(page, 'error', fleetErrorCode(error)))
+  if (error) redirectAfterAction(withFeedback(page, 'error', fleetErrorCode(error)))
 
   revalidateFleet()
-  redirect(withFeedback(page, 'success', 'registro-anulado'))
+  redirectAfterAction(withFeedback(page, 'success', 'registro-anulado'))
 }
 
 // Nueva solicitud de servicio (formulario cliente).
@@ -119,23 +119,23 @@ export async function createVehicleRequest(values: VehicleRequestValues): Promis
   if (error || !data) return { error: feedbackMessage(fleetErrorCode(error))! }
 
   revalidateFleet()
-  redirect(withFeedback(requestPage(data as string), 'success', 'solicitud-servicio-creada'))
+  redirectAfterAction(withFeedback(requestPage(data as string), 'success', 'solicitud-servicio-creada'))
 }
 
 // Requerimiento de compra desde el detalle (solo admin): la solicitud pasa a "En compras".
 export async function setVehiclePurchaseRequirement(formData: FormData) {
   const requestId = idSchema.safeParse(formData.get('request_id'))
-  if (!requestId.success) redirect(withFeedback(`${FLEET_HOME}/solicitudes`, 'error', 'gestion-datos-invalidos'))
+  if (!requestId.success) redirectAfterAction(withFeedback(`${FLEET_HOME}/solicitudes`, 'error', 'gestion-datos-invalidos'))
   const page = requestPage(requestId.data)
   const number = z.string().trim().min(1).max(PURCHASE_REQUIREMENT_MAX_LENGTH).safeParse(formData.get('requirement_number') ?? '')
-  if (!number.success) redirect(withFeedback(page, 'error', 'requerimiento-invalido'))
+  if (!number.success) redirectAfterAction(withFeedback(page, 'error', 'requerimiento-invalido'))
 
   const { supabase } = await requireRole('admin')
   const { error } = await supabase.rpc('set_vehicle_purchase_requirement', { target_request_id: requestId.data, requirement_number: number.data })
-  if (error) redirect(withFeedback(page, 'error', fleetErrorCode(error)))
+  if (error) redirectAfterAction(withFeedback(page, 'error', fleetErrorCode(error)))
 
   revalidateFleet()
-  redirect(withFeedback(page, 'success', 'requerimiento-guardado'))
+  redirectAfterAction(withFeedback(page, 'success', 'requerimiento-guardado'))
 }
 
 // Cierre con lo que se reparó, cuándo y dónde (formulario cliente): queda en el historial del vehículo.
@@ -154,22 +154,22 @@ export async function completeVehicleRequest(requestId: string, values: Complete
   if (error) return { error: feedbackMessage(fleetErrorCode(error))! }
 
   revalidateFleet()
-  redirect(withFeedback(requestPage(id.data), 'success', 'solicitud-servicio-completada'))
+  redirectAfterAction(withFeedback(requestPage(id.data), 'success', 'solicitud-servicio-completada'))
 }
 
 export async function cancelVehicleRequest(formData: FormData) {
   const requestId = idSchema.safeParse(formData.get('request_id'))
-  if (!requestId.success) redirect(withFeedback(`${FLEET_HOME}/solicitudes`, 'error', 'gestion-datos-invalidos'))
+  if (!requestId.success) redirectAfterAction(withFeedback(`${FLEET_HOME}/solicitudes`, 'error', 'gestion-datos-invalidos'))
   const page = requestPage(requestId.data)
   const reason = reasonSchema.safeParse(formData.get('reason') ?? '')
-  if (!reason.success) redirect(withFeedback(page, 'error', 'gestion-motivo-requerido'))
+  if (!reason.success) redirectAfterAction(withFeedback(page, 'error', 'gestion-motivo-requerido'))
 
   const { supabase } = await requireFleetAccess()
   const { error } = await supabase.rpc('cancel_vehicle_request', { target_request_id: requestId.data, reason: reason.data })
-  if (error) redirect(withFeedback(page, 'error', fleetErrorCode(error)))
+  if (error) redirectAfterAction(withFeedback(page, 'error', fleetErrorCode(error)))
 
   revalidateFleet()
-  redirect(withFeedback(page, 'success', 'solicitud-servicio-cancelada'))
+  redirectAfterAction(withFeedback(page, 'success', 'solicitud-servicio-cancelada'))
 }
 
 // Archivo de evidencia (formulario cliente): se manda de a uno, así que cada llamada sube un archivo y lo
@@ -214,12 +214,12 @@ export async function uploadFleetEvidence(target: EvidenceTarget, values: Eviden
 export async function deleteFleetEvidence(formData: FormData) {
   const returnTo = z.string().max(200).startsWith('/movilidad/').catch(FLEET_HOME).parse(formData.get('return_to'))
   const evidenceId = idSchema.safeParse(formData.get('evidence_id'))
-  if (!evidenceId.success) redirect(withFeedback(returnTo, 'error', 'archivo-invalido'))
+  if (!evidenceId.success) redirectAfterAction(withFeedback(returnTo, 'error', 'archivo-invalido'))
 
   const { supabase } = await requireFleetAccess()
   const { error } = await supabase.rpc('delete_fleet_evidence', { target_evidence_id: evidenceId.data })
-  if (error) redirect(withFeedback(returnTo, 'error', error.message === 'sin-permiso' ? 'sin-permiso-archivo' : fleetErrorCode(error)))
+  if (error) redirectAfterAction(withFeedback(returnTo, 'error', error.message === 'sin-permiso' ? 'sin-permiso-archivo' : fleetErrorCode(error)))
 
   revalidateFleet()
-  redirect(withFeedback(returnTo, 'success', 'archivo-borrado'))
+  redirectAfterAction(withFeedback(returnTo, 'success', 'archivo-borrado'))
 }
