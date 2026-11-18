@@ -239,7 +239,7 @@ export function RequestHistory({ requestId, role, createdAt, createdBy, deliveri
           ))}
         </ol>
         {canComment && (
-          <form action={addRequestComment} className="mt-6 flex flex-col gap-2 border-t border-border pt-5 sm:flex-row">
+          <form id="comentar" action={addRequestComment} className="mt-6 flex flex-col gap-2 border-t border-border pt-5 sm:flex-row">
             <input type="hidden" name="request_id" value={requestId} />
             <Input name="comment" required maxLength={COMMENT_MAX_LENGTH} aria-label="Comentario para el historial" placeholder="Agregá un comentario al historial" className="min-w-0 flex-1" />
             <Button type="submit" variant="secondary"><MessageSquare />Comentar</Button>
