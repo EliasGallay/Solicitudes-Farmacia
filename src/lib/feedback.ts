@@ -62,6 +62,7 @@ const messages = {
   'edicion-sin-cambios': 'No hay cambios para guardar.',
   'cierre-no-anulable': 'Ese cierre no se puede anular: la cancelación del centro y los faltantes cerrados de una recepción se mantienen.',
   'solicitud-cancelada': 'Solicitud cancelada.',
+  'solicitud-unificada': 'Solicitudes unificadas. Lo pendiente pasó a esta solicitud y la otra quedó cerrada.',
   'requerimiento-guardado': 'Requerimiento de compra guardado.',
   'requerimiento-invalido': 'Ingresá el número de requerimiento de compra (hasta 30 caracteres).',
   'requerimiento-sin-pendiente': 'La solicitud ya no tiene nada pendiente: no se puede registrar un requerimiento de compra.',
