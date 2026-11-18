@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { redirectAfterAction } from '@/lib/redirect'
 import { z } from 'zod'
 import { withFeedback } from '../lib/feedback'
 import { requireSession } from '../lib/session'
@@ -20,7 +20,7 @@ export async function updateOwnProfile(values: ProfileValues): Promise<{ error: 
 
   // El nombre también se muestra en el sidebar, que vive en el layout.
   revalidatePath('/', 'layout')
-  redirect(withFeedback('/perfil', 'success', 'perfil-actualizado'))
+  redirectAfterAction(withFeedback('/perfil', 'success', 'perfil-actualizado'))
 }
 
 const newPasswordSchema = z.object({ password: passwordSchema, confirmation: z.string() })
@@ -28,13 +28,13 @@ const newPasswordSchema = z.object({ password: passwordSchema, confirmation: z.s
 
 export async function changeOwnPassword(formData: FormData) {
   const parsed = newPasswordSchema.safeParse({ password: formData.get('password'), confirmation: formData.get('confirmation') })
-  if (!parsed.success) redirect(withFeedback('/perfil', 'error', 'password-invalida'))
+  if (!parsed.success) redirectAfterAction(withFeedback('/perfil', 'error', 'password-invalida'))
 
   const { supabase } = await requireSession()
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password })
   if (error) {
     const code = error.code === 'same_password' ? 'password-igual' : error.code === 'weak_password' ? 'password-debil' : 'password-error'
-    redirect(withFeedback('/perfil', 'error', code))
+    redirectAfterAction(withFeedback('/perfil', 'error', code))
   }
-  redirect(withFeedback('/perfil', 'success', 'perfil-password'))
+  redirectAfterAction(withFeedback('/perfil', 'success', 'perfil-password'))
 }

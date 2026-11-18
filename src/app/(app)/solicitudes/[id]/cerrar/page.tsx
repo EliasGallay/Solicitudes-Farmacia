@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { closePending } from '@/app/request-management-actions'
 import { BackButton } from '@/components/back-button'
 import { ConfirmSubmit } from '@/components/confirm-submit'
+import { ClosePendingItems } from '@/components/requests/close-items-picker'
 import { EmptyState } from '@/components/empty-state'
 import { ErrorState } from '@/components/error-state'
 import { FormError } from '@/components/form-feedback'
@@ -55,23 +56,7 @@ export default async function ClosePendingPage({ params, searchParams }: { param
               <CardDescription>Se cierra todo lo pendiente de los productos marcados. Lo ya entregado no cambia.</CardDescription>
             </CardHeader>
             <CardContent>
-              <ul className="divide-y divide-border rounded-lg border border-border">
-                {items.map((item) => (
-                  <li key={item.id}>
-                    <label className="flex cursor-pointer items-center gap-3 p-3 hover:bg-surface-hover">
-                      <input type="checkbox" name="item" value={item.id} defaultChecked className="size-4 shrink-0 accent-primary-600" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-semibold break-words">{item.product?.name ?? 'Producto no disponible'}</span>
-                        <span className="block text-xs text-foreground-secondary">{item.product?.presentation ?? '—'} · Solicitado {item.requested} · Entregado {item.delivered}</span>
-                      </span>
-                      <span className="shrink-0 text-right">
-                        <span className="block text-lg leading-6 font-bold text-warning tabular-nums">{item.pending}</span>
-                        <span className="text-xs text-foreground-secondary">a cerrar</span>
-                      </span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
+              <ClosePendingItems items={items.map((item) => ({ id: item.id, name: item.product?.name ?? 'Producto no disponible', presentation: item.product?.presentation ?? '—', requested: item.requested, delivered: item.delivered, pending: item.pending }))} />
             </CardContent>
           </Card>
 

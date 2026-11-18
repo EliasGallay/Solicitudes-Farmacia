@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { redirectAfterAction } from '@/lib/redirect'
 import { z } from 'zod'
 import { OBSERVATIONS_MAX_LENGTH } from '../lib/requests'
 import { keySchema } from '../lib/filters'
@@ -41,5 +41,5 @@ export async function submitRequest(area: string, items: { product_id: string; q
   if (error || !requestId) return { error: 'No se pudo enviar la solicitud. Intentá nuevamente.' }
   revalidatePath('/')
   revalidatePath('/solicitudes')
-  redirect(`/solicitudes/nueva?enviada=${requestId}`)
+  redirectAfterAction(`/solicitudes/nueva?enviada=${requestId}`)
 }

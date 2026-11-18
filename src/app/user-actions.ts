@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { redirectAfterAction } from '@/lib/redirect'
 import { z } from 'zod'
 import { withFeedback } from '../lib/feedback'
 import { requireRole } from '../lib/session'
@@ -68,7 +68,7 @@ export async function createUser(values: NewUserValues): Promise<{ error: string
   }
 
   revalidateUsers()
-  redirect(withFeedback(`/usuarios/${userId}`, 'success', 'usuario-creado'))
+  redirectAfterAction(withFeedback(`/usuarios/${userId}`, 'success', 'usuario-creado'))
 }
 
 // Edición: primero el perfil (la base valida permisos y reglas), después el email si cambió.
@@ -90,7 +90,7 @@ export async function updateUser(userId: string, values: UserValues): Promise<{ 
   }
 
   revalidateUsers(id.data)
-  redirect(withFeedback(`/usuarios/${id.data}`, 'success', 'usuario-actualizado'))
+  redirectAfterAction(withFeedback(`/usuarios/${id.data}`, 'success', 'usuario-actualizado'))
 }
 
 // Contraseña temporal: el admin la define y el usuario debe cambiarla en su próximo ingreso.
@@ -107,7 +107,7 @@ export async function setTemporaryPassword(userId: string, password: string): Pr
   if (profileError) return { error: 'Se asignó la contraseña, pero no se pudo exigir el cambio al ingresar. Intentá nuevamente.' }
 
   revalidateUsers(id.data)
-  redirect(withFeedback(`/usuarios/${id.data}`, 'success', 'usuario-password'))
+  redirectAfterAction(withFeedback(`/usuarios/${id.data}`, 'success', 'usuario-password'))
 }
 
 // Desactivar: el perfil queda sin rol (current_app_role() es null) y la cuenta, bloqueada en Auth.
@@ -115,42 +115,42 @@ export async function setTemporaryPassword(userId: string, password: string): Pr
 export async function toggleUserActive(formData: FormData) {
   const id = idSchema.safeParse(formData.get('id'))
   const active = formData.get('active') === 'true'
-  if (!id.success) redirect(withFeedback('/usuarios', 'error', 'usuario-invalido'))
+  if (!id.success) redirectAfterAction(withFeedback('/usuarios', 'error', 'usuario-invalido'))
 
   const { supabase, userId } = await requireRole('admin')
   const page = `/usuarios/${id.data}`
-  if (id.data === userId) redirect(withFeedback(page, 'error', 'usuario-propio'))
+  if (id.data === userId) redirectAfterAction(withFeedback(page, 'error', 'usuario-propio'))
 
   const { error } = await supabase.rpc('admin_set_user_active', { target_user_id: id.data, new_active: !active })
-  if (error) redirect(withFeedback(page, 'error', 'usuario-error'))
+  if (error) redirectAfterAction(withFeedback(page, 'error', 'usuario-error'))
 
   const { error: banError } = await createSupabaseAdminClient().auth.admin.updateUserById(id.data, { ban_duration: active ? BANNED : 'none' })
   if (banError) {
     console.error('No se pudo cambiar el bloqueo de la cuenta', id.data, banError)
-    redirect(withFeedback(page, 'error', 'usuario-bloqueo-error'))
+    redirectAfterAction(withFeedback(page, 'error', 'usuario-bloqueo-error'))
   }
 
   revalidateUsers(id.data)
-  redirect(withFeedback(page, 'success', active ? 'usuario-desactivado' : 'usuario-reactivado'))
+  redirectAfterAction(withFeedback(page, 'success', active ? 'usuario-desactivado' : 'usuario-reactivado'))
 }
 
 // Eliminar: solo usuarios sin actividad (la base lo valida). Primero el perfil, después la cuenta.
 export async function deleteUser(formData: FormData) {
   const id = idSchema.safeParse(formData.get('id'))
-  if (!id.success) redirect(withFeedback('/usuarios', 'error', 'usuario-invalido'))
+  if (!id.success) redirectAfterAction(withFeedback('/usuarios', 'error', 'usuario-invalido'))
 
   const { supabase, userId } = await requireRole('admin')
   const page = `/usuarios/${id.data}`
-  if (id.data === userId) redirect(withFeedback(page, 'error', 'usuario-propio'))
+  if (id.data === userId) redirectAfterAction(withFeedback(page, 'error', 'usuario-propio'))
 
   const { error } = await supabase.rpc('admin_delete_user', { target_user_id: id.data })
-  if (error) redirect(withFeedback(page, 'error', error.code === '23503' ? 'usuario-con-actividad' : 'usuario-error'))
+  if (error) redirectAfterAction(withFeedback(page, 'error', error.code === '23503' ? 'usuario-con-actividad' : 'usuario-error'))
 
   const { error: authError } = await createSupabaseAdminClient().auth.admin.deleteUser(id.data)
   revalidateUsers()
   if (authError) {
     console.error('Se eliminó el perfil pero no la cuenta de Auth', id.data, authError)
-    redirect(withFeedback('/usuarios', 'error', 'usuario-eliminado-parcial'))
+    redirectAfterAction(withFeedback('/usuarios', 'error', 'usuario-eliminado-parcial'))
   }
-  redirect(withFeedback('/usuarios', 'success', 'usuario-eliminado'))
+  redirectAfterAction(withFeedback('/usuarios', 'success', 'usuario-eliminado'))
 }
