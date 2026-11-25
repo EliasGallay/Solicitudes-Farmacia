@@ -1,0 +1,35 @@
+name: Migraciones de base de datos
+
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - 'supabase/migrations/**'
+  workflow_dispatch:
+
+# Una sola ejecución por rama; nunca cancelar una migración a mitad de camino.
+concurrency:
+  group: migrations-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    # main -> proyecto de producción; develop (y cualquier otra rama) -> proyecto de preview.
+    environment: ${{ github.ref_name == 'main' && 'production' || 'preview' }}
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Simular migraciones pendientes
+        run: supabase db push --remote="$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" --dry-run
+
+      - name: Aplicar migraciones
+        run: supabase db push --remote="$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" --yes
