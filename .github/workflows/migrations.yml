@@ -39,17 +39,32 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           SEED_PASSWORD: ${{ secrets.SEED_PASSWORD }}
         run: |
+          API="https://$SUPABASE_PROJECT_REF.supabase.co/auth/v1/admin/users"
           for email in admin@prueba.test compras@prueba.test centro.houssay@prueba.test \
                        centro.maradona@prueba.test centro.faust@prueba.test movilidad@prueba.test; do
-            code=$(curl -s -o "$RUNNER_TEMP/auth.json" -w "%{http_code}" \
-              -X POST "https://$SUPABASE_PROJECT_REF.supabase.co/auth/v1/admin/users" \
+            # Crear. Si ya existe, la API responde 422 y no pasa nada: el paso siguiente lo actualiza.
+            curl -s -o /dev/null -X POST "$API" \
               -H "apikey: $SUPABASE_SECRET_KEY" \
               -H "Authorization: Bearer $SUPABASE_SECRET_KEY" \
               -H "Content-Type: application/json" \
-              -d "{\"email\":\"$email\",\"password\":\"$SEED_PASSWORD\",\"email_confirm\":true}")
-            # 422 = el usuario ya existe: se acepta para que la corrida sea repetible.
-            if [ "$code" != "200" ] && [ "$code" != "422" ]; then
-              echo "No se pudo crear $email (HTTP $code)"
+              -d "{\"email\":\"$email\",\"password\":\"$SEED_PASSWORD\",\"email_confirm\":true}"
+
+            # Buscar el id y fijar la contraseña del secret (sirve para usuarios nuevos y existentes).
+            id=$(curl -s "$API?per_page=1000" \
+              -H "apikey: $SUPABASE_SECRET_KEY" \
+              -H "Authorization: Bearer $SUPABASE_SECRET_KEY" \
+              | jq -r --arg e "$email" '.users[] | select(.email == $e) | .id')
+            if [ -z "$id" ]; then
+              echo "No se encontró el usuario $email en Auth"
+              exit 1
+            fi
+            code=$(curl -s -o "$RUNNER_TEMP/auth.json" -w "%{http_code}" -X PUT "$API/$id" \
+              -H "apikey: $SUPABASE_SECRET_KEY" \
+              -H "Authorization: Bearer $SUPABASE_SECRET_KEY" \
+              -H "Content-Type: application/json" \
+              -d "{\"password\":\"$SEED_PASSWORD\",\"email_confirm\":true}")
+            if [ "$code" != "200" ]; then
+              echo "No se pudo actualizar la contraseña de $email (HTTP $code)"
               exit 1
             fi
           done
