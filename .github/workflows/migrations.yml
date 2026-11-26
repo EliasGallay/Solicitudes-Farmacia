@@ -56,4 +56,4 @@ jobs:
 
       - name: Cargar datos de prueba
         if: github.ref_name == 'develop'
-        run: supabase db query --remote="$SUPABASE_PROJECT_REF" --file supabase/seed/datos-prueba-develop.sql
+        run: supabase db query --remote="$SUPABASE_PROJECT_REF" --file supabase/seed/datos-prueba-develop.sql --yes
