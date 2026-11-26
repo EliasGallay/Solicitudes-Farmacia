@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import { ListPending } from '@/components/list-transition'
 import Link from 'next/link'
 import { Car, ChevronRight, ClipboardList, Plus, SearchX, Wrench } from 'lucide-react'
 import { z } from 'zod'
@@ -56,9 +57,9 @@ export default async function FleetPage({ searchParams }: { searchParams: Promis
       {feedbackMessage(params.error) && <div className="mb-6"><FormError>{feedbackMessage(params.error)}</FormError></div>}
       <VehicleFilters buscar={filters.buscar} estado={filters.estado} />
       <Card>
-        <Suspense key={pageHref(filters, filters.page)} fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
+        <ListPending><Suspense fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
           <VehiclesList filters={filters} isAdmin={isAdmin} />
-        </Suspense>
+        </Suspense></ListPending>
       </Card>
     </>
   )

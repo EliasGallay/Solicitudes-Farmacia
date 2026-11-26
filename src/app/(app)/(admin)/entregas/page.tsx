@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import { ListPending } from '@/components/list-transition'
 import Link from 'next/link'
 import { ArrowRight, ChevronRight, SearchX, Truck } from 'lucide-react'
 import { z } from 'zod'
@@ -55,9 +56,9 @@ export default async function DeliveriesPage({ searchParams }: { searchParams: P
       <PageHeader title="Entregas" description="Remitos de todas las entregas registradas. Para registrar una entrega, entrá a la solicitud." />
       <DeliveryFilters areas={multipleAreas ? areas : undefined} centers={centers.map((center) => ({ id: center.id, name: center.name, tone: centerTone(centers, center.id) }))} buscar={filters.buscar} centro={filters.centro} rubro={filters.rubro} estado={filters.estado} desde={filters.desde} hasta={filters.hasta} />
       <Card>
-        <Suspense key={pageHref(filters, filters.page)} fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
+        <ListPending><Suspense fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
           <DeliveriesList filters={filters} areas={multipleAreas ? areas : undefined} centers={centers} />
-        </Suspense>
+        </Suspense></ListPending>
       </Card>
     </>
   )
