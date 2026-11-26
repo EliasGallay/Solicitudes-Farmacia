@@ -1,0 +1,59 @@
+name: Migraciones de base de datos
+
+on:
+  push:
+    branches: [develop, main]
+  workflow_dispatch:
+
+# Una sola ejecución por rama; nunca cancelar una migración a mitad de camino.
+concurrency:
+  group: migrations-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    # main -> proyecto de producción; develop (y cualquier otra rama) -> proyecto de preview.
+    environment: ${{ github.ref_name == 'main' && 'production' || 'preview' }}
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Simular migraciones pendientes
+        run: supabase db push --remote="$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" --dry-run
+
+      - name: Aplicar migraciones
+        run: supabase db push --remote="$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" --yes
+
+      # Solo en develop (preview). Producción nunca recibe usuarios ni datos de prueba.
+      - name: Crear usuarios de prueba en Auth
+        if: github.ref_name == 'develop'
+        env:
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SEED_PASSWORD: ${{ secrets.SEED_PASSWORD }}
+        run: |
+          for email in admin@prueba.test compras@prueba.test centro.houssay@prueba.test \
+                       centro.maradona@prueba.test centro.faust@prueba.test movilidad@prueba.test; do
+            code=$(curl -s -o "$RUNNER_TEMP/auth.json" -w "%{http_code}" \
+              -X POST "https://$SUPABASE_PROJECT_REF.supabase.co/auth/v1/admin/users" \
+              -H "apikey: $SUPABASE_SECRET_KEY" \
+              -H "Authorization: Bearer $SUPABASE_SECRET_KEY" \
+              -H "Content-Type: application/json" \
+              -d "{\"email\":\"$email\",\"password\":\"$SEED_PASSWORD\",\"email_confirm\":true}")
+            # 422 = el usuario ya existe: se acepta para que la corrida sea repetible.
+            if [ "$code" != "200" ] && [ "$code" != "422" ]; then
+              echo "No se pudo crear $email (HTTP $code)"
+              exit 1
+            fi
+          done
+
+      - name: Cargar datos de prueba
+        if: github.ref_name == 'develop'
+        run: supabase db query --remote="$SUPABASE_PROJECT_REF" --file supabase/seed/datos-prueba-develop.sql --yes
