@@ -99,7 +99,7 @@ src/
   lib/                     sesión, navegación, consultas, estados, filtros, mensajes, Movilidad, utilidades
   middleware.ts            refresca la sesión y redirige a /login
 supabase/
-  migrations/              esquema, RLS y RPCs (se aplican a mano, en orden)
+  migrations/              esquema, RLS y RPCs (las aplica el workflow de CI, en orden)
   seed.sql, seed/          datos ficticios, catálogo real de farmacia y rubros
   checks/                  verificaciones SQL autocontenidas (no dejan datos)
   config.toml              Supabase local (CLI)
@@ -140,7 +140,7 @@ npm run build
 
 ## Base de datos (Supabase) — NO ejecutar sin autorización
 
-En el proyecto remoto, las migraciones **se aplican a mano** en el SQL Editor, en este orden. Nada las ejecuta automáticamente y no se debe usar un proyecto de producción sin revisarlas antes.
+Las migraciones las aplica solo el workflow `.github/workflows/migrations.yml` en cada push a `develop` (preview) y a `main` (producción). No pide confirmación en Actions: revisá el PR antes de mergear. La lista de abajo es el historial en orden, para reconstruir un proyecto desde cero o revisar qué se aplicó.
 
 1. Aplicar `supabase/migrations/202609180001_initial_schema.sql`. Esquema inicial (centros, perfiles, productos, solicitudes, entregas).
 2. Ejecutar `supabase/seed.sql` únicamente en el proyecto vacío. Contiene 3 centros (Houssay, Maradona, Faust) y 5 productos ficticios.
@@ -181,6 +181,8 @@ En el proyecto remoto, las migraciones **se aplican a mano** en el SQL Editor, e
 36. Aplicar `supabase/migrations/202611180001_merge_requests.sql`. Unificar solicitudes: el admin pasa lo pendiente de una solicitud sin entregas a otra abierta del mismo centro y rubro (`merge_requests`); la de origen queda cerrada con motivo «Duplicado» y lo sumado queda en el historial de la destino.
 37. Aplicar `supabase/migrations/202611180002_unified_requests.sql` **después** del punto 36. Estado «Unificada» para la origen (`request_status`) y registro de unificaciones (`request_merges`): la origen muestra con qué solicitud se unificó y la destino lista de cuáles recibió lo pendiente.
 
+38. Aplicar `supabase/migrations/202611250001_ci_prueba_tabla_temporal.sql`. Prueba del workflow: crea y borra una tabla, sin efecto neto. No borrar el archivo: preview y producción ya lo registraron en su historial.
+
 Si falta una migración, las pantallas que dependen de ella muestran un error de carga.
 
 ### Primer administrador
@@ -205,6 +207,47 @@ En el primer ingreso se pide cambiar la contraseña. Desde ahí, el admin crea l
 2. Crear la dependencia «Movilidad» en `/centros`.
 3. En `/usuarios`, asignar a sus usuarios ese centro y el rubro **Movilidad**. Un usuario que solo tiene Movilidad ve únicamente ese módulo; uno que además tiene rubros de insumos ve los dos.
 4. Cargar los vehículos desde `/movilidad` (solo el admin).
+
+## Demo y entornos
+
+### Demo (preview)
+
+La rama `develop` se despliega en Vercel con esta URL, que no cambia entre deploys:
+
+**https://solicitudes-farmacia-git-develop-coming1.vercel.app**
+
+Usuarios de prueba (datos ficticios). La contraseña es la misma para todos: `Password123!`
+
+| Usuario | Rol | Qué ve |
+|---|---|---|
+| `admin@prueba.test` | Administrador | Todo el sistema |
+| `compras@prueba.test` | Compras | Solicitudes con requerimiento de compra |
+| `centro.houssay@prueba.test` | Solicitante | Centro Houssay: Farmacia y Limpieza |
+| `centro.maradona@prueba.test` | Solicitante | Centro Maradona: Farmacia y Laboratorio |
+| `centro.faust@prueba.test` | Solicitante | Centro Faust: Librería |
+| `movilidad@prueba.test` | Solicitante | Centro Houssay: solo Movilidad |
+
+Los datos se cargan una vez por el workflow de `develop`. Si alguien cambia una contraseña, el workflow no la restablece.
+
+### Integración continua
+
+- `.github/workflows/ci.yml`: en cada PR y en cada push a `develop` o `main` corre lint, typecheck, tests y build.
+- `.github/workflows/migrations.yml`: en cada push a `develop` o `main` hace un dry-run y aplica las migraciones pendientes. En `develop` además crea los usuarios de prueba y carga `supabase/seed/datos-prueba-develop.sql`. Producción nunca recibe la seed.
+- `develop` y `main` exigen PR y el check `calidad` en verde.
+- Cada PR se describe con la plantilla `.github/pull_request_template.md`.
+
+### Environments de GitHub
+
+Se configuran en Settings > Environments.
+
+| Environment | Rama | Secrets | Variables |
+|---|---|---|---|
+| `preview` | `develop` | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_SECRET_KEY`, `SEED_PASSWORD` | `SUPABASE_PROJECT_REF` |
+| `production` | `main` | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD` | `SUPABASE_PROJECT_REF` |
+
+`SEED_PASSWORD` es la contraseña de los usuarios de prueba. Solo existe en `preview`.
+
+La primera vez que se usó el workflow en producción, el historial de migraciones se registró a mano con `supabase migration repair --status applied`, porque las migraciones anteriores se habían aplicado sin la CLI.
 
 ## Convenciones
 
