@@ -3,8 +3,6 @@ name: Migraciones de base de datos
 on:
   push:
     branches: [develop, main]
-    paths:
-      - 'supabase/migrations/**'
   workflow_dispatch:
 
 # Una sola ejecución por rama; nunca cancelar una migración a mitad de camino.
