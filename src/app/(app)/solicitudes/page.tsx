@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import { ListPending } from '@/components/list-transition'
 import Link from 'next/link'
 import { CircleCheck, FileText, Plus, SearchX } from 'lucide-react'
 import { z } from 'zod'
@@ -76,9 +77,9 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
       </div>
       {/* En mobile cada solicitud es su propia tarjeta: la card contenedora solo se ve desde md. */}
       <Card data-tour="requests-list" className="max-md:border-0 max-md:bg-transparent max-md:shadow-none">
-        <Suspense key={pageHref(filters, filters.page)} fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
+        <ListPending><Suspense fallback={<RequestListSkeleton rows={filters.por_pagina} />}>
           <RequestsList filters={filters} view={statusView(filters, isAdmin)} areas={areas} areaColumn={multipleAreas} centers={centers ?? undefined} purchasing={purchasing} />
-        </Suspense>
+        </Suspense></ListPending>
       </Card>
     </>
   )
