@@ -14,6 +14,11 @@ describe('mensajes de resultado por URL', () => {
 describe('errores de las RPCs de gestión', () => {
   it.each(['requerimiento-invalido', 'requerimiento-sin-pendiente', 'cierre-ya-anulado', 'cierre-no-anulable', 'edicion-sin-pendiente', 'cantidad-menor-entregado', 'producto-invalido', 'producto-repetido', 'sin-cambios', 'remito-invalido', 'remito-requerido'])('traduce %s a un mensaje', (code) => expect(feedbackMessage(managementErrorCode({ message: code }, 'gestion-error'))).not.toBe(feedbackMessage('gestion-error')))
   it('usa el fallback ante un mensaje técnico', () => expect(managementErrorCode({ message: 'duplicate key value violates unique constraint' }, 'gestion-error')).toBe('gestion-error'))
+  it.each(['staff_forbidden', 'staff_not_found', 'staff_overlap', 'staff_invalid_range', 'staff_invalid_hours', 'staff_invalid_days', 'staff_invalid_kind', 'staff_note_required', 'staff_invalid_name', 'staff_invalid_details', 'staff_invalid_health_center', 'staff_reason_required', 'staff_already_voided'])('traduce el código de personal %s a un mensaje propio', (code) => {
+    const translated = managementErrorCode({ message: code }, 'personal-error')
+    expect(translated).not.toBe('personal-error')
+    expect(feedbackMessage(translated)).toBeDefined()
+  })
 })
 
 describe('errores de las RPCs de Movilidad', () => {
