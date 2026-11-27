@@ -97,7 +97,7 @@ export function RowActions({ member }: { member: { id: string; firstName: string
           onClick={(event) => {
             if (event.target === event.currentTarget) deactivateRef.current?.close()
           }}
-          className="m-auto hidden open:flex w-[min(28rem,calc(100vw-2rem))] flex-col rounded-lg border border-border-strong bg-surface p-0 text-foreground shadow-card backdrop:bg-black/70 backdrop:backdrop-blur-sm"
+          className="m-auto hidden open:flex w-[min(28rem,calc(100vw-2rem))] flex-col rounded-lg border border-border-strong bg-surface p-0 text-left text-foreground shadow-card backdrop:bg-black/70 backdrop:backdrop-blur-sm"
         >
           <form action={setStaffMemberActive} className="grid gap-4 p-6">
             <input type="hidden" name="staff_member_id" value={member.id} />

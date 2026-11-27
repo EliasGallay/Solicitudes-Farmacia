@@ -17,7 +17,7 @@ el 26/11. Eso se registra como una novedad con dos eventos de seguimiento.
 ## Fuera de alcance (v1)
 
 - Adjuntar archivos (informes, fotos). Queda para una iteración posterior.
-- Editar o borrar eventos de seguimiento: se agregan, no se editan.
+- Editar eventos de seguimiento. Se agregan y se pueden anular de a uno, con motivo (ver decisiones).
 - Sanciones, descuentos o cálculos vinculados a la novedad.
 - Acceso de lectura para roles que no sean admin.
 - Notificaciones.
@@ -36,15 +36,17 @@ Tabla `public.staff_incidents` (la novedad):
 - `created_at`, `created_by` (FK a `profiles`), `voided_at`, `voided_by`, `void_reason`
   (not null cuando `voided_at` existe, 1 a 500 caracteres).
 
-Tabla `public.staff_incident_events` (seguimiento, solo se agrega):
+Tabla `public.staff_incident_events` (seguimiento; se agrega y se puede anular, no se edita):
 
 - `id uuid` primary key.
 - `incident_id uuid` not null, FK a `staff_incidents` (`on delete restrict`).
 - `event_on date` not null: fecha del evento. Entre `occurred_on` y hoy (inclusive).
 - `note text` not null, 1 a 500 caracteres, sin espacios en los bordes.
 - `created_at`, `created_by` (FK a `profiles`).
+- `voided_at`, `voided_by`, `void_reason` (mismo criterio que `staff_incidents`; `void_reason` 1 a 500
+  caracteres; los tres en null o los tres con valor).
 
-Nada se borra. Las novedades se anulan con motivo; los eventos no se anulan en v1.
+Nada se borra. Las novedades y cada seguimiento se anulan con motivo; ningún dato se edita en el lugar.
 
 RLS: habilitada en ambas tablas, con select solo para admin, igual que el resto del módulo.
 
@@ -56,6 +58,8 @@ RLS: habilitada en ambas tablas, con select solo para admin, igual que el resto 
   Falla si la novedad está anulada. Escribe `audit_events`.
 - `staff_void_incident(p_id, p_reason)`: marca `voided_at` y `void_reason`; falla si ya está
   anulada. Escribe `audit_events`.
+- `staff_void_incident_event(p_event_id, p_reason)`: anula un seguimiento con motivo; falla si el
+  seguimiento ya está anulado. Escribe `audit_events` (`staff_incident_event.void`).
 
 Los códigos de error siguen el patrón `staff_invalid_*` que ya usa el módulo. Se traducen en
 `src/lib/feedback.ts` y en el mapeo de `src/lib/request-management.ts`.
@@ -93,6 +97,9 @@ Archivo `supabase/migrations/202611270001_staff_incidents.sql`, después de
 
 - Categoría libre con sugerencias, no catálogo cerrado. Sin tabla de categorías en v1.
 - Seguimiento como eventos agregados, no como campos fijos de fechas de informe.
+- Corrección de seguimientos (decisión del usuario, 2026-11-27): cada seguimiento se anula de a uno,
+  con motivo, y queda visible tachado con su motivo. Se descartó editarlo en el lugar, porque pisa el
+  texto original. Corregir un seguimiento = anularlo y agregar uno nuevo.
 - Sin adjuntos en v1.
 
 ## Tareas

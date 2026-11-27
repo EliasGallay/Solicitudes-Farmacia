@@ -52,7 +52,7 @@ export function LeaveDialog({
         onClick={(event) => {
           if (event.target === event.currentTarget) close()
         }}
-        className="mx-auto mt-[10vh] mb-auto hidden open:flex max-h-[80vh] w-[min(40rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border border-border-strong bg-surface p-0 text-foreground shadow-card backdrop:bg-black/70 backdrop:backdrop-blur-sm"
+        className="mx-auto mt-[10vh] mb-auto hidden open:flex max-h-[80vh] w-[min(40rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border border-border-strong bg-surface p-0 text-left text-foreground shadow-card backdrop:bg-black/70 backdrop:backdrop-blur-sm"
       >
         <div className="flex shrink-0 items-start justify-between gap-4 p-6 pb-4">
           <div className="grid gap-1">

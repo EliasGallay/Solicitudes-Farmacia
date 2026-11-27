@@ -7,6 +7,7 @@ import { ErrorState } from '@/components/error-state'
 import { LeaveDialog } from '@/components/staff/leave-dialog'
 import { IncidentDialog } from '@/components/staff/incident-dialog'
 import { IncidentEventDialog } from '@/components/staff/incident-event-dialog'
+import { IncidentEventVoidDialog } from '@/components/staff/incident-event-void-dialog'
 import { IncidentVoidDialog } from '@/components/staff/incident-void-dialog'
 import { LeaveVoidDialog } from '@/components/staff/leave-void-dialog'
 import { StaffForm, type StaffCenter, type StaffFormValues } from '@/components/staff/staff-form'
@@ -76,7 +77,7 @@ export default async function StaffProfilePage({
     supabase.from('health_centers').select('id, name').eq('active', true).order('name'),
     supabase
       .from('staff_incidents')
-      .select('id, category, occurred_on, ends_on, description, voided_at, void_reason, staff_incident_events(id, event_on, note)')
+      .select('id, category, occurred_on, ends_on, description, voided_at, void_reason, staff_incident_events(id, event_on, note, voided_at, void_reason)')
       .eq('staff_member_id', id.data)
       .order('occurred_on', { ascending: false }),
   ])
@@ -129,7 +130,7 @@ export default async function StaffProfilePage({
     description: (incident.description as string | null) ?? null,
     voided: incident.voided_at !== null,
     voidReason: (incident.void_reason as string | null) ?? null,
-    events: ((incident.staff_incident_events as { id: string; event_on: string; note: string }[] | null) ?? [])
+    events: ((incident.staff_incident_events as { id: string; event_on: string; note: string; voided_at: string | null; void_reason: string | null }[] | null) ?? [])
       .slice()
       .sort((a, b) => a.event_on.localeCompare(b.event_on)),
   }))
@@ -370,14 +371,31 @@ export default async function StaffProfilePage({
                       )}
                     </div>
                     {incident.events.length > 0 ? (
-                      <ol className="grid gap-1 border-l border-border pl-3">
-                        {incident.events.map((event) => (
-                          <li key={event.id} className="text-sm">
-                            <span className="font-medium">{formatDate(event.event_on)}</span>
-                            <span className="text-foreground-secondary"> · {event.note}</span>
-                          </li>
-                        ))}
-                      </ol>
+                      <div className="grid gap-2 border-l border-border pl-3">
+                        <p className="text-xs font-semibold text-foreground-secondary">Seguimientos ({incident.events.length})</p>
+                        <ol className="grid gap-1">
+                          {incident.events.map((event) => {
+                            const voided = event.voided_at !== null
+                            return (
+                              <li key={event.id} className="grid gap-0.5 rounded-md px-2 py-1 text-sm hover:bg-surface-muted">
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                  <span className={voided ? 'text-foreground-muted line-through opacity-60' : undefined}>
+                                    <span className="font-medium">{formatDate(event.event_on)}</span>
+                                    <span className="text-foreground-secondary"> · {event.note}</span>
+                                  </span>
+                                  {voided ? <Badge variant="neutral">Anulado</Badge> : null}
+                                  {voided || incident.voided ? null : (
+                                    <div className="ml-auto">
+                                      <IncidentEventVoidDialog eventId={event.id} staffMemberId={id.data} label={`Seguimiento del ${formatDate(event.event_on)}: “${event.note}”`} />
+                                    </div>
+                                  )}
+                                </div>
+                                {voided && event.void_reason ? <span className="text-xs text-foreground-secondary">Motivo: {event.void_reason}</span> : null}
+                              </li>
+                            )
+                          })}
+                        </ol>
+                      </div>
                     ) : null}
                   </li>
                 )

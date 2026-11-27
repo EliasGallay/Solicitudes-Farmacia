@@ -11,7 +11,7 @@ export function IncidentVoidDialog({ incidentId, staffMemberId, label }: { incid
 
   return (
     <>
-      <Button type="button" variant="ghost" size="sm" onClick={() => dialogRef.current?.showModal()}>Anular</Button>
+      <Button type="button" variant="ghost" size="sm" onClick={() => dialogRef.current?.showModal()}>Anular novedad</Button>
 
       <dialog
         ref={dialogRef}
