@@ -7,3 +7,11 @@ out
 *.tsbuildinfo
 coverage
 .DS_Store
+
+# Importación de personal: la planilla y el listado de revisión contienen nombres reales. Nunca versionarlos.
+scripts/out/
+*planilla*.csv
+*planilla*.xlsx
+
+# Datos de acceso locales (usuarios de prueba de Supabase local). No versionar.
+docs/local/

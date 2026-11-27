@@ -1,4 +1,4 @@
-import { Building2, Car, CirclePlus, ClipboardList, FileText, House, Package, PackageCheck, Truck, Users, type LucideIcon } from 'lucide-react'
+import { Building2, Car, CirclePlus, ClipboardList, FileText, House, IdCard, Package, PackageCheck, Truck, Users, type LucideIcon } from 'lucide-react'
 
 // Menú lateral (src/components/sidebar.tsx).
 // `estado`: el ítem apunta al listado de solicitudes filtrado (?estado=); `count`: indicador a la derecha.
@@ -39,6 +39,7 @@ export const adminNavigation: NavItem[] = [
   fleetItem,
   { href: '/catalogos', label: 'Catálogos', icon: Package },
   { href: '/usuarios', label: 'Usuarios', icon: Users },
+  { href: '/personal', label: 'Gestión de personal', icon: IdCard },
   { href: '/centros', label: 'Centros', icon: Building2 },
   { href: '/auditoria', label: 'Auditoría', icon: ClipboardList },
 ]
