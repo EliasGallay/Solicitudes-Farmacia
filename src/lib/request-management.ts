@@ -72,6 +72,7 @@ const rpcErrorCodes: Record<string, FeedbackCode> = {
   'staff_invalid_health_center': 'personal-caps-invalido',
   'staff_reason_required': 'personal-motivo-requerido',
   'staff_already_voided': 'personal-ya-anulada',
+  'staff_event_already_voided': 'personal-seguimiento-ya-anulado',
   'staff_no_change': 'personal-sin-cambios',
   'staff_invalid_incident_category': 'personal-novedad-categoria-requerida',
   'staff_invalid_incident_dates': 'personal-novedad-fechas-invalidas',

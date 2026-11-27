@@ -16,7 +16,7 @@ export function IncidentDialog({ staffMemberId, personName, incident }: { staffM
   return (
     <>
       {incident ? (
-        <Button type="button" variant="ghost" size="sm" onClick={() => dialogRef.current?.showModal()}>Corregir</Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => dialogRef.current?.showModal()}>Editar novedad</Button>
       ) : (
         <Button type="button" variant="secondary" size="sm" onClick={() => dialogRef.current?.showModal()}>Registrar novedad</Button>
       )}

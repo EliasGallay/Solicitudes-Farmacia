@@ -20,7 +20,7 @@ export function LeaveVoidDialog({ leaveId, staffMemberId, label }: { leaveId: st
         onClick={(event) => {
           if (event.target === event.currentTarget) dialogRef.current?.close()
         }}
-        className="m-auto hidden open:flex w-[min(30rem,calc(100vw-2rem))] flex-col rounded-lg border border-border bg-surface p-0 text-foreground shadow-card backdrop:bg-black/40"
+        className="m-auto hidden open:flex w-[min(30rem,calc(100vw-2rem))] flex-col rounded-lg border border-border bg-surface p-0 text-left text-foreground shadow-card backdrop:bg-black/40"
       >
         <form action={voidStaffLeave} className="grid gap-4 p-6">
           <input type="hidden" name="leave_id" value={leaveId} />
