@@ -171,5 +171,60 @@ export function daysBetween(fromIso: string, toIso: string) {
   return Math.round((utc(toIso) - utc(fromIso)) / 86_400_000)
 }
 
+// Novedades (docs/plans/diseno-novedades-personal.md): hechos del trabajador que no son licencias.
+// La categoría es libre; las sugerencias solo ayudan a escribir.
+export const INCIDENT_CATEGORY_MAX = 60
+export const INCIDENT_CATEGORY_SUGGESTIONS = ['Ausencia injustificada', 'Llegada tarde', 'Informe', 'Otra'] as const
+
+export const todayInArgentina = (now: Date = new Date()) =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(now)
+
+type IncidentRangeInput = { occurredOn: string; endsOn?: string | null; today: string }
+
+// Reglas de fechas de la novedad: el hecho no es futuro y el fin (si hay) no es anterior ni futuro.
+// Los códigos son los de la base (staff_invalid_incident_dates).
+export function validateIncidentRange({ occurredOn, endsOn, today }: IncidentRangeInput): LeaveValidation {
+  if (occurredOn > today) return { ok: false, code: 'staff_invalid_incident_dates' }
+  if (endsOn && (endsOn < occurredOn || endsOn > today)) return { ok: false, code: 'staff_invalid_incident_dates' }
+  return { ok: true }
+}
+
+// Un evento de seguimiento va entre la fecha del hecho y hoy, inclusive.
+export function validateIncidentEventDate({ occurredOn, eventOn, today }: { occurredOn: string; eventOn: string; today: string }): LeaveValidation {
+  if (eventOn < occurredOn || eventOn > today) return { ok: false, code: 'staff_invalid_incident_dates' }
+  return { ok: true }
+}
+
+const categoryField = z
+  .string({ error: 'Escribí la categoría' })
+  .trim()
+  .min(1, 'Escribí la categoría')
+  .max(INCIDENT_CATEGORY_MAX, `Máximo ${INCIDENT_CATEGORY_MAX} caracteres`)
+
+export const staffIncidentSchema = z
+  .object({
+    staff_member_id: z.string().uuid('Elegí la persona'),
+    category: categoryField,
+    occurred_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ingresá la fecha del hecho'),
+    ends_on: isoDate,
+    description: optionalText(COMMENT_MAX),
+  })
+  .superRefine((value, ctx) => {
+    const result = validateIncidentRange({ occurredOn: value.occurred_on, endsOn: value.ends_on, today: todayInArgentina() })
+    if (!result.ok) ctx.addIssue({ code: 'custom', message: result.code, path: [] })
+  })
+
+export const staffIncidentEventSchema = z
+  .object({
+    incident_id: z.string().uuid(),
+    occurred_on: z.string(),
+    event_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ingresá la fecha'),
+    note: z.string().trim().min(1, 'Escribí el seguimiento').max(COMMENT_MAX, `Máximo ${COMMENT_MAX} caracteres`),
+  })
+  .superRefine((value, ctx) => {
+    const result = validateIncidentEventDate({ occurredOn: value.occurred_on, eventOn: value.event_on, today: todayInArgentina() })
+    if (!result.ok) ctx.addIssue({ code: 'custom', message: result.code, path: [] })
+  })
+
 export type StaffMemberValues = z.output<typeof staffMemberSchema>
 export type StaffLeaveValues = z.output<typeof staffLeaveSchema>

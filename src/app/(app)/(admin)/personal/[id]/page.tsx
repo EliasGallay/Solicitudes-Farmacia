@@ -5,6 +5,9 @@ import { z } from 'zod'
 import { CopyValue } from '@/components/copy-value'
 import { ErrorState } from '@/components/error-state'
 import { LeaveDialog } from '@/components/staff/leave-dialog'
+import { IncidentDialog } from '@/components/staff/incident-dialog'
+import { IncidentEventDialog } from '@/components/staff/incident-event-dialog'
+import { IncidentVoidDialog } from '@/components/staff/incident-void-dialog'
 import { LeaveVoidDialog } from '@/components/staff/leave-void-dialog'
 import { StaffForm, type StaffCenter, type StaffFormValues } from '@/components/staff/staff-form'
 import { PageHeader } from '@/components/page-header'
@@ -59,7 +62,7 @@ export default async function StaffProfilePage({
   const registering = query.licencia === '1'
   const today = argentinaDate(new Date())
 
-  const [memberResult, leavesResult, centersResult] = await Promise.all([
+  const [memberResult, leavesResult, centersResult, incidentsResult] = await Promise.all([
     supabase
       .from('staff_members')
       .select('id, first_name, last_name, profession, matricula, dni, phone, address, email, birth_date, hire_date, comment, active, staff_member_health_centers(health_center_id)')
@@ -71,9 +74,14 @@ export default async function StaffProfilePage({
       .eq('staff_member_id', id.data)
       .order('starts_on', { ascending: false }),
     supabase.from('health_centers').select('id, name').eq('active', true).order('name'),
+    supabase
+      .from('staff_incidents')
+      .select('id, category, occurred_on, ends_on, description, voided_at, void_reason, staff_incident_events(id, event_on, note)')
+      .eq('staff_member_id', id.data)
+      .order('occurred_on', { ascending: false }),
   ])
 
-  if (memberResult.error || leavesResult.error || centersResult.error) return <ErrorState />
+  if (memberResult.error || leavesResult.error || centersResult.error || incidentsResult.error) return <ErrorState />
   if (!memberResult.data) notFound()
 
   const member = memberResult.data
@@ -111,6 +119,19 @@ export default async function StaffProfilePage({
     comment: (leave.comment as string | null) ?? null,
     voided: leave.voided_at !== null,
     voidReason: (leave.void_reason as string | null) ?? null,
+  }))
+
+  const incidents = (incidentsResult.data ?? []).map((incident) => ({
+    id: incident.id as string,
+    category: incident.category as string,
+    occurredOn: incident.occurred_on as string,
+    endsOn: (incident.ends_on as string | null) ?? null,
+    description: (incident.description as string | null) ?? null,
+    voided: incident.voided_at !== null,
+    voidReason: (incident.void_reason as string | null) ?? null,
+    events: ((incident.staff_incident_events as { id: string; event_on: string; note: string }[] | null) ?? [])
+      .slice()
+      .sort((a, b) => a.event_on.localeCompare(b.event_on)),
   }))
 
   const activeLeave = leaves.find((leave) => !leave.voided && leave.startsOn <= today && leave.endsOn >= today)
@@ -300,6 +321,57 @@ export default async function StaffProfilePage({
                 </MobileList>
               </div>
             </>
+          )}
+        </Card>
+
+        {/* Novedades (docs/plans/diseno-novedades-personal.md): hechos del trabajador que no son licencias. No
+            cuentan para el estado de hoy ni para los solapamientos. */}
+        <Card className="overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between gap-4">
+            <CardTitle>Novedades</CardTitle>
+            <IncidentDialog staffMemberId={id.data} personName={personName} />
+          </CardHeader>
+          {incidents.length === 0 ? (
+            <CardContent>
+              <p className="text-sm text-foreground-secondary">Todavía no tiene novedades registradas.</p>
+            </CardContent>
+          ) : (
+            <ul className="grid divide-y divide-border">
+              {incidents.map((incident) => {
+                const when = incident.endsOn ? `${formatDate(incident.occurredOn)} al ${formatDate(incident.endsOn)}` : formatDate(incident.occurredOn)
+                const label = `${incident.category} · ${when}`
+                return (
+                  <li key={incident.id} className="grid gap-3 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className={`grid gap-1 ${incident.voided ? 'text-foreground-muted line-through' : ''}`}>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="neutral">{incident.category}</Badge>
+                          <span className="text-sm font-medium">{when}</span>
+                        </div>
+                        {incident.description ? <p className="text-sm text-foreground-secondary">{incident.description}</p> : null}
+                        {incident.voided && incident.voidReason ? <p className="text-xs text-foreground-secondary">Anulada: {incident.voidReason}</p> : null}
+                      </div>
+                      {incident.voided ? null : (
+                        <div className="flex flex-wrap gap-1">
+                          <IncidentEventDialog incidentId={incident.id} staffMemberId={id.data} occurredOn={incident.occurredOn} label={label} />
+                          <IncidentVoidDialog incidentId={incident.id} staffMemberId={id.data} label={label} />
+                        </div>
+                      )}
+                    </div>
+                    {incident.events.length > 0 ? (
+                      <ol className="grid gap-1 border-l border-border pl-3">
+                        {incident.events.map((event) => (
+                          <li key={event.id} className="text-sm">
+                            <span className="font-medium">{formatDate(event.event_on)}</span>
+                            <span className="text-foreground-secondary"> · {event.note}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    ) : null}
+                  </li>
+                )
+              })}
+            </ul>
           )}
         </Card>
       </div>
