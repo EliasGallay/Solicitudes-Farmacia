@@ -3,14 +3,28 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { LeaveForm } from '@/components/staff/leave-form'
+import { LeaveForm, type LeaveToEdit } from '@/components/staff/leave-form'
 
-// Diálogo modal para registrar una licencia. Se abre desde un botón (`trigger`) o al montar si
-// `openOnMount` (enlace «Registrar licencia» del listado). Cerrar sin guardar no pierde nada del listado.
-export function LeaveDialog({ staffMemberId, personName, triggerLabel, openOnMount = false }: { staffMemberId: string; personName: string; triggerLabel: string; openOnMount?: boolean }) {
+// Diálogo modal para registrar una licencia, o para corregir una existente si llega `leave`. Se abre desde un
+// botón (`triggerLabel`) o al montar si `openOnMount` (enlace «Registrar licencia» del listado). Cerrar sin
+// guardar no pierde nada del listado.
+export function LeaveDialog({
+  staffMemberId,
+  personName,
+  triggerLabel,
+  openOnMount = false,
+  leave,
+}: {
+  staffMemberId: string
+  personName: string
+  triggerLabel: string
+  openOnMount?: boolean
+  leave?: LeaveToEdit
+}) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const formId = useId()
   const [footer, setFooter] = useState<HTMLElement | null>(null)
+  const title = leave ? 'Corregir licencia' : 'Registrar licencia'
 
   // Al abrir, el foco va al tipo de licencia (no a la X de cerrar, que es lo primero del diálogo).
   const showDialog = () => {
@@ -30,11 +44,11 @@ export function LeaveDialog({ staffMemberId, personName, triggerLabel, openOnMou
 
   return (
     <>
-      <Button type="button" onClick={open}>{triggerLabel}</Button>
+      <Button type="button" variant={leave ? 'ghost' : 'default'} size={leave ? 'sm' : 'default'} onClick={open}>{triggerLabel}</Button>
 
       <dialog
         ref={dialogRef}
-        aria-labelledby="leave-dialog-title"
+        aria-labelledby={leave ? `leave-dialog-title-${leave.id}` : 'leave-dialog-title'}
         onClick={(event) => {
           if (event.target === event.currentTarget) close()
         }}
@@ -42,7 +56,7 @@ export function LeaveDialog({ staffMemberId, personName, triggerLabel, openOnMou
       >
         <div className="flex shrink-0 items-start justify-between gap-4 p-6 pb-4">
           <div className="grid gap-1">
-            <h2 id="leave-dialog-title" className="text-lg font-semibold">Registrar licencia</h2>
+            <h2 id={leave ? `leave-dialog-title-${leave.id}` : 'leave-dialog-title'} className="text-lg font-semibold">{title}</h2>
             <p className="text-sm text-foreground-secondary">{personName}</p>
           </div>
           <button
@@ -55,7 +69,7 @@ export function LeaveDialog({ staffMemberId, personName, triggerLabel, openOnMou
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
-          <LeaveForm staffMemberId={staffMemberId} formId={formId} footerTarget={footer} onCancel={close} />
+          <LeaveForm staffMemberId={staffMemberId} formId={formId} footerTarget={footer} onCancel={close} leave={leave} />
         </div>
         {/* Pie fijo con los botones: visibles aunque el contenido crezca. */}
         <footer ref={setFooter} className="flex shrink-0 justify-end gap-3 border-t border-border px-6 py-4" />

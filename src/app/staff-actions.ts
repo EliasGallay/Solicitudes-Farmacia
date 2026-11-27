@@ -193,3 +193,56 @@ export async function voidStaffIncident(formData: FormData) {
   revalidateStaff()
   redirectAfterAction(withFeedback(staffPage(memberId.data), 'success', 'personal-novedad-anulada'))
 }
+
+// Corrección de una licencia cargada: misma validación que el alta; la base revisa solapamientos sin contar la propia.
+export async function updateStaffLeave(leaveId: string, values: unknown): Promise<{ error: string }> {
+  const id = idSchema.safeParse(leaveId)
+  if (!id.success) return { error: feedbackMessage('personal-no-encontrado')! }
+  const parsed = staffLeaveSchema.safeParse(values)
+  if (!parsed.success) {
+    const code = parsed.error.issues[0]?.message
+    return { error: feedbackMessage(code && code.startsWith('staff_') ? managementErrorCode({ message: code }, 'personal-datos-invalidos') : 'personal-datos-invalidos')! }
+  }
+  const input: StaffLeaveValues = parsed.data
+
+  const { supabase } = await requireRole('admin')
+  const { error } = await supabase.rpc('staff_update_leave', {
+    p_id: id.data,
+    p_kind: input.kind,
+    p_starts_on: input.starts_on,
+    p_ends_on: input.kind === 'hours_permit' ? input.starts_on : input.ends_on ?? null,
+    p_days: input.kind === 'hours_permit' ? null : input.days ?? null,
+    p_hours: input.kind === 'hours_permit' ? input.hours ?? null : null,
+    p_note: input.kind === 'other' ? input.note ?? null : null,
+    p_comment: input.comment,
+  })
+  if (error) return { error: feedbackMessage(staffErrorCode(error))! }
+
+  revalidateStaff()
+  redirectAfterAction(withFeedback(staffPage(input.staff_member_id), 'success', 'personal-licencia-actualizada'))
+}
+
+// Corrección de una novedad. Los seguimientos no se editan; la base rechaza una fecha que los deje antes del hecho.
+export async function updateStaffIncident(incidentId: string, values: unknown): Promise<{ error: string }> {
+  const id = idSchema.safeParse(incidentId)
+  if (!id.success) return { error: feedbackMessage('personal-no-encontrado')! }
+  const parsed = staffIncidentSchema.safeParse(values)
+  if (!parsed.success) {
+    const code = parsed.error.issues[0]?.message
+    return { error: feedbackMessage(code && code.startsWith('staff_') ? managementErrorCode({ message: code }, 'personal-datos-invalidos') : 'personal-datos-invalidos')! }
+  }
+  const input = parsed.data
+
+  const { supabase } = await requireRole('admin')
+  const { error } = await supabase.rpc('staff_update_incident', {
+    p_id: id.data,
+    p_category: input.category,
+    p_occurred_on: input.occurred_on,
+    p_ends_on: input.ends_on,
+    p_description: input.description,
+  })
+  if (error) return { error: feedbackMessage(staffErrorCode(error))! }
+
+  revalidateStaff()
+  redirectAfterAction(withFeedback(staffPage(input.staff_member_id), 'success', 'personal-novedad-actualizada'))
+}

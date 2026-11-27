@@ -2,7 +2,7 @@
 
 import { useState, useTransition, type ChangeEvent, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { registerStaffLeave } from '@/app/staff-actions'
+import { registerStaffLeave, updateStaffLeave } from '@/app/staff-actions'
 import { DateField } from '@/components/date-field'
 import { FormError } from '@/components/form-feedback'
 import { InlineDropdown } from '@/components/inline-dropdown'
@@ -35,20 +35,48 @@ type LeaveState = {
   comment: string
 }
 
-const initial: LeaveState = { kind: '', starts_on: '', ends_on: '', days: '', hours: '', note: '', comment: '' }
+const empty: LeaveState = { kind: '', starts_on: '', ends_on: '', days: '', hours: '', note: '', comment: '' }
+
+// Licencia existente que se está corrigiendo. Un permiso por horas guarda una sola fecha (ends_on = starts_on).
+export type LeaveToEdit = {
+  id: string
+  kind: LeaveKind
+  startsOn: string
+  endsOn: string
+  days: number | null
+  hours: number | null
+  note: string | null
+  comment: string | null
+}
+
+function stateFrom(leave?: LeaveToEdit): LeaveState {
+  if (!leave) return empty
+  const isPermit = leave.kind === 'hours_permit'
+  return {
+    kind: leave.kind,
+    starts_on: leave.startsOn,
+    ends_on: isPermit ? '' : leave.endsOn,
+    days: leave.days == null ? '' : String(leave.days),
+    hours: leave.hours == null ? '' : String(leave.hours),
+    note: leave.note ?? '',
+    comment: leave.comment ?? '',
+  }
+}
 
 export function LeaveForm({
   staffMemberId,
   formId,
   footerTarget,
   onCancel,
+  leave,
 }: {
   staffMemberId: string
   formId?: string
   footerTarget?: HTMLElement | null
   onCancel?: () => void
+  leave?: LeaveToEdit
 }) {
-  const [state, setState] = useState<LeaveState>(initial)
+  const [state, setState] = useState<LeaveState>(() => stateFrom(leave))
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
@@ -76,7 +104,7 @@ export function LeaveForm({
       comment: state.comment || null,
     }
     startTransition(async () => {
-      const result = await registerStaffLeave(values)
+      const result = leave ? await updateStaffLeave(leave.id, values) : await registerStaffLeave(values)
       if (result?.error) setError(result.error)
     })
   }
