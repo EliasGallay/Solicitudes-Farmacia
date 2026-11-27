@@ -294,7 +294,12 @@ export default async function StaffProfilePage({
                         </TableCell>
                         <TableCell><Badge variant={state.tone === 'warning' ? 'warning' : state.tone === 'info' ? 'info' : 'neutral'}>{state.label}</Badge></TableCell>
                         <TableCell className="text-right">
-                          {leave.voided ? null : <LeaveVoidDialog leaveId={leave.id} staffMemberId={id.data} label={`${leaveKindLabels[leave.kind]} · ${when}`} />}
+                          {leave.voided ? null : (
+                            <span className="inline-flex items-center gap-1">
+                              <LeaveDialog staffMemberId={id.data} personName={personName} triggerLabel="Corregir" leave={leave} />
+                              <LeaveVoidDialog leaveId={leave.id} staffMemberId={id.data} label={`${leaveKindLabels[leave.kind]} · ${when}`} />
+                            </span>
+                          )}
                         </TableCell>
                       </TableRow>
                     )
@@ -314,7 +319,12 @@ export default async function StaffProfilePage({
                           <Badge variant={state.tone === 'warning' ? 'warning' : state.tone === 'info' ? 'info' : 'neutral'}>{state.label}</Badge>
                         </div>
                         <p className="text-sm font-medium">{when}</p>
-                        {leave.voided ? null : <LeaveVoidDialog leaveId={leave.id} staffMemberId={id.data} label={`${leaveKindLabels[leave.kind]} · ${when}`} />}
+                        {leave.voided ? null : (
+                          <div className="flex flex-wrap gap-1">
+                            <LeaveDialog staffMemberId={id.data} personName={personName} triggerLabel="Corregir" leave={leave} />
+                            <LeaveVoidDialog leaveId={leave.id} staffMemberId={id.data} label={`${leaveKindLabels[leave.kind]} · ${when}`} />
+                          </div>
+                        )}
                       </MobileListItem>
                     )
                   })}
@@ -353,6 +363,7 @@ export default async function StaffProfilePage({
                       </div>
                       {incident.voided ? null : (
                         <div className="flex flex-wrap gap-1">
+                          <IncidentDialog staffMemberId={id.data} personName={personName} incident={incident} />
                           <IncidentEventDialog incidentId={incident.id} staffMemberId={id.data} occurredOn={incident.occurredOn} label={label} />
                           <IncidentVoidDialog incidentId={incident.id} staffMemberId={id.data} label={label} />
                         </div>
