@@ -1,7 +1,7 @@
 'use client'
 
 import { useId, useRef, type CSSProperties } from 'react'
-import { CalendarPlus, Pencil, UserCheck, UserMinus } from 'lucide-react'
+import { CalendarPlus, Eye, Pencil, UserCheck, UserMinus } from 'lucide-react'
 import Link from 'next/link'
 import { setStaffMemberActive } from '@/app/staff-actions'
 import { Button } from '@/components/ui/button'
@@ -31,6 +31,17 @@ export function RowActions({ member }: { member: { id: string; firstName: string
 
   return (
     <>
+      {/* Ojo y ⋯ en un mismo grupo, con la misma altura y alineados a la derecha de la celda. */}
+      <span className="inline-flex items-center justify-end gap-1">
+      <Link
+        href={`${PATH}/${member.id}`}
+        aria-label={`Ver ficha de ${name}`}
+        title="Ver ficha"
+        className="inline-flex size-9 items-center justify-center rounded-md text-foreground-secondary hover:bg-surface-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+      >
+        <Eye className="size-4" aria-hidden />
+      </Link>
+
       <button
         type="button"
         popoverTarget={menuId}
@@ -41,6 +52,7 @@ export function RowActions({ member }: { member: { id: string; firstName: string
       >
         ⋯
       </button>
+      </span>
 
       <div
         id={menuId}
