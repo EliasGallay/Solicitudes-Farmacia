@@ -246,3 +246,20 @@ export async function updateStaffIncident(incidentId: string, values: unknown): 
   revalidateStaff()
   redirectAfterAction(withFeedback(staffPage(input.staff_member_id), 'success', 'personal-novedad-actualizada'))
 }
+
+// Anulación de un seguimiento, de a uno. Misma regla que las novedades: motivo obligatorio, queda en el historial.
+export async function voidStaffIncidentEvent(formData: FormData) {
+  const eventId = idSchema.safeParse(formData.get('event_id'))
+  const memberId = idSchema.safeParse(formData.get('staff_member_id'))
+  if (!eventId.success || !memberId.success) redirectAfterAction(withFeedback(STAFF_HOME, 'error', 'personal-no-encontrado'))
+
+  const reason = reasonSchema.safeParse(formData.get('reason'))
+  if (!reason.success) redirectAfterAction(withFeedback(staffPage(memberId.data), 'error', 'personal-motivo-requerido'))
+
+  const { supabase } = await requireRole('admin')
+  const { error } = await supabase.rpc('staff_void_incident_event', { p_event_id: eventId.data, p_reason: reason.data })
+  if (error) redirectAfterAction(withFeedback(staffPage(memberId.data), 'error', staffErrorCode(error)))
+
+  revalidateStaff()
+  redirectAfterAction(withFeedback(staffPage(memberId.data), 'success', 'personal-seguimiento-anulado'))
+}
