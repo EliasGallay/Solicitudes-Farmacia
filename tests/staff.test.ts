@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeName, validateLeaveInput } from '../src/lib/staff'
+import { normalizeName, validateIncidentEventDate, validateIncidentRange, validateLeaveInput } from '../src/lib/staff'
 
 describe('validateLeaveInput', () => {
   it('acepta días distintos del rango (fin de semana incluido)', () => {
@@ -118,5 +118,46 @@ describe('yearsSince', () => {
 describe('daysBetween', () => {
   it('cuenta días corridos entre dos fechas ISO', () => {
     expect(daysBetween('2026-11-27', '2026-12-03')).toBe(6)
+  })
+})
+
+describe('validateIncidentRange', () => {
+  const today = '2026-11-27'
+
+  it('acepta un hecho de un solo día', () => {
+    expect(validateIncidentRange({ occurredOn: '2026-11-19', today })).toEqual({ ok: true })
+  })
+
+  it('acepta un hecho que abarca varios días hasta hoy', () => {
+    expect(validateIncidentRange({ occurredOn: '2026-11-19', endsOn: '2026-11-21', today })).toEqual({ ok: true })
+  })
+
+  it('rechaza un hecho futuro', () => {
+    expect(validateIncidentRange({ occurredOn: '2026-11-28', today })).toEqual({ ok: false, code: 'staff_invalid_incident_dates' })
+  })
+
+  it('rechaza un fin anterior al hecho', () => {
+    expect(validateIncidentRange({ occurredOn: '2026-11-19', endsOn: '2026-11-18', today })).toEqual({ ok: false, code: 'staff_invalid_incident_dates' })
+  })
+
+  it('rechaza un fin futuro', () => {
+    expect(validateIncidentRange({ occurredOn: '2026-11-19', endsOn: '2026-11-30', today })).toEqual({ ok: false, code: 'staff_invalid_incident_dates' })
+  })
+})
+
+describe('validateIncidentEventDate', () => {
+  const today = '2026-11-27'
+
+  it('acepta un seguimiento entre el hecho y hoy', () => {
+    expect(validateIncidentEventDate({ occurredOn: '2026-11-19', eventOn: '2026-11-20', today })).toEqual({ ok: true })
+    expect(validateIncidentEventDate({ occurredOn: '2026-11-19', eventOn: '2026-11-26', today })).toEqual({ ok: true })
+  })
+
+  it('rechaza un seguimiento anterior al hecho', () => {
+    expect(validateIncidentEventDate({ occurredOn: '2026-11-19', eventOn: '2026-11-18', today })).toEqual({ ok: false, code: 'staff_invalid_incident_dates' })
+  })
+
+  it('rechaza un seguimiento futuro', () => {
+    expect(validateIncidentEventDate({ occurredOn: '2026-11-19', eventOn: '2026-11-28', today })).toEqual({ ok: false, code: 'staff_invalid_incident_dates' })
   })
 })

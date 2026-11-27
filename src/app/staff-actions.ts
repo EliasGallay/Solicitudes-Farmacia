@@ -6,7 +6,7 @@ import { z } from 'zod'
 import { feedbackMessage, withFeedback, type FeedbackCode } from '../lib/feedback'
 import { managementErrorCode, NOTE_MAX_LENGTH } from '../lib/request-management'
 import { requireRole } from '../lib/session'
-import { staffLeaveSchema, staffMemberSchema, type StaffLeaveValues, type StaffMemberValues } from '../lib/staff'
+import { staffIncidentEventSchema, staffIncidentSchema, staffLeaveSchema, staffMemberSchema, type StaffLeaveValues, type StaffMemberValues } from '../lib/staff'
 
 // Gestión de personal (docs/plans/plan-gestion-personal.md). Solo admin. Cada acción llama a una RPC
 // de supabase/migrations/202611260001_staff.sql, que vuelve a validar permisos y datos dentro de una
@@ -133,4 +133,63 @@ export async function voidStaffLeave(formData: FormData) {
 
   revalidateStaff()
   redirectAfterAction(withFeedback(staffPage(memberId.data), 'success', 'personal-licencia-anulada'))
+}
+
+// Novedad del trabajador. Se valida por forma en staffIncidentSchema y por fechas en la RPC.
+export async function registerStaffIncident(values: unknown): Promise<{ error: string }> {
+  const parsed = staffIncidentSchema.safeParse(values)
+  if (!parsed.success) {
+    const code = parsed.error.issues[0]?.message
+    return { error: feedbackMessage(code && code.startsWith('staff_') ? managementErrorCode({ message: code }, 'personal-datos-invalidos') : 'personal-datos-invalidos')! }
+  }
+  const input = parsed.data
+
+  const { supabase } = await requireRole('admin')
+  const { error } = await supabase.rpc('staff_register_incident', {
+    p_staff_member_id: input.staff_member_id,
+    p_category: input.category,
+    p_occurred_on: input.occurred_on,
+    p_ends_on: input.ends_on,
+    p_description: input.description,
+  })
+  if (error) return { error: feedbackMessage(staffErrorCode(error))! }
+
+  revalidateStaff()
+  redirectAfterAction(withFeedback(staffPage(input.staff_member_id), 'success', 'personal-novedad-registrada'))
+}
+
+// Seguimiento de una novedad: agrega un evento con fecha. Vuelve a la ficha con el resultado.
+export async function addStaffIncidentEvent(values: unknown): Promise<{ error: string }> {
+  const parsed = staffIncidentEventSchema.safeParse(values)
+  if (!parsed.success) {
+    const code = parsed.error.issues[0]?.message
+    return { error: feedbackMessage(code && code.startsWith('staff_') ? managementErrorCode({ message: code }, 'personal-datos-invalidos') : 'personal-datos-invalidos')! }
+  }
+  const { supabase } = await requireRole('admin')
+  const { error } = await supabase.rpc('staff_add_incident_event', {
+    p_incident_id: parsed.data.incident_id,
+    p_event_on: parsed.data.event_on,
+    p_note: parsed.data.note,
+  })
+  if (error) return { error: feedbackMessage(staffErrorCode(error))! }
+
+  revalidateStaff()
+  return { error: '' }
+}
+
+// Anulación de una novedad desde la ficha. Mismo criterio que las licencias: motivo obligatorio.
+export async function voidStaffIncident(formData: FormData) {
+  const incidentId = idSchema.safeParse(formData.get('incident_id'))
+  const memberId = idSchema.safeParse(formData.get('staff_member_id'))
+  if (!incidentId.success || !memberId.success) redirectAfterAction(withFeedback(STAFF_HOME, 'error', 'personal-no-encontrado'))
+
+  const reason = reasonSchema.safeParse(formData.get('reason'))
+  if (!reason.success) redirectAfterAction(withFeedback(staffPage(memberId.data), 'error', 'personal-motivo-requerido'))
+
+  const { supabase } = await requireRole('admin')
+  const { error } = await supabase.rpc('staff_void_incident', { p_id: incidentId.data, p_reason: reason.data })
+  if (error) redirectAfterAction(withFeedback(staffPage(memberId.data), 'error', staffErrorCode(error)))
+
+  revalidateStaff()
+  redirectAfterAction(withFeedback(staffPage(memberId.data), 'success', 'personal-novedad-anulada'))
 }
