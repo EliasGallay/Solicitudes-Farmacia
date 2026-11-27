@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition, type ChangeEvent, type FormEvent } from 'react'
-import { registerStaffIncident } from '@/app/staff-actions'
+import { registerStaffIncident, updateStaffIncident } from '@/app/staff-actions'
 import { DateField } from '@/components/date-field'
 import { FormError } from '@/components/form-feedback'
 import { Button } from '@/components/ui/button'
@@ -20,10 +20,29 @@ type IncidentState = {
   description: string
 }
 
-const initial: IncidentState = { category: '', occurred_on: '', ends_on: '', description: '' }
+const empty: IncidentState = { category: '', occurred_on: '', ends_on: '', description: '' }
 
-export function IncidentForm({ staffMemberId, formId, onCancel, onDone }: { staffMemberId: string; formId: string; onCancel: () => void; onDone?: () => void }) {
-  const [state, setState] = useState<IncidentState>(initial)
+// Novedad existente que se está corrigiendo. Los seguimientos no se editan: van aparte, en la ficha.
+export type IncidentToEdit = {
+  id: string
+  category: string
+  occurredOn: string
+  endsOn: string | null
+  description: string | null
+}
+
+function stateFrom(incident?: IncidentToEdit): IncidentState {
+  if (!incident) return empty
+  return {
+    category: incident.category,
+    occurred_on: incident.occurredOn,
+    ends_on: incident.endsOn ?? '',
+    description: incident.description ?? '',
+  }
+}
+
+export function IncidentForm({ staffMemberId, formId, onCancel, onDone, incident }: { staffMemberId: string; formId: string; onCancel: () => void; onDone?: () => void; incident?: IncidentToEdit }) {
+  const [state, setState] = useState<IncidentState>(() => stateFrom(incident))
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const today = todayInArgentina()
@@ -45,7 +64,7 @@ export function IncidentForm({ staffMemberId, formId, onCancel, onDone }: { staf
       description: state.description || null,
     }
     startTransition(async () => {
-      const result = await registerStaffIncident(values)
+      const result = incident ? await updateStaffIncident(incident.id, values) : await registerStaffIncident(values)
       if (result?.error) setError(result.error)
       else onDone?.()
     })
@@ -92,7 +111,7 @@ export function IncidentForm({ staffMemberId, formId, onCancel, onDone }: { staf
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" onClick={onCancel}>Cancelar</Button>
         <Button type="submit" disabled={pending || state.category.trim() === '' || state.occurred_on === ''}>
-          {pending ? 'Guardando…' : 'Registrar novedad'}
+          {pending ? 'Guardando…' : incident ? 'Guardar corrección' : 'Registrar novedad'}
         </Button>
       </div>
     </form>

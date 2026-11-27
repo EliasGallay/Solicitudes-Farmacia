@@ -3,21 +3,27 @@
 import { useId, useRef } from 'react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { IncidentForm } from '@/components/staff/incident-form'
+import { IncidentForm, type IncidentToEdit } from '@/components/staff/incident-form'
 
-// Diálogo modal para registrar una novedad. Cerrar sin guardar no pierde nada del listado.
-export function IncidentDialog({ staffMemberId, personName }: { staffMemberId: string; personName: string }) {
+// Diálogo modal para registrar una novedad, o para corregir una existente si llega `incident`. Cerrar sin
+// guardar no pierde nada del listado.
+export function IncidentDialog({ staffMemberId, personName, incident }: { staffMemberId: string; personName: string; incident?: IncidentToEdit }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const formId = useId()
   const close = () => dialogRef.current?.close()
+  const title = incident ? 'Corregir novedad' : 'Registrar novedad'
 
   return (
     <>
-      <Button type="button" variant="secondary" size="sm" onClick={() => dialogRef.current?.showModal()}>Registrar novedad</Button>
+      {incident ? (
+        <Button type="button" variant="ghost" size="sm" onClick={() => dialogRef.current?.showModal()}>Corregir</Button>
+      ) : (
+        <Button type="button" variant="secondary" size="sm" onClick={() => dialogRef.current?.showModal()}>Registrar novedad</Button>
+      )}
 
       <dialog
         ref={dialogRef}
-        aria-labelledby="incident-dialog-title"
+        aria-labelledby={incident ? `incident-dialog-title-${incident.id}` : 'incident-dialog-title'}
         onClick={(event) => {
           if (event.target === event.currentTarget) close()
         }}
@@ -25,7 +31,7 @@ export function IncidentDialog({ staffMemberId, personName }: { staffMemberId: s
       >
         <div className="flex shrink-0 items-start justify-between gap-4 p-6 pb-4">
           <div className="grid gap-1">
-            <h2 id="incident-dialog-title" className="text-lg font-semibold">Registrar novedad</h2>
+            <h2 id={incident ? `incident-dialog-title-${incident.id}` : 'incident-dialog-title'} className="text-lg font-semibold">{title}</h2>
             <p className="text-sm text-foreground-secondary">{personName}</p>
           </div>
           <button
@@ -38,7 +44,7 @@ export function IncidentDialog({ staffMemberId, personName }: { staffMemberId: s
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
-          <IncidentForm staffMemberId={staffMemberId} formId={formId} onCancel={close} />
+          <IncidentForm staffMemberId={staffMemberId} formId={formId} onCancel={close} incident={incident} />
         </div>
       </dialog>
     </>

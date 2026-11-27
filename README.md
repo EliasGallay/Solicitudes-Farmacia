@@ -189,6 +189,7 @@ Gestión de personal (solo admin, `/personal`):
 
 1. Aplicar `supabase/migrations/202611260001_staff.sql` (personal, CAPS y licencias) y correr `supabase/checks/personal.sql`.
 2. Aplicar `supabase/migrations/202611270001_staff_incidents.sql` **después** del punto 1 (novedades de personal). Vuelve a correr `supabase/checks/personal.sql`: todas las filas tienen que empezar con «ok».
+3. Aplicar `supabase/migrations/202611280001_staff_edit.sql` **después** del punto 2 (corrección de licencias y novedades).
 
 ### Primer administrador
 

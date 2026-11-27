@@ -147,6 +147,8 @@ const messages = {
   'personal-novedad-nota-requerida': 'Escribí el texto del seguimiento.',
   'personal-novedad-registrada': 'Novedad registrada.',
   'personal-novedad-seguimiento-agregado': 'Seguimiento agregado.',
+  'personal-licencia-actualizada': 'Licencia corregida. Queda registrado en Auditoría.',
+  'personal-novedad-actualizada': 'Novedad corregida. Queda registrado en Auditoría.',
   'personal-novedad-anulada': 'Novedad anulada. Queda en el historial.',
   'sin-permiso': 'No tenés permiso para hacer esta operación.',
   'archivo-borrado': 'Archivo borrado.',
